@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from phishguard.agents.profiler import ProfilerAgent, ClassificationError
+from phishguard.agents.persona_engine import PersonaEngine
 from phishguard.models.classification import ClassificationResult
 
 router = APIRouter(prefix="/classification", tags=["classification"])
@@ -30,8 +31,16 @@ async def classify_email(request: ClassificationRequest) -> ClassificationResult
         HTTPException: If classification fails.
     """
     agent = ProfilerAgent()
+    persona_engine = PersonaEngine(seed=None)  # No seed for random variety by default
+
     try:
         result = await agent.classify(request.email_content)
+
+        if result.is_phishing:
+            persona = persona_engine.select_persona(result.attack_type)
+            # Create a new result with the selected persona
+            result = result.model_copy(update={"persona": persona})
+
         return result
     except ClassificationError as e:
         raise HTTPException(

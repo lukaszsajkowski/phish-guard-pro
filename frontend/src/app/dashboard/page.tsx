@@ -7,8 +7,10 @@ import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
+import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Persona } from "@/types/schemas";
 
 import {
     AlertDialog,
@@ -32,6 +34,7 @@ export default function DashboardPage() {
         attackType: any;
         confidence: number;
         reasoning: string;
+        persona?: Persona;
     } | null>(null);
 
     useEffect(() => {
@@ -102,7 +105,8 @@ export default function DashboardPage() {
             setClassificationResult({
                 attackType: data.attack_type,
                 confidence: data.confidence,
-                reasoning: data.reasoning
+                reasoning: data.reasoning,
+                persona: data.persona
             });
 
             // Check if safe
@@ -195,6 +199,9 @@ export default function DashboardPage() {
                                 confidence={classificationResult.confidence}
                                 reasoning={classificationResult.reasoning}
                             />
+                            {classificationResult.persona && (
+                                <PersonaCard persona={classificationResult.persona} />
+                            )}
                         </div>
                     </div>
                 )}

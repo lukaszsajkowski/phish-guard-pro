@@ -8,6 +8,8 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from phishguard.models.persona import PersonaProfile
+
 
 class AttackType(str, Enum):
     """Categories of phishing attacks that PhishGuard can identify.
@@ -87,13 +89,14 @@ class ClassificationResult(BaseModel):
 
     This model encapsulates the output of the classification process,
     including the detected attack type, confidence level, reasoning,
-    and performance metrics.
+    performance metrics, and the suggested victim persona.
 
     Attributes:
         attack_type: The identified category of phishing attack.
         confidence: Classification confidence as a percentage (0-100).
         reasoning: Human-readable explanation for the classification.
         classification_time_ms: Time taken to classify in milliseconds.
+        persona: The suggested victim persona for engagement (optional).
 
     Example:
         >>> result = ClassificationResult(
@@ -146,6 +149,10 @@ class ClassificationResult(BaseModel):
         json_schema_extra={
             "examples": [1250, 3500, 890],
         },
+    )
+    persona: PersonaProfile | None = Field(
+        default=None,
+        description="The suggested victim persona for engagement.",
     )
 
     @field_validator("confidence", mode="after")
