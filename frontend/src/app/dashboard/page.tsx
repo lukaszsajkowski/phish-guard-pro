@@ -10,11 +10,24 @@ import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 export default function DashboardPage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [emailContent, setEmailContent] = useState("");
+    const [showSafeWarning, setShowSafeWarning] = useState(false);
     const [classificationResult, setClassificationResult] = useState<{
         attackType: any;
         confidence: number;
@@ -65,17 +78,18 @@ export default function DashboardPage() {
         }
     };
 
-    const handleAnalyze = async (emailContent: string) => {
+    const handleAnalyze = async (contentToAnalyze: string) => {
         try {
             // Reset previous result
             setClassificationResult(null);
+            setShowSafeWarning(false);
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/classification/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email_content: emailContent }),
+                body: JSON.stringify({ email_content: contentToAnalyze }),
             });
 
             if (!response.ok) {
@@ -91,10 +105,25 @@ export default function DashboardPage() {
                 reasoning: data.reasoning
             });
 
+            // Check if safe
+            if (data.attack_type === "not_phishing") {
+                setShowSafeWarning(true);
+            }
+
         } catch (error) {
             console.error("Error analyzing email:", error);
             // TODO: generic error handling UI
         }
+    };
+
+    const handleContinueAnyway = () => {
+        setShowSafeWarning(false);
+    };
+
+    const handlePasteDifferentEmail = () => {
+        setShowSafeWarning(false);
+        setClassificationResult(null);
+        setEmailContent("");
     };
 
     if (isLoading) {
@@ -148,12 +177,16 @@ export default function DashboardPage() {
             {/* Main content */}
             <main className="flex flex-1 flex-col md:flex-row gap-6 p-6 max-w-7xl mx-auto w-full">
                 {/* Left Panel: Input */}
-                <div className={`flex-1 transition-all ${classificationResult ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
-                    <EmailInput onAnalyze={handleAnalyze} />
+                <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                    <EmailInput
+                        value={emailContent}
+                        onChange={setEmailContent}
+                        onAnalyze={handleAnalyze}
+                    />
                 </div>
 
                 {/* Right Panel: Results (Side Panel) */}
-                {classificationResult && (
+                {classificationResult && !showSafeWarning && (
                     <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
                         <div className="sticky top-6">
                             <h3 className="text-lg font-semibold mb-4 text-foreground/80">Analysis Results</h3>
@@ -166,6 +199,23 @@ export default function DashboardPage() {
                     </div>
                 )}
             </main>
+
+            <AlertDialog open={showSafeWarning} onOpenChange={setShowSafeWarning}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Possible Safe Email Detected</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This email doesn't appear to be phishing (Confidence: {classificationResult?.confidence}%).
+                            PhishGuard is designed to simulate conversations with scammers.
+                            Are you sure you want to continue with a legitimate email?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handlePasteDifferentEmail}>Paste different email</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleContinueAnyway}>Continue anyway</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

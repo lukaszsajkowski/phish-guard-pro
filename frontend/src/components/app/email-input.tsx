@@ -18,14 +18,15 @@ const MIN_CHARS = 10;
 const MAX_CHARS = 50_000;
 
 interface EmailInputProps {
+    value: string;
+    onChange: (value: string) => void;
     onAnalyze: (content: string) => Promise<void>;
 }
 
-export function EmailInput({ onAnalyze }: EmailInputProps) {
-    const [emailContent, setEmailContent] = useState("");
+export function EmailInput({ value, onChange, onAnalyze }: EmailInputProps) {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    const charCount = emailContent.length;
+    const charCount = value.length;
     const hasContent = charCount > 0;
     const isTooShort = hasContent && charCount < MIN_CHARS;
     const isTooLong = charCount > MAX_CHARS;
@@ -44,7 +45,7 @@ export function EmailInput({ onAnalyze }: EmailInputProps) {
 
         setIsAnalyzing(true);
         try {
-            await onAnalyze(emailContent);
+            await onAnalyze(value);
         } finally {
             setIsAnalyzing(false);
         }
@@ -79,8 +80,8 @@ export function EmailInput({ onAnalyze }: EmailInputProps) {
                     <Textarea
                         id="email-content"
                         data-testid="email-input-textarea"
-                        value={emailContent}
-                        onChange={(e) => setEmailContent(e.target.value)}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
                         placeholder="Paste phishing email content here..."
                         disabled={isAnalyzing}
                         className="min-h-[300px] resize-y"
