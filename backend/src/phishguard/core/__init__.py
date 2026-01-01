@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         env_file=Path(__file__).parent.parent.parent.parent.parent / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # Supabase - use alias to read NEXT_PUBLIC_* vars from shared .env

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, LogOut, Loader2, AlertTriangle } from "lucide-react";
+import { Shield, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
+import { EmailInput } from "@/components/app/email-input";
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -56,6 +57,30 @@ export default function DashboardPage() {
         }
     };
 
+    const handleAnalyze = async (emailContent: string) => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/analysis`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: emailContent }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Analysis failed');
+            }
+
+            const data = await response.json();
+            console.log("Analysis started:", data);
+            // In US-004 we will handle the response/navigation
+
+        } catch (error) {
+            console.error("Error analyzing email:", error);
+            // TODO: generic error handling UI
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
@@ -78,72 +103,35 @@ export default function DashboardPage() {
                             PhishGuard Pro
                         </span>
                     </Link>
-                    <button
-                        id="signout-button"
-                        onClick={handleSignOut}
-                        disabled={isSigningOut}
-                        className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-                    >
-                        {isSigningOut ? (
-                            <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Signing out...
-                            </>
-                        ) : (
-                            <>
-                                <LogOut className="h-4 w-4" />
-                                Sign out
-                            </>
-                        )}
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-muted-foreground">
+                            {user?.email}
+                        </span>
+                        <button
+                            id="signout-button"
+                            onClick={handleSignOut}
+                            disabled={isSigningOut}
+                            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            {isSigningOut ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Signing out...
+                                </>
+                            ) : (
+                                <>
+                                    <LogOut className="h-4 w-4" />
+                                    Sign out
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </header>
 
             {/* Main content */}
             <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-                <div className="w-full max-w-2xl space-y-8 text-center">
-                    {/* Welcome section */}
-                    <div className="space-y-4">
-                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20">
-                            <Shield className="h-10 w-10 text-primary" />
-                        </div>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            Welcome to PhishGuard Pro
-                        </h1>
-                        <p className="text-lg text-muted-foreground">
-                            Signed in as{" "}
-                            <span id="user-email" className="font-medium text-foreground">
-                                {user?.email}
-                            </span>
-                        </p>
-                    </div>
-
-                    {/* Coming soon placeholder */}
-                    <div className="rounded-xl border border-border/50 bg-card p-8 shadow-lg">
-                        <div className="flex items-center justify-center gap-3 text-amber-600 dark:text-amber-400">
-                            <AlertTriangle className="h-6 w-6" />
-                            <h2 className="text-lg font-semibold">Dashboard Under Construction</h2>
-                        </div>
-                        <p className="mt-4 text-muted-foreground">
-                            The phishing analysis dashboard is being developed. Soon you&apos;ll be able to
-                            paste suspicious emails, analyze threats, and generate intelligent responses.
-                        </p>
-                        <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-green-500" />
-                                Authentication
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                                Email Analysis
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-muted-foreground" />
-                                Conversation Loop
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <EmailInput onAnalyze={handleAnalyze} />
             </main>
         </div>
     );
