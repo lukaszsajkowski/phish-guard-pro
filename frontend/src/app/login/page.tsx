@@ -1,13 +1,66 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { Shield, ArrowLeft, CheckCircle } from "lucide-react";
+import { Shield, Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 function LoginContent() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const isJustRegistered = searchParams.get("registered") === "true";
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const isEmailValid = email === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const canSubmit = email && password && isEmailValid && !isLoading;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!canSubmit) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (signInError) {
+                if (signInError.message.includes("Invalid login credentials")) {
+                    setError("Invalid email or password");
+                } else {
+                    setError(signInError.message);
+                }
+                return;
+            }
+
+            // Success - redirect to dashboard
+            router.push("/dashboard");
+        } catch {
+            setError("Login failed. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
@@ -62,15 +115,94 @@ function LoginContent() {
                             </p>
                         </div>
 
-                        {/* Coming soon placeholder */}
-                        <div className="rounded-md border border-border bg-muted/50 p-6 text-center">
-                            <p className="text-sm text-muted-foreground">
-                                Login functionality coming soon.
-                            </p>
-                            <p className="mt-2 text-xs text-muted-foreground/70">
-                                This feature will be available in the next release.
-                            </p>
-                        </div>
+                        {/* Form */}
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Error message */}
+                            {error && (
+                                <div
+                                    id="login-error"
+                                    className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+                                >
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Email field */}
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="email"
+                                    className="text-sm font-medium leading-none"
+                                >
+                                    Email
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="flex h-11 w-full rounded-md border border-input bg-background px-4 py-2 text-sm transition-colors placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    autoComplete="email"
+                                    disabled={isLoading}
+                                />
+                                {email && !isEmailValid && (
+                                    <p className="text-xs text-destructive">
+                                        Please enter a valid email address
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Password field */}
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="password"
+                                    className="text-sm font-medium leading-none"
+                                >
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="flex h-11 w-full rounded-md border border-input bg-background px-4 py-2 pr-10 text-sm transition-colors placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                        autoComplete="current-password"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Submit button */}
+                            <button
+                                id="login-button"
+                                type="submit"
+                                disabled={!canSubmit}
+                                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    "Sign in"
+                                )}
+                            </button>
+                        </form>
 
                         {/* Footer */}
                         <p className="mt-6 text-center text-sm text-muted-foreground">
