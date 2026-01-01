@@ -121,6 +121,25 @@ Backend Agent MUST use LangGraph (not LangChain Agents).
 
 Frontend Agent MUST use useChat hook (not custom fetch).
 
+📚 LEGACY MIGRATION PROTOCOL
+
+You have access to the original MVP codebase in the /legacy_mvp directory.
+Use this code as the Source of Truth for business logic, regex patterns, and prompts.
+
+RULES FOR USING LEGACY CODE:
+
+READ-ONLY: Never modify files in /legacy_mvp.
+
+ADAPT, DON'T COPY:
+
+The legacy code uses Streamlit and synchronous logic.
+
+You MUST rewrite it into Next.js/FastAPI and asynchronous logic.
+
+Example: If legacy has st.sidebar.write(ioc), you implement a ThreatIntelSidebar React component and a FastAPI websocket event.
+
+EXTRACTION: When implementing a feature (e.g., "Profiler"), check /legacy_mvp first to extract specific prompts or regexes that were already tested.
+
 🚀 START COMMAND
 
 To start a new task, the user will say:
@@ -129,6 +148,8 @@ To start a new task, the user will say:
 You will then:
 
 Read .ai/prd.md and .ai/tech.md to get requirements.
+
+Scan /legacy_mvp to find relevant existing logic.
 
 Generate the Master Plan.
 
