@@ -78,6 +78,7 @@ export function EmailInput({ onAnalyze }: EmailInputProps) {
                     </label>
                     <Textarea
                         id="email-content"
+                        data-testid="email-input-textarea"
                         value={emailContent}
                         onChange={(e) => setEmailContent(e.target.value)}
                         placeholder="Paste phishing email content here..."
@@ -90,8 +91,8 @@ export function EmailInput({ onAnalyze }: EmailInputProps) {
                         <span
                             id="char-counter"
                             className={`text-sm ${isTooLong
-                                    ? "text-destructive"
-                                    : "text-muted-foreground"
+                                ? "text-destructive"
+                                : "text-muted-foreground"
                                 }`}
                         >
                             {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
@@ -111,6 +112,7 @@ export function EmailInput({ onAnalyze }: EmailInputProps) {
                 <CardFooter className="px-6 pb-6 pt-0">
                     <Button
                         id="analyze-button"
+                        data-testid="analyze-button"
                         onClick={handleAnalyze}
                         disabled={!canAnalyze}
                         className="w-full h-12 text-base"

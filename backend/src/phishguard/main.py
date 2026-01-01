@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from phishguard.api.auth import router as auth_router
 from phishguard.api.health import router as health_router
 from phishguard.api.routers.analysis import router as analysis_router
+from phishguard.api.routers.classification import router as classification_router
 from phishguard.core import get_settings
 
 
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(auth_router, prefix="/api")
     app.include_router(analysis_router, prefix="/api/v1")
+    app.include_router(classification_router, prefix="/api/v1")
 
     return app
 

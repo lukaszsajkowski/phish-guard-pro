@@ -6,12 +6,20 @@ import { Shield, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
+import { ClassificationResult } from "@/components/app/ClassificationResult";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSigningOut, setIsSigningOut] = useState(false);
+    const [classificationResult, setClassificationResult] = useState<{
+        attackType: any;
+        confidence: number;
+        reasoning: string;
+    } | null>(null);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -59,12 +67,15 @@ export default function DashboardPage() {
 
     const handleAnalyze = async (emailContent: string) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/analysis`, {
+            // Reset previous result
+            setClassificationResult(null);
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/classification/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ content: emailContent }),
+                body: JSON.stringify({ email_content: emailContent }),
             });
 
             if (!response.ok) {
@@ -72,8 +83,13 @@ export default function DashboardPage() {
             }
 
             const data = await response.json();
-            console.log("Analysis started:", data);
-            // In US-004 we will handle the response/navigation
+
+            // Map API response to component props
+            setClassificationResult({
+                attackType: data.attack_type,
+                confidence: data.confidence,
+                reasoning: data.reasoning
+            });
 
         } catch (error) {
             console.error("Error analyzing email:", error);
@@ -130,8 +146,25 @@ export default function DashboardPage() {
             </header>
 
             {/* Main content */}
-            <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-                <EmailInput onAnalyze={handleAnalyze} />
+            <main className="flex flex-1 flex-col md:flex-row gap-6 p-6 max-w-7xl mx-auto w-full">
+                {/* Left Panel: Input */}
+                <div className={`flex-1 transition-all ${classificationResult ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                    <EmailInput onAnalyze={handleAnalyze} />
+                </div>
+
+                {/* Right Panel: Results (Side Panel) */}
+                {classificationResult && (
+                    <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
+                        <div className="sticky top-6">
+                            <h3 className="text-lg font-semibold mb-4 text-foreground/80">Analysis Results</h3>
+                            <ClassificationResult
+                                attackType={classificationResult.attackType}
+                                confidence={classificationResult.confidence}
+                                reasoning={classificationResult.reasoning}
+                            />
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
