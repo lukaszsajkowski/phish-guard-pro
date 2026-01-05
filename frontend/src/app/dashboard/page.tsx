@@ -87,15 +87,34 @@ export default function DashboardPage() {
             setClassificationResult(null);
             setShowSafeWarning(false);
 
+            // Get auth token from Supabase
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/classification/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
                 },
                 body: JSON.stringify({ email_content: contentToAnalyze }),
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Session expired. Please log in again.');
+                }
                 throw new Error('Analysis failed');
             }
 

@@ -154,6 +154,10 @@ class ClassificationResult(BaseModel):
         default=None,
         description="The suggested victim persona for engagement.",
     )
+    session_id: str | None = Field(
+        default=None,
+        description="The database session ID for this classification.",
+    )
 
     @field_validator("confidence", mode="after")
     @classmethod
