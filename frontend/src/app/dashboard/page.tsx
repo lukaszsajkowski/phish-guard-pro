@@ -8,9 +8,8 @@ import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { Persona } from "@/types/schemas";
+import { ChatArea } from "@/components/dashboard/ChatArea";
+import { Persona, ChatMessage } from "@/types/schemas";
 
 import {
     AlertDialog,
@@ -30,6 +29,9 @@ export default function DashboardPage() {
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [emailContent, setEmailContent] = useState("");
     const [showSafeWarning, setShowSafeWarning] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [classificationResult, setClassificationResult] = useState<{
         attackType: any;
         confidence: number;
@@ -86,6 +88,8 @@ export default function DashboardPage() {
             // Reset previous result
             setClassificationResult(null);
             setShowSafeWarning(false);
+            setSessionId(null);
+            setMessages([]);
 
             // Get auth token from Supabase
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -120,6 +124,11 @@ export default function DashboardPage() {
 
             const data = await response.json();
 
+            // Store session ID for response generation
+            if (data.session_id) {
+                setSessionId(data.session_id);
+            }
+
             // Map API response to component props
             setClassificationResult({
                 attackType: data.attack_type,
@@ -139,6 +148,67 @@ export default function DashboardPage() {
         }
     };
 
+    const handleGenerateResponse = async () => {
+        if (!sessionId) {
+            console.error("No session ID available");
+            return;
+        }
+
+        setIsGenerating(true);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/response/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ session_id: sessionId }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Session expired. Please log in again.');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Response generation failed');
+            }
+
+            const data = await response.json();
+
+            // Add the generated response to messages
+            const newMessage: ChatMessage = {
+                id: data.message_id,
+                sender: "bot",
+                content: data.content,
+                timestamp: new Date(),
+                thinking: data.thinking,
+            };
+
+            setMessages(prev => [...prev, newMessage]);
+
+        } catch (error) {
+            console.error("Error generating response:", error);
+            // TODO: Show error toast
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleContinueAnyway = () => {
         setShowSafeWarning(false);
     };
@@ -147,6 +217,8 @@ export default function DashboardPage() {
         setShowSafeWarning(false);
         setClassificationResult(null);
         setEmailContent("");
+        setSessionId(null);
+        setMessages([]);
     };
 
     if (isLoading) {
@@ -159,6 +231,9 @@ export default function DashboardPage() {
             </div>
         );
     }
+
+    // Determine if we should show the chat area
+    const showChatArea = classificationResult && !showSafeWarning && classificationResult.attackType !== "not_phishing";
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
@@ -198,30 +273,45 @@ export default function DashboardPage() {
             </header>
 
             {/* Main content */}
-            <main className="flex flex-1 flex-col md:flex-row gap-6 p-6 max-w-7xl mx-auto w-full">
-                {/* Left Panel: Input */}
-                <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
-                    <EmailInput
-                        value={emailContent}
-                        onChange={setEmailContent}
-                        onAnalyze={handleAnalyze}
-                    />
+            <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+                {/* Top row: Email Input + Analysis Results */}
+                <div className="flex flex-col md:flex-row gap-6">
+                    {/* Left Panel: Input */}
+                    <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                        <EmailInput
+                            value={emailContent}
+                            onChange={setEmailContent}
+                            onAnalyze={handleAnalyze}
+                        />
+                    </div>
+
+                    {/* Right Panel: Results (Side Panel) */}
+                    {classificationResult && !showSafeWarning && (
+                        <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
+                            <div className="sticky top-6 space-y-4">
+                                <h3 className="text-lg font-semibold text-foreground/80">Analysis Results</h3>
+                                <ClassificationResult
+                                    attackType={classificationResult.attackType}
+                                    confidence={classificationResult.confidence}
+                                    reasoning={classificationResult.reasoning}
+                                />
+                                {classificationResult.persona && (
+                                    <PersonaCard persona={classificationResult.persona} />
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Right Panel: Results (Side Panel) */}
-                {classificationResult && !showSafeWarning && (
-                    <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
-                        <div className="sticky top-6">
-                            <h3 className="text-lg font-semibold mb-4 text-foreground/80">Analysis Results</h3>
-                            <ClassificationResult
-                                attackType={classificationResult.attackType}
-                                confidence={classificationResult.confidence}
-                                reasoning={classificationResult.reasoning}
-                            />
-                            {classificationResult.persona && (
-                                <PersonaCard persona={classificationResult.persona} />
-                            )}
-                        </div>
+                {/* Chat Area - shown after classification */}
+                {showChatArea && (
+                    <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
+                        <ChatArea
+                            messages={messages}
+                            isGenerating={isGenerating}
+                            onGenerateResponse={handleGenerateResponse}
+                            showGenerateButton={sessionId !== null}
+                        />
                     </div>
                 )}
             </main>

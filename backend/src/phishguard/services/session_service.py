@@ -150,6 +150,7 @@ async def update_session_classification(
     )
 
 
+
 def _generate_session_title(email_content: str, max_length: int = 50) -> str:
     """Generate a session title from email content.
 
@@ -167,3 +168,105 @@ def _generate_session_title(email_content: str, max_length: int = 50) -> str:
         return first_line
 
     return first_line[: max_length - 3] + "..."
+
+
+async def get_session(session_id: str) -> dict[str, Any] | None:
+    """Retrieve a session by its ID.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Session data as a dict, or None if not found.
+    """
+    supabase = _get_supabase_client()
+
+    result = supabase.table("sessions").select("*").eq("id", session_id).execute()
+
+    if not result.data or len(result.data) == 0:
+        return None
+
+    return result.data[0]
+
+
+async def get_session_messages(session_id: str) -> list[dict[str, Any]]:
+    """Retrieve all messages for a session.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        List of message dicts, ordered by creation time.
+    """
+    supabase = _get_supabase_client()
+
+    result = (
+        supabase.table("messages")
+        .select("*")
+        .eq("session_id", session_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return result.data if result.data else []
+
+
+async def get_original_email(session_id: str) -> str | None:
+    """Retrieve the original email content for a session.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        The original email content, or None if not found.
+    """
+    supabase = _get_supabase_client()
+
+    result = (
+        supabase.table("messages")
+        .select("content")
+        .eq("session_id", session_id)
+        .eq("role", "user")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not result.data or len(result.data) == 0:
+        return None
+
+    return result.data[0]["content"]
+
+
+async def add_bot_response(
+    session_id: str,
+    content: str,
+    thinking: dict[str, Any] | None = None,
+    generation_time_ms: int = 0,
+) -> str:
+    """Add a bot-generated response to a session.
+
+    Args:
+        session_id: The session's UUID.
+        content: The response content.
+        thinking: Optional agent thinking metadata.
+        generation_time_ms: Time taken to generate the response.
+
+    Returns:
+        The created message's UUID as a string.
+    """
+    metadata: dict[str, Any] = {
+        "type": "bot_response",
+        "generation_time_ms": generation_time_ms,
+    }
+
+    if thinking:
+        metadata["thinking"] = thinking
+
+    return await add_message(
+        session_id=session_id,
+        role="assistant",
+        content=content,
+        metadata=metadata,
+    )
+
