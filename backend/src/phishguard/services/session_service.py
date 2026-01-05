@@ -364,3 +364,77 @@ async def get_conversation_history(session_id: str) -> list[dict[str, Any]]:
         })
 
     return history
+
+
+async def save_extracted_iocs(
+    session_id: str,
+    iocs: list[dict[str, Any]],
+) -> list[str]:
+    """Save extracted IOCs to the ioc_extracted table.
+
+    Args:
+        session_id: The session's UUID.
+        iocs: List of IOC dicts with keys: type, value, context, is_high_value.
+
+    Returns:
+        List of created IOC UUIDs.
+
+    Raises:
+        Exception: If IOC insertion fails.
+    """
+    if not iocs:
+        return []
+
+    supabase = _get_supabase_client()
+
+    # Prepare IOC records for insertion
+    ioc_records = []
+    for ioc in iocs:
+        # Map backend IOCType values to database values
+        ioc_type = ioc.get("type", "")
+        if ioc_type == "btc_wallet":
+            ioc_type = "btc"
+
+        ioc_records.append({
+            "session_id": session_id,
+            "type": ioc_type,
+            "value": ioc.get("value", ""),
+            "confidence": 1.0 if ioc.get("is_high_value", False) else 0.8,
+        })
+
+    result = supabase.table("ioc_extracted").insert(ioc_records).execute()
+
+    if not result.data:
+        raise Exception("Failed to save IOCs")
+
+    ioc_ids = [record["id"] for record in result.data]
+    logger.info(
+        "Saved %d IOCs to session %s: %s",
+        len(ioc_ids),
+        session_id,
+        [r["type"] for r in ioc_records],
+    )
+
+    return ioc_ids
+
+
+async def get_session_iocs(session_id: str) -> list[dict[str, Any]]:
+    """Retrieve all IOCs for a session.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        List of IOC dicts ordered by creation time.
+    """
+    supabase = _get_supabase_client()
+
+    result = (
+        supabase.table("ioc_extracted")
+        .select("*")
+        .eq("session_id", session_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return result.data if result.data else []

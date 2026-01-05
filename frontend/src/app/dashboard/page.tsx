@@ -9,7 +9,8 @@ import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
-import { Persona, ChatMessage } from "@/types/schemas";
+import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
+import { Persona, ChatMessage, ExtractedIOC } from "@/types/schemas";
 
 import {
     AlertDialog,
@@ -38,6 +39,7 @@ export default function DashboardPage() {
         reasoning: string;
         persona?: Persona;
     } | null>(null);
+    const [extractedIOCs, setExtractedIOCs] = useState<ExtractedIOC[]>([]);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -90,6 +92,7 @@ export default function DashboardPage() {
             setShowSafeWarning(false);
             setSessionId(null);
             setMessages([]);
+            setExtractedIOCs([]);
 
             // Get auth token from Supabase
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -334,6 +337,11 @@ export default function DashboardPage() {
 
             setMessages(prev => [...prev, scammerChatMessage, botMessage]);
 
+            // Update extracted IOCs from response
+            if (data.extracted_iocs && data.extracted_iocs.length > 0) {
+                setExtractedIOCs(prev => [...prev, ...data.extracted_iocs]);
+            }
+
         } catch (error) {
             console.error("Error submitting scammer message:", error);
             throw error; // Re-throw so ScammerInput can display the error
@@ -352,6 +360,7 @@ export default function DashboardPage() {
         setEmailContent("");
         setSessionId(null);
         setMessages([]);
+        setExtractedIOCs([]);
     };
 
     if (isLoading) {
@@ -431,6 +440,7 @@ export default function DashboardPage() {
                                 {classificationResult.persona && (
                                     <PersonaCard persona={classificationResult.persona} />
                                 )}
+                                <IntelDashboard iocs={extractedIOCs} />
                             </div>
                         </div>
                     )}

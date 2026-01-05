@@ -193,6 +193,12 @@ async def generate_response(
                 request.session_id,
             )
 
+            # Persist IOCs to database
+            await session_service.save_extracted_iocs(
+                session_id=request.session_id,
+                iocs=extracted_iocs,
+            )
+
     # Fetch conversation history
     history_data = await session_service.get_conversation_history(request.session_id)
     conversation_history: list[ConversationMessage] = []

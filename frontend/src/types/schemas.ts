@@ -39,3 +39,11 @@ export interface ChatMessage {
     thinking?: AgentThinking;
 }
 
+export interface ExtractedIOC {
+    id?: string;
+    type: "btc" | "btc_wallet" | "iban" | "phone" | "url";
+    value: string;
+    context?: string;
+    is_high_value: boolean;
+    created_at?: string;
+}
