@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { Loader2, MessageSquare, Sparkles } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/types/schemas";
 import { ChatMessage } from "./ChatMessage";
+import { ScammerInput } from "./ScammerInput";
 import { Button } from "@/components/ui/button";
 
 interface ChatAreaProps {
@@ -12,6 +13,7 @@ interface ChatAreaProps {
     onGenerateResponse: () => void;
     showGenerateButton: boolean;
     onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+    onSubmitScammerMessage?: (message: string) => Promise<void>;
     sessionId?: string;
 }
 
@@ -21,6 +23,7 @@ export function ChatArea({
     onGenerateResponse,
     showGenerateButton,
     onEditMessage,
+    onSubmitScammerMessage,
     sessionId,
 }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,19 +103,18 @@ export function ChatArea({
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Generate button for subsequent turns (will be implemented in US-010) */}
-            {messages.length > 0 && showGenerateButton && !isGenerating && (
-                <div className="pt-4 border-t border-border/50 mt-4">
-                    <Button
-                        onClick={onGenerateResponse}
-                        className="w-full gap-2"
-                        data-testid="generate-next-response-button"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        Generate Next Response
-                    </Button>
-                </div>
-            )}
+            {/* Scammer input - shown after last bot message when not generating */}
+            {messages.length > 0 &&
+                messages[messages.length - 1]?.sender === "bot" &&
+                !isGenerating &&
+                onSubmitScammerMessage && (
+                    <div className="pt-4 border-t border-border/50 mt-4">
+                        <ScammerInput
+                            onSubmit={onSubmitScammerMessage}
+                            disabled={isGenerating}
+                        />
+                    </div>
+                )}
         </div>
     );
 }

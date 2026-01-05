@@ -7,8 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from phishguard.agents.conversation import ConversationAgent, ResponseGenerationError
+from phishguard.agents.intel_collector import IntelCollector, ExtractionResult
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.models.classification import AttackType
+from phishguard.models.conversation import ConversationMessage, MessageSender
+from phishguard.models.ioc import ExtractedIOC
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
 from phishguard.safety import OutputValidator
@@ -23,6 +26,12 @@ class ResponseGenerationRequest(BaseModel):
     """Request model for response generation."""
 
     session_id: str = Field(..., description="The session ID to generate a response for")
+    scammer_message: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50000,
+        description="Optional scammer message to add before generating response",
+    )
 
 
 class ResponseGenerationResponse(BaseModel):
@@ -35,6 +44,8 @@ class ResponseGenerationResponse(BaseModel):
     used_fallback_model: bool = Field(False, description="Whether fallback model was used")
     thinking: AgentThinking | None = Field(None, description="Agent thinking metadata")
     message_id: str = Field(..., description="The stored message ID")
+    scammer_message_id: str | None = Field(None, description="The stored scammer message ID if provided")
+    extracted_iocs: list[dict] = Field(default_factory=list, description="IOCs extracted from scammer message")
 
 
 class ResponseValidationRequest(BaseModel):
@@ -149,6 +160,57 @@ async def generate_response(
             detail="No email content found for session",
         )
 
+    # Handle scammer message if provided (multi-turn)
+    scammer_message_id: str | None = None
+    extracted_iocs: list[dict] = []
+
+    if request.scammer_message:
+        # Save the scammer message
+        scammer_message_id = await session_service.add_scammer_message(
+            session_id=request.session_id,
+            content=request.scammer_message,
+        )
+
+        # Extract IOCs from scammer message
+        intel_collector = IntelCollector()
+        conversation_history = await session_service.get_conversation_history(request.session_id)
+        message_index = len(conversation_history)
+        extraction_result = intel_collector.extract(request.scammer_message, message_index)
+
+        if extraction_result.has_iocs:
+            extracted_iocs = [
+                {
+                    "type": ioc.ioc_type.value,
+                    "value": ioc.value,
+                    "context": ioc.context,
+                    "is_high_value": ioc.is_high_value,
+                }
+                for ioc in extraction_result.iocs
+            ]
+            logger.info(
+                "Extracted %d IOCs from scammer message in session %s",
+                len(extracted_iocs),
+                request.session_id,
+            )
+
+    # Fetch conversation history
+    history_data = await session_service.get_conversation_history(request.session_id)
+    conversation_history: list[ConversationMessage] = []
+
+    for msg in history_data:
+        sender_str = msg.get("sender", "")
+        try:
+            sender = MessageSender(sender_str)
+            conversation_history.append(ConversationMessage(
+                sender=sender,
+                content=msg.get("content", ""),
+            ))
+        except ValueError:
+            logger.warning("Unknown sender type: %s", sender_str)
+            continue
+
+    is_first_response = len(conversation_history) == 0
+
     # Generate response
     agent = ConversationAgent()
 
@@ -157,7 +219,8 @@ async def generate_response(
             persona=persona,
             email_content=email_content,
             attack_type=attack_type,
-            is_first_response=True,  # For now, always first response
+            conversation_history=conversation_history if conversation_history else None,
+            is_first_response=is_first_response,
         )
 
         # Persist the generated response
@@ -192,6 +255,8 @@ async def generate_response(
             used_fallback_model=result.used_fallback_model,
             thinking=result.thinking,
             message_id=message_id,
+            scammer_message_id=scammer_message_id,
+            extracted_iocs=extracted_iocs,
         )
 
     except ResponseGenerationError as e:

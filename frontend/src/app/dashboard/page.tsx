@@ -271,6 +271,77 @@ export default function DashboardPage() {
         );
     };
 
+    const handleSubmitScammerMessage = async (scammerMessage: string) => {
+        if (!sessionId) {
+            throw new Error("No session ID available");
+        }
+
+        setIsGenerating(true);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/response/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    scammer_message: scammerMessage,
+                }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Session expired. Please log in again.');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Response generation failed');
+            }
+
+            const data = await response.json();
+
+            // Add scammer message to local state
+            const scammerChatMessage: ChatMessage = {
+                id: data.scammer_message_id || `scammer-${Date.now()}`,
+                sender: "scammer",
+                content: scammerMessage,
+                timestamp: new Date(),
+            };
+
+            // Add bot response to local state
+            const botMessage: ChatMessage = {
+                id: data.message_id,
+                sender: "bot",
+                content: data.content,
+                timestamp: new Date(),
+                thinking: data.thinking,
+            };
+
+            setMessages(prev => [...prev, scammerChatMessage, botMessage]);
+
+        } catch (error) {
+            console.error("Error submitting scammer message:", error);
+            throw error; // Re-throw so ScammerInput can display the error
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleContinueAnyway = () => {
         setShowSafeWarning(false);
     };
@@ -374,6 +445,7 @@ export default function DashboardPage() {
                             onGenerateResponse={handleGenerateResponse}
                             showGenerateButton={sessionId !== null}
                             onEditMessage={handleEditMessage}
+                            onSubmitScammerMessage={handleSubmitScammerMessage}
                             sessionId={sessionId ?? undefined}
                         />
                     </div>

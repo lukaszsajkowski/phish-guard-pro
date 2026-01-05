@@ -244,3 +244,134 @@ The Analytics Team
 123 Tech Drive, San Francisco, CA
 Unsubscribe
 ```
+
+---
+
+## 10. Multi-Turn Scam Sequence (Nigerian 419)
+
+Use these emails to test the multi-turn conversation flow. Paste each scammer response in sequence.
+
+### Initial Email (paste first)
+
+```text
+Subject: URGENT: Inheritance Funds Transfer
+
+Dear Beneficiary,
+
+I am Barrister James Okonkwo, legal counsel to the late Chief Michael Williams, a British oil contractor who died in a plane crash in 2019. Before his death, he deposited $8.7 Million USD in a security company here in Lagos.
+
+After thorough investigation, I discovered you share the same surname and country of origin. I am proposing that you stand as the next of kin so the funds can be released to you.
+
+This is 100% legal and risk-free. You will receive 60% of the funds while I take 40% for my legal services.
+
+Please respond with your:
+- Full name
+- Phone number
+- Current address
+
+I await your urgent response.
+
+Barrister James Okonkwo, Esq.
+```
+
+### Scammer Response 1 (after first bot reply)
+
+```text
+Dear Friend,
+
+Thank you for your quick response! I am very pleased you are interested in this opportunity.
+
+To proceed, I need you to fill out the inheritance claim form. There is a small processing fee of $150 for the legal documentation.
+
+Please send the payment via Western Union to:
+Receiver: John Adebayo
+Location: Lagos, Nigeria
+Amount: $150 USD
+
+Once payment is confirmed, I will file the claim immediately.
+
+Contact me at +234 801 234 5678 if you have questions.
+
+Best regards,
+Barrister Okonkwo
+```
+
+**IOCs to detect:**
+- Phone: `+234 801 234 5678`
+
+### Scammer Response 2 (after second bot reply)
+
+```text
+Excellent! I have received confirmation of your payment. Thank you for your trust.
+
+However, the security company is requiring an anti-terrorism certificate before releasing the funds. This is a new government regulation.
+
+The certificate costs $350 and must be paid to the Nigerian Ministry of Finance.
+
+Please send via Bitcoin to this wallet:
+bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+
+Or wire transfer to:
+Bank: First Bank Nigeria
+Account: 2033456789
+IBAN: NG12FBNI20334567890123
+
+The funds ($8.7 Million) will be in your account within 48 hours after this payment!
+
+Warm regards,
+J. Okonkwo
+```
+
+**IOCs to detect:**
+- BTC Wallet: `bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh`
+- IBAN: `NG12FBNI20334567890123`
+
+### Scammer Response 3 (escalation)
+
+```text
+Dear Friend,
+
+I am happy to inform you the certificate has been approved! The funds are ready for transfer.
+
+But there is one final step - the bank requires a "Fund Activation Fee" of $500 to unfreeze the dormant account. This is standard procedure for accounts inactive for 5+ years.
+
+This is the LAST payment required. I give you my word as a legal professional.
+
+Please send to our secure payment portal:
+https://secure-inheritance-pay.com/activate?ref=MW2024
+
+Or call our financial officer directly: +1-555-987-6543
+
+Your millions are waiting!
+
+Barrister Okonkwo
+```
+
+**IOCs to detect:**
+- URL: `https://secure-inheritance-pay.com/activate?ref=MW2024`
+- Phone: `+1-555-987-6543`
+
+### Scammer Response 4 (final push)
+
+```text
+URGENT!!!
+
+Why have you stopped responding? The funds are about to be confiscated by the government!
+
+This is your LAST CHANCE. The Central Bank of Nigeria is closing all dormant inheritance accounts on Friday.
+
+I have personally reduced the activation fee to just $250 as a sign of good faith.
+
+Send IMMEDIATELY to:
+PayPal: barrister.okonkwo.funds@gmail.com
+Or Zelle: +1-888-555-0199
+
+If I do not hear from you by tomorrow, the $8.7 MILLION DOLLARS will be gone forever!!!
+
+ACT NOW!!!
+
+J. Okonkwo
+```
+
+**IOCs to detect:**
+- Phone: `+1-888-555-0199`

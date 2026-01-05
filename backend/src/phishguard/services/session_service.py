@@ -301,3 +301,66 @@ async def update_message_content(
 
     logger.info("Updated message %s content", message_id)
 
+
+async def add_scammer_message(
+    session_id: str,
+    content: str,
+) -> str:
+    """Add a scammer message to a session.
+
+    Used when a user pastes a scammer's response (US-010).
+
+    Args:
+        session_id: The session's UUID.
+        content: The scammer's message content.
+
+    Returns:
+        The created message's UUID as a string.
+    """
+    metadata: dict[str, Any] = {
+        "type": "scammer_message",
+    }
+
+    return await add_message(
+        session_id=session_id,
+        role="scammer",
+        content=content,
+        metadata=metadata,
+    )
+
+
+async def get_conversation_history(session_id: str) -> list[dict[str, Any]]:
+    """Retrieve conversation history for a session (excluding original email).
+
+    Returns messages in chronological order, formatted for the ConversationAgent.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        List of message dicts with 'sender' and 'content' keys.
+    """
+    messages = await get_session_messages(session_id)
+
+    # Filter out the original email and format for conversation
+    history = []
+    for msg in messages:
+        metadata = msg.get("metadata", {})
+        if metadata.get("type") == "original_email":
+            continue
+
+        # Map database roles to conversation sender types
+        role = msg.get("role", "")
+        if role == "assistant":
+            sender = "bot"
+        elif role == "scammer":
+            sender = "scammer"
+        else:
+            continue  # Skip unknown roles
+
+        history.append({
+            "sender": sender,
+            "content": msg.get("content", ""),
+        })
+
+    return history
