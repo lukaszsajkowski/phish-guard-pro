@@ -7,7 +7,7 @@ test.describe('Email Input & Analysis Flow', () => {
 
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 10000);
-        const email = `test-${timestamp}-${random}@example.com`;
+        const email = `e2e-test-${timestamp}-${random}@example.com`;
         const password = 'validPassword123';
 
         await page.locator('#email').fill(email);

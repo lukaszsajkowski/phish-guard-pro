@@ -6,7 +6,7 @@ test.describe('Safe Email Handling', () => {
         await page.goto('/register');
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 10000);
-        const email = `test-safe-${timestamp}-${random}@example.com`;
+        const email = `e2e-test-safe-${timestamp}-${random}@example.com`;
         const password = 'validPassword123';
 
         await page.locator('#email').fill(email);
