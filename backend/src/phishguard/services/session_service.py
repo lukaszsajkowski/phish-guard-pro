@@ -270,3 +270,34 @@ async def add_bot_response(
         metadata=metadata,
     )
 
+
+async def update_message_content(
+    message_id: str,
+    new_content: str,
+) -> None:
+    """Update an existing message's content.
+
+    Used when a user edits a generated response (US-008).
+
+    Args:
+        message_id: The message's UUID.
+        new_content: The new content to save.
+
+    Raises:
+        Exception: If update fails or message not found.
+    """
+    supabase = _get_supabase_client()
+
+    # Update the message content
+    result = (
+        supabase.table("messages")
+        .update({"content": new_content})
+        .eq("id", message_id)
+        .execute()
+    )
+
+    if not result.data or len(result.data) == 0:
+        raise Exception(f"Failed to update message {message_id}")
+
+    logger.info("Updated message %s content", message_id)
+

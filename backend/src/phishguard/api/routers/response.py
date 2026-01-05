@@ -11,6 +11,7 @@ from phishguard.api.dependencies import get_current_user_id
 from phishguard.models.classification import AttackType
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
+from phishguard.safety import OutputValidator
 from phishguard.services import session_service
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,28 @@ class ResponseGenerationResponse(BaseModel):
     used_fallback_model: bool = Field(False, description="Whether fallback model was used")
     thinking: AgentThinking | None = Field(None, description="Agent thinking metadata")
     message_id: str = Field(..., description="The stored message ID")
+
+
+class ResponseValidationRequest(BaseModel):
+    """Request model for response content validation."""
+
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=50000,
+        description="The edited response content to validate",
+    )
+    session_id: str = Field(..., description="The session ID for authorization context")
+    message_id: str = Field(..., description="The message ID being edited")
+
+
+class ResponseValidationResponse(BaseModel):
+    """Response model for validation result."""
+
+    is_safe: bool = Field(..., description="Whether the content passed safety checks")
+    violations: list[str] = Field(
+        default_factory=list, description="List of violation descriptions if unsafe"
+    )
 
 
 @router.post(
@@ -183,3 +206,90 @@ async def generate_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Response generation failed. Please try again.",
         )
+
+
+@router.post(
+    "/validate",
+    response_model=ResponseValidationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Validate edited response content",
+    description="Validates user-edited response content for safety violations. Used before saving edits.",
+)
+async def validate_response(
+    request: ResponseValidationRequest,
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> ResponseValidationResponse:
+    """
+    Validate edited response content for safety violations.
+
+    This endpoint is used when a user edits a generated response (US-008).
+    The content is validated through the same safety layer used for
+    generated responses to ensure no real PII is included.
+
+    Args:
+        request: The request body containing content to validate.
+        user_id: The authenticated user's ID (from JWT).
+
+    Returns:
+        ResponseValidationResponse with safety status and any violations.
+
+    Raises:
+        HTTPException: If session not found or user not authorized.
+    """
+    # Load session to verify ownership
+    session = await session_service.get_session(request.session_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    # Verify user owns this session
+    if session.get("user_id") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this session",
+        )
+
+    # Validate the content through safety layer
+    validator = OutputValidator()
+    result = validator.validate(request.content)
+
+    # Build violation descriptions for the frontend
+    violation_descriptions = [
+        f"{v.violation_type.value}: {v.description}" for v in result.violations
+    ]
+
+    # If content is safe, persist the changes to the database
+    if result.is_safe:
+        try:
+            await session_service.update_message_content(
+                message_id=request.message_id,
+                new_content=request.content,
+            )
+            logger.info(
+                "Saved edited message %s for session %s (user %s)",
+                request.message_id,
+                request.session_id,
+                user_id,
+            )
+        except Exception as e:
+            logger.error("Failed to save edited message: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save edited content",
+            )
+    else:
+        logger.info(
+            "Validated edited content for session %s (user %s): safe=%s, violations=%d",
+            request.session_id,
+            user_id,
+            result.is_safe,
+            len(result.violations),
+        )
+
+    return ResponseValidationResponse(
+        is_safe=result.is_safe,
+        violations=violation_descriptions,
+    )

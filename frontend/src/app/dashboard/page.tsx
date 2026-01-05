@@ -209,6 +209,68 @@ export default function DashboardPage() {
         }
     };
 
+    const handleEditMessage = async (messageId: string, newContent: string) => {
+        if (!sessionId) {
+            throw new Error("No session ID available");
+        }
+
+        // Get auth token from Supabase
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            throw new Error("Supabase configuration missing");
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+            throw new Error("Not authenticated");
+        }
+
+        // Validate the edited content through safety layer
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/response/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+                content: newContent,
+                session_id: sessionId,
+                message_id: messageId,
+            }),
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Session expired. Please log in again.');
+            }
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Validation failed');
+        }
+
+        const data = await response.json();
+
+        if (!data.is_safe) {
+            // Content failed safety validation - throw error with violations
+            const violationSummary = data.violations.length > 0
+                ? `Unsafe content detected: ${data.violations.join(', ')}`
+                : 'Content failed safety validation';
+            throw new Error(violationSummary);
+        }
+
+        // Content is safe - update the message in local state
+        setMessages(prev =>
+            prev.map(msg =>
+                msg.id === messageId
+                    ? { ...msg, content: newContent }
+                    : msg
+            )
+        );
+    };
+
     const handleContinueAnyway = () => {
         setShowSafeWarning(false);
     };
@@ -311,6 +373,8 @@ export default function DashboardPage() {
                             isGenerating={isGenerating}
                             onGenerateResponse={handleGenerateResponse}
                             showGenerateButton={sessionId !== null}
+                            onEditMessage={handleEditMessage}
+                            sessionId={sessionId ?? undefined}
                         />
                     </div>
                 )}

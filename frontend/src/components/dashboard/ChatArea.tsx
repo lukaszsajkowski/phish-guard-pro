@@ -11,6 +11,8 @@ interface ChatAreaProps {
     isGenerating: boolean;
     onGenerateResponse: () => void;
     showGenerateButton: boolean;
+    onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+    sessionId?: string;
 }
 
 export function ChatArea({
@@ -18,6 +20,8 @@ export function ChatArea({
     isGenerating,
     onGenerateResponse,
     showGenerateButton,
+    onEditMessage,
+    sessionId,
 }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +82,8 @@ export function ChatArea({
                         key={message.id}
                         message={message}
                         showThinking={message.sender === "bot"}
+                        onEditMessage={onEditMessage}
+                        sessionId={sessionId}
                     />
                 ))}
 
