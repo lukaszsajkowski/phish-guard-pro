@@ -45,6 +45,9 @@ class ResponseGenerationResponse(BaseModel):
     message_id: str = Field(..., description="The stored message ID")
     scammer_message_id: str | None = Field(None, description="The stored scammer message ID if provided")
     extracted_iocs: list[dict] = Field(default_factory=list, description="IOCs extracted from scammer message")
+    turn_count: int = Field(..., description="Current conversation turn number")
+    turn_limit: int = Field(20, description="Maximum turn limit for the session")
+    is_at_limit: bool = Field(False, description="Whether the session has reached its turn limit")
 
 
 class ResponseValidationRequest(BaseModel):
@@ -284,6 +287,9 @@ async def generate_response(
             generation_time_ms,
         )
 
+        # Get turn count and limit info
+        session_info = await session_service.get_session_info(request.session_id)
+
         return ResponseGenerationResponse(
             content=response_content,
             generation_time_ms=generation_time_ms,
@@ -294,6 +300,9 @@ async def generate_response(
             message_id=message_id,
             scammer_message_id=scammer_message_id,
             extracted_iocs=extracted_iocs,
+            turn_count=session_info["turn_count"],
+            turn_limit=session_info["turn_limit"],
+            is_at_limit=session_info["is_at_limit"],
         )
 
     except ResponseGenerationError as e:
@@ -396,4 +405,90 @@ async def validate_response(
     return ResponseValidationResponse(
         is_safe=result.is_safe,
         violations=violation_descriptions,
+    )
+
+
+class SessionExtendRequest(BaseModel):
+    """Request model for extending session limit."""
+
+    additional_turns: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        description="Number of turns to add (default 10)",
+    )
+
+
+class SessionExtendResponse(BaseModel):
+    """Response model for session extension."""
+
+    session_id: str = Field(..., description="The session ID")
+    new_limit: int = Field(..., description="The new turn limit")
+    turn_count: int = Field(..., description="Current turn count")
+
+
+@router.post(
+    "/session/{session_id}/extend",
+    response_model=SessionExtendResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Extend session turn limit",
+    description="Extends the turn limit for a session. Used when user clicks 'Continue (+10 turns)'.",
+)
+async def extend_session(
+    session_id: str,
+    request: SessionExtendRequest,
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> SessionExtendResponse:
+    """
+    Extend the session's turn limit.
+
+    Per US-015, user can extend by 10 turns after reaching the limit.
+
+    Args:
+        session_id: The session to extend.
+        request: The request body with additional_turns.
+        user_id: The authenticated user's ID (from JWT).
+
+    Returns:
+        SessionExtendResponse with new limit info.
+
+    Raises:
+        HTTPException: If session not found or not authorized.
+    """
+    # Load session to verify ownership
+    session = await session_service.get_session(session_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    # Verify user owns this session
+    if session.get("user_id") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this session",
+        )
+
+    # Extend the limit
+    new_limit = await session_service.extend_session_limit(
+        session_id=session_id,
+        additional_turns=request.additional_turns,
+    )
+
+    # Get current turn count
+    turn_count = await session_service.get_turn_count(session_id)
+
+    logger.info(
+        "Extended session %s limit to %d for user %s",
+        session_id,
+        new_limit,
+        user_id,
+    )
+
+    return SessionExtendResponse(
+        session_id=session_id,
+        new_limit=new_limit,
+        turn_count=turn_count,
     )

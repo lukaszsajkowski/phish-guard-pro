@@ -590,20 +590,7 @@ Acceptance Criteria:
 - File uses standard CSV format with headers
 - Filename: phishguard_ioc_YYYYMMDD_HHMMSS.csv
 
-### US-021: Launch Demo Mode
 
-Title: Browse pre-loaded scenarios
-
-Description: As a new user, I want to see system demo without pasting real
-phishing to understand how application works.
-
-Acceptance Criteria:
-
-- "Demo Mode" button is visible on start screen
-- 2-3 pre-loaded scenarios are available (Nigerian 419, CEO Fraud, Crypto)
-- Scenarios can be browsed step by step
-- Demo mode does not make API calls
-- "End demo" button returns to start screen
 
 ### US-022: API Error Handling
 

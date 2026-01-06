@@ -517,3 +517,104 @@ async def get_session_timeline(session_id: str) -> list[dict[str, Any]]:
         })
 
     return timeline_events
+
+
+async def get_turn_count(session_id: str) -> int:
+    """Get the current turn count for a session.
+
+    A turn is counted as a bot (assistant) response. The first response
+    counts as turn 1.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Current turn count (1-based), or 0 if no bot responses yet.
+    """
+    supabase = _get_supabase_client()
+
+    result = (
+        supabase.table("messages")
+        .select("id", count="exact")
+        .eq("session_id", session_id)
+        .eq("role", "assistant")
+        .execute()
+    )
+
+    return result.count if result.count else 0
+
+
+async def get_session_limit(session_id: str) -> int:
+    """Get the turn limit for a session.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Turn limit (default 20, can be extended).
+    """
+    session = await get_session(session_id)
+    if not session:
+        return 20
+
+    return session.get("turn_limit", 20)
+
+
+async def extend_session_limit(session_id: str, additional_turns: int = 10) -> int:
+    """Extend the session's turn limit.
+
+    Per US-015, clicking "Continue (+10 turns)" extends the limit.
+
+    Args:
+        session_id: The session's UUID.
+        additional_turns: Number of turns to add (default 10).
+
+    Returns:
+        The new turn limit.
+
+    Raises:
+        Exception: If update fails.
+    """
+    supabase = _get_supabase_client()
+
+    # Get current limit
+    current_limit = await get_session_limit(session_id)
+    new_limit = current_limit + additional_turns
+
+    result = (
+        supabase.table("sessions")
+        .update({"turn_limit": new_limit})
+        .eq("id", session_id)
+        .execute()
+    )
+
+    if not result.data or len(result.data) == 0:
+        raise Exception(f"Failed to extend limit for session {session_id}")
+
+    logger.info(
+        "Extended session %s limit from %d to %d",
+        session_id,
+        current_limit,
+        new_limit,
+    )
+
+    return new_limit
+
+
+async def get_session_info(session_id: str) -> dict[str, Any]:
+    """Get session info including turn count and limit.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Dict with turn_count, turn_limit, and is_at_limit.
+    """
+    turn_count = await get_turn_count(session_id)
+    turn_limit = await get_session_limit(session_id)
+
+    return {
+        "turn_count": turn_count,
+        "turn_limit": turn_limit,
+        "is_at_limit": turn_count >= turn_limit,
+    }

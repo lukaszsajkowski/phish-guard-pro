@@ -10,6 +10,7 @@ import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
+import { SessionLimitDialog } from "@/components/dashboard/SessionLimitDialog";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent } from "@/types/schemas";
 
 import {
@@ -41,6 +42,11 @@ export default function DashboardPage() {
     } | null>(null);
     const [extractedIOCs, setExtractedIOCs] = useState<ExtractedIOC[]>([]);
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+    // Turn count and limit state (US-015)
+    const [turnCount, setTurnCount] = useState(0);
+    const [turnLimit, setTurnLimit] = useState(20);
+    const [showSessionLimitDialog, setShowSessionLimitDialog] = useState(false);
+    const [isExtendingSession, setIsExtendingSession] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -206,6 +212,18 @@ export default function DashboardPage() {
 
             setMessages(prev => [...prev, newMessage]);
 
+            // Update turn count and limit from response (US-015)
+            if (data.turn_count !== undefined) {
+                setTurnCount(data.turn_count);
+            }
+            if (data.turn_limit !== undefined) {
+                setTurnLimit(data.turn_limit);
+            }
+            // Show limit dialog if at limit
+            if (data.is_at_limit) {
+                setShowSessionLimitDialog(true);
+            }
+
         } catch (error) {
             console.error("Error generating response:", error);
             // TODO: Show error toast
@@ -354,6 +372,18 @@ export default function DashboardPage() {
                 setTimelineEvents(prev => [...prev, ...newTimelineEvents]);
             }
 
+            // Update turn count and limit from response (US-015)
+            if (data.turn_count !== undefined) {
+                setTurnCount(data.turn_count);
+            }
+            if (data.turn_limit !== undefined) {
+                setTurnLimit(data.turn_limit);
+            }
+            // Show limit dialog if at limit
+            if (data.is_at_limit) {
+                setShowSessionLimitDialog(true);
+            }
+
         } catch (error) {
             console.error("Error submitting scammer message:", error);
             throw error; // Re-throw so ScammerInput can display the error
@@ -374,6 +404,60 @@ export default function DashboardPage() {
         setMessages([]);
         setExtractedIOCs([]);
         setTimelineEvents([]);
+        setTurnCount(0);
+        setTurnLimit(20);
+    };
+
+    // Handler for extending session limit (US-015)
+    const handleExtendSession = async () => {
+        if (!sessionId) return;
+
+        setIsExtendingSession(true);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/response/session/${sessionId}/extend`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ additional_turns: 10 }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to extend session');
+            }
+
+            const data = await response.json();
+            setTurnLimit(data.new_limit);
+            setShowSessionLimitDialog(false);
+
+        } catch (error) {
+            console.error("Error extending session:", error);
+        } finally {
+            setIsExtendingSession(false);
+        }
+    };
+
+    // Handler for ending session (US-015)
+    const handleEndSession = () => {
+        // TODO: Implement session summary page/modal (US-018)
+        setShowSessionLimitDialog(false);
+        // For now, just close the dialog - summary feature to be implemented later
     };
 
     if (isLoading) {
@@ -481,10 +565,22 @@ export default function DashboardPage() {
                             onEditMessage={handleEditMessage}
                             onSubmitScammerMessage={handleSubmitScammerMessage}
                             sessionId={sessionId ?? undefined}
+                            turnCount={turnCount}
+                            turnLimit={turnLimit}
                         />
                     </div>
                 )}
             </main>
+
+            {/* Session Limit Dialog (US-015) */}
+            <SessionLimitDialog
+                open={showSessionLimitDialog}
+                turnCount={turnCount}
+                turnLimit={turnLimit}
+                onContinue={handleExtendSession}
+                onEndSession={handleEndSession}
+                isExtending={isExtendingSession}
+            />
 
             <AlertDialog open={showSafeWarning} onOpenChange={setShowSafeWarning}>
                 <AlertDialogContent>

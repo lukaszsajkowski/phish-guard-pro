@@ -8,6 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Helper to get tactic icon (US-013)
+function getTacticIcon(tactic: string): string {
+    const tacticLower = tactic.toLowerCase();
+    if (tacticLower.includes("trust")) return "🤝";
+    if (tacticLower.includes("scare")) return "😨";
+    if (tacticLower.includes("urgent")) return "⏰";
+    if (tacticLower.includes("curious") || tacticLower.includes("question")) return "❓";
+    if (tacticLower.includes("authority")) return "👮";
+    if (tacticLower.includes("greed") || tacticLower.includes("offer")) return "💰";
+    if (tacticLower.includes("sympathy") || tacticLower.includes("help")) return "🥺";
+    return "💡"; // Default icon
+}
+
 interface ChatMessageProps {
     message: ChatMessageType;
     showThinking?: boolean;
@@ -188,23 +201,50 @@ export function ChatMessage({
 
                 {/* Thinking panel (collapsed by default) - only show when not editing */}
                 {!isEditing && showThinking && message.thinking && (
-                    <details className="mt-3 text-sm">
-                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                            Agent Thinking
+                    <details
+                        className="mt-3 group"
+                        data-testid="agent-thinking-panel"
+                    >
+                        <summary className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors select-none">
+                            <div className="w-1 h-1 rounded-full bg-primary/50 group-open:bg-primary transition-colors" />
+                            <span>Agent Thinking</span>
                         </summary>
-                        <div className="mt-2 pl-4 border-l-2 border-primary/20 space-y-1">
-                            <p>
-                                <span className="text-muted-foreground">Goal:</span>{" "}
-                                {message.thinking.turn_goal}
-                            </p>
-                            <p>
-                                <span className="text-muted-foreground">Tactic:</span>{" "}
-                                {message.thinking.selected_tactic}
-                            </p>
-                            <p>
-                                <span className="text-muted-foreground">Reasoning:</span>{" "}
-                                {message.thinking.reasoning}
-                            </p>
+
+                        <div className="mt-3 pl-3 border-l-2 border-primary/10 ml-0.5 space-y-3 text-sm animate-in slide-in-from-top-2 duration-200">
+                            {/* Goal */}
+                            <div className="space-y-1">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Current Goal
+                                </span>
+                                <p className="text-foreground/90 leading-relaxed">
+                                    {message.thinking.turn_goal}
+                                </p>
+                            </div>
+
+                            {/* Tactic */}
+                            <div className="space-y-1">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Selected Tactic
+                                </span>
+                                <div className="flex items-center gap-2 text-foreground/90">
+                                    <span className="text-lg" aria-hidden="true">
+                                        {getTacticIcon(message.thinking.selected_tactic)}
+                                    </span>
+                                    <span className="font-medium">
+                                        {message.thinking.selected_tactic}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Reasoning */}
+                            <div className="space-y-1">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Reasoning
+                                </span>
+                                <p className="text-foreground/90 leading-relaxed italic">
+                                    "{message.thinking.reasoning}"
+                                </p>
+                            </div>
                         </div>
                     </details>
                 )}

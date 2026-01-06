@@ -6,6 +6,7 @@ import { ChatMessage as ChatMessageType } from "@/types/schemas";
 import { ChatMessage } from "./ChatMessage";
 import { ScammerInput } from "./ScammerInput";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ChatAreaProps {
     messages: ChatMessageType[];
@@ -15,6 +16,32 @@ interface ChatAreaProps {
     onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
     onSubmitScammerMessage?: (message: string) => Promise<void>;
     sessionId?: string;
+    turnCount?: number;
+    turnLimit?: number;
+}
+
+/**
+ * Get the turn counter color based on current turn (US-015, US-027)
+ * - Default: turns 1-14
+ * - Yellow: turns 15-19
+ * - Red: turns 20+
+ */
+function getTurnCounterColor(turnCount: number): string {
+    if (turnCount >= 20) return "text-red-500";
+    if (turnCount >= 15) return "text-yellow-500";
+    return "text-muted-foreground";
+}
+
+/**
+ * Format the turn counter display (US-027)
+ * - "Turn X/20" for turns 1-20
+ * - "Turn X/20+" for turns > 20
+ */
+function formatTurnCounter(turnCount: number, turnLimit: number): string {
+    if (turnCount > 20) {
+        return `Turn ${turnCount}/20+`;
+    }
+    return `Turn ${turnCount}/${turnLimit}`;
 }
 
 export function ChatArea({
@@ -25,8 +52,15 @@ export function ChatArea({
     onEditMessage,
     onSubmitScammerMessage,
     sessionId,
+    turnCount,
+    turnLimit = 20,
 }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Calculate turn count from messages if not provided
+    const effectiveTurnCount = turnCount ?? (
+        messages.filter((m) => m.sender === "bot").length || 1
+    );
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -73,8 +107,15 @@ export function ChatArea({
             {/* Chat header */}
             <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
                 <h3 className="text-lg font-semibold">Conversation</h3>
-                <span className="text-sm text-muted-foreground">
-                    Turn {Math.ceil(messages.length / 2)}/20
+                <span
+                    className={cn(
+                        "text-sm font-medium px-2 py-0.5 rounded",
+                        getTurnCounterColor(effectiveTurnCount),
+                        effectiveTurnCount >= 15 && "bg-current/10"
+                    )}
+                    data-testid="turn-counter"
+                >
+                    {formatTurnCounter(effectiveTurnCount, turnLimit)}
                 </span>
             </div>
 
@@ -118,3 +159,4 @@ export function ChatArea({
         </div>
     );
 }
+
