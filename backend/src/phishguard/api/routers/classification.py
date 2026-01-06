@@ -6,10 +6,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from phishguard.agents.profiler import ProfilerAgent, ClassificationError
-from phishguard.agents.persona_engine import PersonaEngine
+from phishguard.agents.profiler import ClassificationError
 from phishguard.api.dependencies import get_current_user_id
-from phishguard.models.classification import ClassificationResult
+from phishguard.models.classification import AttackType, ClassificationResult
+from phishguard.models.persona import PersonaProfile, PersonaType
+from phishguard.orchestrator import create_phishguard_graph, get_checkpointer
 from phishguard.services import session_service
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ async def classify_email(
     user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> ClassificationResult:
     """
-    Classify a phishing email and persist the session.
+    Classify a phishing email using LangGraph orchestration.
 
     Args:
         request: The request body containing email content.
@@ -47,9 +48,6 @@ async def classify_email(
     Raises:
         HTTPException: If classification or persistence fails.
     """
-    agent = ProfilerAgent()
-    persona_engine = PersonaEngine(seed=None)  # No seed for random variety by default
-
     try:
         # Create session and store email content
         session_id = await session_service.create_session(
@@ -57,13 +55,56 @@ async def classify_email(
             email_content=request.email_content,
         )
 
-        # Perform classification
-        result = await agent.classify(request.email_content)
+        # Create and execute the LangGraph workflow
+        graph = create_phishguard_graph()
+        
+        # Initial state for the graph
+        initial_state = {
+            "email_content": request.email_content,
+            "session_id": session_id,
+            "user_id": user_id,
+        }
+        
+        # Execute graph with PostgreSQL checkpointer for persistence
+        async with get_checkpointer() as checkpointer:
+            result_state = await graph.ainvoke(
+                initial_state,
+                config={
+                    "configurable": {"thread_id": session_id},
+                    "checkpointer": checkpointer,
+                },
+            )
 
-        # Select persona if phishing detected
-        if result.is_phishing:
-            persona = persona_engine.select_persona(result.attack_type)
-            result = result.model_copy(update={"persona": persona})
+        # Check for errors
+        if result_state.get("error"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result_state["error"],
+            )
+
+        # Build ClassificationResult from graph state
+        classification = result_state.get("classification", {})
+        persona_data = result_state.get("persona")
+        
+        # Reconstruct persona if available
+        persona = None
+        if persona_data:
+            persona = PersonaProfile(
+                persona_type=PersonaType(persona_data["persona_type"]),
+                name=persona_data["name"],
+                age=persona_data["age"],
+                style_description=persona_data["style_description"],
+                background=persona_data["background"],
+            )
+
+        result = ClassificationResult(
+            attack_type=AttackType(classification.get("attack_type", "not_phishing")),
+            confidence=classification.get("confidence", 0.0),
+            reasoning=classification.get("reasoning", ""),
+            classification_time_ms=classification.get("classification_time_ms", 0),
+            persona=persona,
+            session_id=session_id,
+        )
 
         # Update session with classification results
         await session_service.update_session_classification(
@@ -71,11 +112,8 @@ async def classify_email(
             classification_result=result,
         )
 
-        # Add session_id to result
-        result = result.model_copy(update={"session_id": session_id})
-
         logger.info(
-            "Classified email for user %s: attack_type=%s, session=%s",
+            "Classified email via LangGraph for user %s: attack_type=%s, session=%s",
             user_id,
             result.attack_type.value,
             session_id,
@@ -88,8 +126,10 @@ async def classify_email(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Classification failed: %s", e)
+        logger.error("Classification failed: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Classification failed. Please try again.",

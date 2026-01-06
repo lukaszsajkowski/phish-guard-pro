@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     supabase_url: str = Field(default="", validation_alias="NEXT_PUBLIC_SUPABASE_URL")
     supabase_anon_key: str = Field(default="", validation_alias="NEXT_PUBLIC_SUPABASE_ANON_KEY")
     supabase_service_role_key: str = ""
+    supabase_db_url: str = ""  # Direct PostgreSQL connection URL for checkpointing
 
     # OpenAI
     openai_api_key: str = ""

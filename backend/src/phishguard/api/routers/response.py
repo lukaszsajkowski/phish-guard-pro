@@ -6,14 +6,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from phishguard.agents.conversation import ConversationAgent, ResponseGenerationError
-from phishguard.agents.intel_collector import IntelCollector, ExtractionResult
+from phishguard.agents.conversation import ResponseGenerationError
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import ConversationMessage, MessageSender
-from phishguard.models.ioc import ExtractedIOC
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
+from phishguard.orchestrator import create_continuation_graph, get_checkpointer
 from phishguard.safety import OutputValidator
 from phishguard.services import session_service
 
@@ -82,7 +81,7 @@ async def generate_response(
     user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> ResponseGenerationResponse:
     """
-    Generate a victim persona response for a phishing email.
+    Generate a victim persona response using LangGraph orchestration.
 
     Args:
         request: The request body containing session_id.
@@ -160,106 +159,138 @@ async def generate_response(
             detail="No email content found for session",
         )
 
+    # Fetch conversation history
+    history_data = await session_service.get_conversation_history(request.session_id)
+    conversation_history: list[dict] = []
+
+    for msg in history_data:
+        sender_str = msg.get("sender", "")
+        try:
+            MessageSender(sender_str)  # Validate sender
+            conversation_history.append({
+                "sender": sender_str,
+                "content": msg.get("content", ""),
+            })
+        except ValueError:
+            logger.warning("Unknown sender type: %s", sender_str)
+            continue
+
     # Handle scammer message if provided (multi-turn)
     scammer_message_id: str | None = None
-    extracted_iocs: list[dict] = []
 
     if request.scammer_message:
-        # Save the scammer message
+        # Save the scammer message first
         scammer_message_id = await session_service.add_scammer_message(
             session_id=request.session_id,
             content=request.scammer_message,
         )
 
-        # Extract IOCs from scammer message
-        intel_collector = IntelCollector()
-        conversation_history = await session_service.get_conversation_history(request.session_id)
-        message_index = len(conversation_history)
-        extraction_result = intel_collector.extract(request.scammer_message, message_index)
+    try:
+        # Create and execute the LangGraph continuation workflow
+        graph = create_continuation_graph()
 
-        if extraction_result.has_iocs:
-            extracted_iocs = [
-                {
-                    "type": ioc.ioc_type.value,
-                    "value": ioc.value,
-                    "context": ioc.context,
-                    "is_high_value": ioc.is_high_value,
-                }
-                for ioc in extraction_result.iocs
-            ]
+        # Build initial state for the graph
+        graph_state = {
+            "session_id": request.session_id,
+            "user_id": user_id,
+            "email_content": email_content,
+            "classification": {
+                "attack_type": attack_type.value,
+                "confidence": session.get("confidence", 0.0),
+                "reasoning": session.get("reasoning", ""),
+            },
+            "persona": {
+                "persona_type": persona.persona_type.value,
+                "name": persona.name,
+                "age": persona.age,
+                "style_description": persona.style_description,
+                "background": persona.background,
+            },
+            "conversation_history": conversation_history,
+            "scammer_message": request.scammer_message,
+            "extracted_iocs": [],
+            "is_safe": True,
+            "safety_violations": [],
+            "regeneration_count": 0,
+        }
+
+        # Execute graph with PostgreSQL checkpointer for persistence
+        async with get_checkpointer() as checkpointer:
+            result_state = await graph.ainvoke(
+                graph_state,
+                config={
+                    "configurable": {"thread_id": request.session_id},
+                    "checkpointer": checkpointer,
+                },
+            )
+
+        # Check for errors
+        if result_state.get("error"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result_state["error"],
+            )
+
+        # Extract results from graph state
+        response_content = result_state.get("current_response", "")
+        thinking_data = result_state.get("current_thinking")
+        generation_time_ms = result_state.get("generation_time_ms", 0)
+        is_safe = result_state.get("is_safe", True)
+        regeneration_count = result_state.get("regeneration_count", 0)
+        extracted_iocs = result_state.get("extracted_iocs", [])
+
+        # Build AgentThinking if present
+        thinking = None
+        if thinking_data:
+            thinking = AgentThinking(
+                turn_goal=thinking_data.get("turn_goal", ""),
+                selected_tactic=thinking_data.get("selected_tactic", ""),
+                reasoning=thinking_data.get("reasoning", ""),
+            )
+
+        # Persist the generated response
+        thinking_dict = None
+        if thinking:
+            thinking_dict = {
+                "turn_goal": thinking.turn_goal,
+                "selected_tactic": thinking.selected_tactic,
+                "reasoning": thinking.reasoning,
+            }
+
+        message_id = await session_service.add_bot_response(
+            session_id=request.session_id,
+            content=response_content,
+            thinking=thinking_dict,
+            generation_time_ms=generation_time_ms,
+        )
+
+        # Persist IOCs if extracted
+        if extracted_iocs:
+            await session_service.save_extracted_iocs(
+                session_id=request.session_id,
+                iocs=extracted_iocs,
+            )
             logger.info(
                 "Extracted %d IOCs from scammer message in session %s",
                 len(extracted_iocs),
                 request.session_id,
             )
 
-            # Persist IOCs to database
-            await session_service.save_extracted_iocs(
-                session_id=request.session_id,
-                iocs=extracted_iocs,
-            )
-
-    # Fetch conversation history
-    history_data = await session_service.get_conversation_history(request.session_id)
-    conversation_history: list[ConversationMessage] = []
-
-    for msg in history_data:
-        sender_str = msg.get("sender", "")
-        try:
-            sender = MessageSender(sender_str)
-            conversation_history.append(ConversationMessage(
-                sender=sender,
-                content=msg.get("content", ""),
-            ))
-        except ValueError:
-            logger.warning("Unknown sender type: %s", sender_str)
-            continue
-
-    is_first_response = len(conversation_history) == 0
-
-    # Generate response
-    agent = ConversationAgent()
-
-    try:
-        result = await agent.generate_response(
-            persona=persona,
-            email_content=email_content,
-            attack_type=attack_type,
-            conversation_history=conversation_history if conversation_history else None,
-            is_first_response=is_first_response,
-        )
-
-        # Persist the generated response
-        thinking_dict = None
-        if result.thinking:
-            thinking_dict = {
-                "turn_goal": result.thinking.turn_goal,
-                "selected_tactic": result.thinking.selected_tactic,
-                "reasoning": result.thinking.reasoning,
-            }
-
-        message_id = await session_service.add_bot_response(
-            session_id=request.session_id,
-            content=result.content,
-            thinking=thinking_dict,
-            generation_time_ms=result.generation_time_ms,
-        )
-
         logger.info(
-            "Generated response for session %s (user %s): %d chars in %dms",
+            "Generated response via LangGraph for session %s (user %s): %d chars in %dms",
             request.session_id,
             user_id,
-            len(result.content),
-            result.generation_time_ms,
+            len(response_content),
+            generation_time_ms,
         )
 
         return ResponseGenerationResponse(
-            content=result.content,
-            generation_time_ms=result.generation_time_ms,
-            safety_validated=result.safety_validated,
-            regeneration_count=result.regeneration_count,
-            used_fallback_model=result.used_fallback_model,
-            thinking=result.thinking,
+            content=response_content,
+            generation_time_ms=generation_time_ms,
+            safety_validated=is_safe,
+            regeneration_count=regeneration_count,
+            used_fallback_model=False,
+            thinking=thinking,
             message_id=message_id,
             scammer_message_id=scammer_message_id,
             extracted_iocs=extracted_iocs,
@@ -271,8 +302,10 @@ async def generate_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Unexpected error during response generation: %s", e)
+        logger.error("Unexpected error during response generation: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Response generation failed. Please try again.",
