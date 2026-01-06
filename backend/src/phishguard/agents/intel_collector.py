@@ -124,10 +124,16 @@ class IntelCollector:
         "CH", "CR", "CY", "CZ", "DE", "DK", "DO", "EE", "ES", "FI",
         "FO", "FR", "GB", "GE", "GI", "GL", "GR", "GT", "HR", "HU",
         "IE", "IL", "IS", "IT", "JO", "KW", "KZ", "LB", "LI", "LT",
-        "LU", "LV", "MC", "MD", "ME", "MK", "MR", "MT", "MU", "NL",
-        "NO", "PK", "PL", "PS", "PT", "QA", "RO", "RS", "SA", "SE",
-        "SI", "SK", "SM", "TN", "TR", "UA", "VG", "XK",
+        "LU", "LV", "MC", "MD", "ME", "MK", "MR", "MT", "MU", "NG",
+        "NL", "NO", "PK", "PL", "PS", "PT", "QA", "RO", "RS", "SA",
+        "SE", "SI", "SK", "SM", "TN", "TR", "UA", "VG", "XK",
     }
+
+    # Patterns indicating a bank account context (to exclude from phone detection)
+    BANK_ACCOUNT_CONTEXT: Final[re.Pattern[str]] = re.compile(
+        r"(?:account|acct|a/c|routing|sort\s*code)\s*(?:no\.?|number|#|:)?\s*$",
+        re.IGNORECASE,
+    )
 
     def extract(self, text: str, message_index: int) -> ExtractionResult:
         """Extract IOCs from a message.
@@ -174,12 +180,14 @@ class IntelCollector:
                     match.start(), match.end(), message_index,
                 ))
 
-        # Extract phone numbers (skip if inside excluded ranges)
+        # Extract phone numbers (skip if inside excluded ranges or bank context)
         for match in self.PHONE_PATTERN.finditer(text):
             if self._overlaps_excluded(match.start(), match.end(), excluded_ranges):
                 continue
             value = match.group(0)
-            if self._is_valid_phone(value):
+            if self._is_valid_phone(value) and not self._in_bank_context(
+                text, match.start()
+            ):
                 iocs.append(self._create_ioc(
                     IOCType.PHONE, value, text,
                     match.start(), match.end(), message_index,
@@ -268,3 +276,10 @@ class IntelCollector:
         """Validate phone number format."""
         digits = re.sub(r"\D", "", value)
         return 7 <= len(digits) <= 15
+
+    def _in_bank_context(self, text: str, match_start: int) -> bool:
+        """Check if match position is preceded by bank account context."""
+        # Look at the 30 characters before the match
+        context_start = max(0, match_start - 30)
+        preceding_text = text[context_start:match_start]
+        return bool(self.BANK_ACCOUNT_CONTEXT.search(preceding_text))

@@ -47,3 +47,22 @@ export interface ExtractedIOC {
     is_high_value: boolean;
     created_at?: string;
 }
+
+export interface TimelineEvent {
+    timestamp: string;
+    event_type: "ioc_extracted" | "message_received";
+    description: string;
+    ioc_id?: string;
+    is_high_value?: boolean;
+}
+
+export interface IntelDashboardData {
+    session_id: string;
+    attack_type: string;
+    confidence: number;
+    iocs: ExtractedIOC[];
+    total_iocs: number;
+    high_value_count: number;
+    risk_score: number;
+    timeline: TimelineEvent[];
+}

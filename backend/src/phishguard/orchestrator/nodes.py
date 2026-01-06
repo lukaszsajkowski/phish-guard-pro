@@ -130,8 +130,9 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         ConversationMessage(
             sender=MessageSender(msg["sender"]),
             content=msg["content"],
+            turn_number=idx + 1,  # 1-based turn numbering
         )
-        for msg in history
+        for idx, msg in enumerate(history)
     ]
     
     is_first = len(conversation_history) == 0
@@ -160,12 +161,13 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         len(result.content),
         elapsed_ms,
     )
-    
+
+    # Note: regeneration_count is tracked at graph level by validate_safety,
+    # not from the agent's internal count (which handles different retries)
     return {
         "current_response": result.content,
         "current_thinking": thinking,
         "is_safe": result.safety_validated,
-        "regeneration_count": result.regeneration_count,
         "generation_time_ms": elapsed_ms,
     }
 
@@ -213,31 +215,41 @@ async def extract_intel(state: PhishGuardState) -> dict[str, Any]:
 
 async def validate_safety(state: PhishGuardState) -> dict[str, Any]:
     """Node: Validate response safety.
-    
+
     Args:
         state: Current workflow state with current_response.
-        
+
     Returns:
-        State update with safety validation result.
+        State update with safety validation result and incremented
+        regeneration_count if validation fails.
     """
-    logger.info("Node: validate_safety starting for session %s", state.get("session_id"))
-    
+    session_id = state.get("session_id")
+    logger.info("Node: validate_safety starting for session %s", session_id)
+
     response = state.get("current_response")
     if not response:
         return {"is_safe": False, "safety_violations": ["No response to validate"]}
-    
+
     validator = OutputValidator()
     result = validator.validate(response)
-    
+
+    # Get current regeneration count from state
+    current_count = state.get("regeneration_count", 0)
+
+    # Increment count if safety failed (for graph-level loop control)
+    new_count = current_count if result.is_safe else current_count + 1
+
     logger.info(
-        "Node: validate_safety completed - is_safe=%s, violations=%d",
+        "Node: validate_safety - is_safe=%s, violations=%d, regen_count=%d",
         result.is_safe,
         len(result.violations),
+        new_count,
     )
-    
+
     return {
         "is_safe": result.is_safe,
         "safety_violations": result.violations,
+        "regeneration_count": new_count,
     }
 
 

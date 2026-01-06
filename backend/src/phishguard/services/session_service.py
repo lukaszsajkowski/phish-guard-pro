@@ -438,3 +438,82 @@ async def get_session_iocs(session_id: str) -> list[dict[str, Any]]:
     )
 
     return result.data if result.data else []
+
+
+def calculate_risk_score(
+    attack_type: str,
+    iocs: list[dict[str, Any]],
+) -> int:
+    """Calculate risk score (1-10) based on attack type and IOCs.
+
+    Risk score formula:
+    - Base score from attack type severity (1-4)
+    - +1 for each IOC extracted (up to +3)
+    - +1 for each high-value IOC (BTC, IBAN) (up to +3)
+
+    Args:
+        attack_type: The classified attack type.
+        iocs: List of extracted IOCs.
+
+    Returns:
+        Risk score from 1 to 10.
+    """
+    # Attack type severity mapping
+    attack_severity = {
+        "nigerian_419": 3,
+        "ceo_fraud": 4,
+        "fake_invoice": 3,
+        "romance_scam": 3,
+        "tech_support": 2,
+        "lottery_prize": 2,
+        "crypto_investment": 4,
+        "delivery_scam": 2,
+        "not_phishing": 1,
+    }
+
+    # Base score from attack type
+    base_score = attack_severity.get(attack_type, 2)
+
+    # Score from IOC count (up to +3)
+    ioc_count_score = min(len(iocs), 3)
+
+    # Score from high-value IOCs (up to +3)
+    high_value_types = {"btc", "btc_wallet", "iban"}
+    high_value_count = sum(
+        1 for ioc in iocs if ioc.get("type", "") in high_value_types
+    )
+    high_value_score = min(high_value_count, 3)
+
+    # Total score capped at 10
+    total_score = min(base_score + ioc_count_score + high_value_score, 10)
+
+    return max(total_score, 1)  # Ensure minimum of 1
+
+
+async def get_session_timeline(session_id: str) -> list[dict[str, Any]]:
+    """Retrieve timeline events for a session.
+
+    Returns IOC extraction events with timestamps.
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        List of timeline event dicts ordered by timestamp.
+    """
+    iocs = await get_session_iocs(session_id)
+
+    timeline_events = []
+    for ioc in iocs:
+        ioc_type = ioc.get("type", "")
+        is_high_value = ioc_type in ("btc", "iban")
+
+        timeline_events.append({
+            "timestamp": ioc.get("created_at", ""),
+            "event_type": "ioc_extracted",
+            "description": f"Extracted {ioc_type.upper()}: {ioc.get('value', '')[:20]}...",
+            "ioc_id": ioc.get("id"),
+            "is_high_value": is_high_value,
+        })
+
+    return timeline_events
