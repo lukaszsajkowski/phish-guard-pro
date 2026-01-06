@@ -17,37 +17,36 @@ export function PersonaCard({ persona }: PersonaCardProps) {
     };
 
     return (
-        <Card className="w-full mt-4 border-l-4 border-l-blue-500 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-            <CardHeader className="pb-2">
-                <div className="flex items-center gap-2 mb-1">
-                    <User className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium text-blue-500">Suggested Persona</span>
-                </div>
-                <CardTitle className="text-xl flex items-center justify-between">
-                    {persona.name}
-                    <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+        <Card className="w-full border-blue-200 bg-blue-50/10">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                        <User className="h-5 w-5 text-blue-500" />
+                        {persona.name}
+                    </CardTitle>
+                    <span className="text-sm font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
                         {persona.age} years old
                     </span>
-                </CardTitle>
+                </div>
                 <CardDescription>{formatPersonaType(persona.persona_type)}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 text-sm mt-2">
-                <div className="grid gap-1">
+            <CardContent className="space-y-3 text-sm">
+                <div>
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                         <FileText className="h-4 w-4" />
                         <span className="font-medium">Background</span>
                     </div>
-                    <p className="pl-6 text-foreground/90 leading-relaxed">
+                    <p className="pl-6 text-muted-foreground">
                         {persona.background}
                     </p>
                 </div>
 
-                <div className="grid gap-1">
+                <div>
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                         <Dna className="h-4 w-4" />
                         <span className="font-medium">Communication Style</span>
                     </div>
-                    <p className="pl-6 text-foreground/90 leading-relaxed italic">
+                    <p className="pl-6 text-muted-foreground italic">
                         "{persona.style_description}"
                     </p>
                 </div>

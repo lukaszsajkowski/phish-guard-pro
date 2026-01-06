@@ -527,8 +527,11 @@ export default function DashboardPage() {
                     {/* Right Panel: Results (Side Panel) */}
                     {classificationResult && !showSafeWarning && (
                         <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
-                            <div className="sticky top-6 space-y-4">
-                                <h3 className="text-lg font-semibold text-foreground/80">Analysis Results</h3>
+                            <div className="sticky top-6">
+                                <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
+                                    <h3 className="text-lg font-semibold">Analysis Results</h3>
+                                </div>
+                                <div className="space-y-4">
                                 <ClassificationResult
                                     attackType={classificationResult.attackType}
                                     confidence={classificationResult.confidence}
@@ -549,6 +552,7 @@ export default function DashboardPage() {
                                     ))}
                                     timeline={timelineEvents}
                                 />
+                                </div>
                             </div>
                         </div>
                     )}
