@@ -93,7 +93,14 @@ class TestRetryWithBackoff:
         """Rate limits raise RateLimitError after max attempts."""
         # Arrange - use simple retry decorator and mock rate limit behavior
         call_count = 0
-        
+
+        # Create a mock response object that satisfies OpenAI's RateLimitError requirements
+        from unittest.mock import MagicMock
+        mock_response = MagicMock()
+        mock_response.request = MagicMock()
+        mock_response.status_code = 429
+        mock_response.headers = {"retry-after": "30"}
+
         @retry_with_backoff(max_attempts=3, base_delay=0.01)
         async def rate_limited_func():
             nonlocal call_count
@@ -101,14 +108,14 @@ class TestRetryWithBackoff:
             # Simulate rate limit by throwing OpenAI RateLimitError
             raise OpenAIRateLimitError(
                 message="Rate limit exceeded",
-                response=None,
+                response=mock_response,
                 body=None,
             )
-        
+
         # Act & Assert
         with pytest.raises(RateLimitError) as exc_info:
             await rate_limited_func()
-        
+
         assert "busy" in exc_info.value.message.lower()
         assert exc_info.value.retry_after is not None
         assert call_count == 3
