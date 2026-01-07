@@ -2,18 +2,24 @@
 
 import { formatDistanceToNow } from "date-fns";
 import {
-    Bitcoin,
-    Building2,
-    Phone,
-    Link,
     AlertTriangle,
     Shield,
     Target,
     Clock,
     Gauge,
     TrendingUp,
+    Link,
 } from "lucide-react";
 import { ExtractedIOC, TimelineEvent } from "@/types/schemas";
+import {
+    IOC_ICONS,
+    IOC_LABELS,
+    ATTACK_TYPE_LABELS,
+    getRiskScoreColor,
+    getRiskScoreBg,
+    getRiskLabel,
+    getRiskScoreBarColor,
+} from "@/lib/constants/ioc";
 
 interface IntelDashboardProps {
     iocs: ExtractedIOC[];
@@ -22,52 +28,6 @@ interface IntelDashboardProps {
     riskScore?: number;
     timeline?: TimelineEvent[];
     isLoading?: boolean;
-}
-
-const IOC_ICONS: Record<string, React.ElementType> = {
-    btc: Bitcoin,
-    btc_wallet: Bitcoin,
-    iban: Building2,
-    phone: Phone,
-    url: Link,
-};
-
-const IOC_LABELS: Record<string, string> = {
-    btc: "BTC Wallet",
-    btc_wallet: "BTC Wallet",
-    iban: "IBAN",
-    phone: "Phone",
-    url: "URL",
-};
-
-const ATTACK_TYPE_LABELS: Record<string, string> = {
-    nigerian_419: "Nigerian 419 Scam",
-    ceo_fraud: "CEO Fraud",
-    fake_invoice: "Fake Invoice",
-    romance_scam: "Romance Scam",
-    tech_support: "Tech Support Scam",
-    lottery_prize: "Lottery/Prize Scam",
-    crypto_investment: "Crypto Investment Scam",
-    delivery_scam: "Delivery Scam",
-    not_phishing: "Not Phishing",
-};
-
-function getRiskScoreColor(score: number): string {
-    if (score <= 3) return "text-green-500";
-    if (score <= 6) return "text-yellow-500";
-    return "text-red-500";
-}
-
-function getRiskScoreBg(score: number): string {
-    if (score <= 3) return "bg-green-500/10";
-    if (score <= 6) return "bg-yellow-500/10";
-    return "bg-red-500/10";
-}
-
-function getRiskLabel(score: number): string {
-    if (score <= 3) return "Low";
-    if (score <= 6) return "Medium";
-    return "High";
 }
 
 export function IntelDashboard({
@@ -232,12 +192,7 @@ export function IntelDashboard({
                         <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
                             <div
                                 data-testid="risk-score-bar"
-                                className={`h-full transition-all duration-500 ${riskScore <= 3
-                                    ? "bg-green-500"
-                                    : riskScore <= 6
-                                        ? "bg-yellow-500"
-                                        : "bg-red-500"
-                                    }`}
+                                className={`h-full transition-all duration-500 ${getRiskScoreBarColor(riskScore)}`}
                                 style={{ width: `${(riskScore / 10) * 100}%` }}
                             />
                         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-    Download,
     FileJson,
     FileSpreadsheet,
     Clock,
@@ -9,14 +8,12 @@ import {
     Shield,
     Target,
     TrendingUp,
-    Bitcoin,
-    Building2,
-    Phone,
     Link,
     RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { IOC_ICONS, IOC_LABELS } from "@/lib/constants/ioc";
 
 interface IOCSummary {
     id: string;
@@ -49,22 +46,6 @@ interface SessionSummaryProps {
     onNewSession: () => void;
     isExporting?: boolean;
 }
-
-const IOC_ICONS: Record<string, React.ElementType> = {
-    btc: Bitcoin,
-    btc_wallet: Bitcoin,
-    iban: Building2,
-    phone: Phone,
-    url: Link,
-};
-
-const IOC_LABELS: Record<string, string> = {
-    btc: "BTC Wallet",
-    btc_wallet: "BTC Wallet",
-    iban: "IBAN",
-    phone: "Phone",
-    url: "URL",
-};
 
 /**
  * SessionSummary - Displays the final session report (US-018)

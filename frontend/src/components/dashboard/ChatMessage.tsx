@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useReducer } from "react";
 import { Copy, Check, Bot, User, Pencil, X, Save, Loader2, AlertTriangle } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/types/schemas";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,51 @@ function getTacticIcon(tactic: string): string {
     return "💡"; // Default icon
 }
 
+/**
+ * Edit state machine for ChatMessage
+ * States: viewing -> editing -> validating -> viewing/editing (on error)
+ */
+export type EditMode = "viewing" | "editing" | "validating";
+
+export interface EditState {
+    mode: EditMode;
+    content: string;
+    error: string | null;
+}
+
+export type EditAction =
+    | { type: "START_EDIT"; initialContent: string }
+    | { type: "UPDATE_CONTENT"; content: string }
+    | { type: "START_SAVE" }
+    | { type: "SAVE_SUCCESS" }
+    | { type: "SAVE_ERROR"; error: string }
+    | { type: "CANCEL" };
+
+export function editReducer(state: EditState, action: EditAction): EditState {
+    switch (action.type) {
+        case "START_EDIT":
+            return { mode: "editing", content: action.initialContent, error: null };
+        case "UPDATE_CONTENT":
+            return { ...state, content: action.content };
+        case "START_SAVE":
+            return { ...state, mode: "validating", error: null };
+        case "SAVE_SUCCESS":
+            return { mode: "viewing", content: "", error: null };
+        case "SAVE_ERROR":
+            return { ...state, mode: "editing", error: action.error };
+        case "CANCEL":
+            return { mode: "viewing", content: "", error: null };
+        default:
+            return state;
+    }
+}
+
+export const initialEditState: EditState = {
+    mode: "viewing",
+    content: "",
+    error: null,
+};
+
 interface ChatMessageProps {
     message: ChatMessageType;
     showThinking?: boolean;
@@ -35,13 +80,15 @@ export function ChatMessage({
     sessionId,
 }: ChatMessageProps) {
     const [copied, setCopied] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedContent, setEditedContent] = useState(message.content);
-    const [isValidating, setIsValidating] = useState(false);
-    const [validationError, setValidationError] = useState<string | null>(null);
+    const [editState, dispatch] = useReducer(editReducer, initialEditState);
+
+    // Derived state from reducer
+    const isEditing = editState.mode === "editing" || editState.mode === "validating";
+    const isValidating = editState.mode === "validating";
+    const editedContent = editState.content;
+    const validationError = editState.error;
 
     const handleCopy = async () => {
-        // Copy the current content (edited or original)
         const contentToCopy = isEditing ? editedContent : message.content;
         try {
             await navigator.clipboard.writeText(contentToCopy);
@@ -53,15 +100,11 @@ export function ChatMessage({
     };
 
     const handleEdit = () => {
-        setIsEditing(true);
-        setEditedContent(message.content);
-        setValidationError(null);
+        dispatch({ type: "START_EDIT", initialContent: message.content });
     };
 
     const handleCancel = () => {
-        setIsEditing(false);
-        setEditedContent(message.content);
-        setValidationError(null);
+        dispatch({ type: "CANCEL" });
     };
 
     const handleSave = async () => {
@@ -72,24 +115,20 @@ export function ChatMessage({
 
         // Check if content actually changed
         if (editedContent.trim() === message.content.trim()) {
-            setIsEditing(false);
+            dispatch({ type: "CANCEL" });
             return;
         }
 
-        setIsValidating(true);
-        setValidationError(null);
+        dispatch({ type: "START_SAVE" });
 
         try {
             await onEditMessage(message.id, editedContent);
-            setIsEditing(false);
+            dispatch({ type: "SAVE_SUCCESS" });
         } catch (error) {
-            if (error instanceof Error) {
-                setValidationError(error.message);
-            } else {
-                setValidationError("Failed to save changes. Please try again.");
-            }
-        } finally {
-            setIsValidating(false);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : "Failed to save changes. Please try again.";
+            dispatch({ type: "SAVE_ERROR", error: errorMessage });
         }
     };
 
@@ -145,7 +184,7 @@ export function ChatMessage({
                     <div className="space-y-3">
                         <Textarea
                             value={editedContent}
-                            onChange={(e) => setEditedContent(e.target.value)}
+                            onChange={(e) => dispatch({ type: "UPDATE_CONTENT", content: e.target.value })}
                             className="min-h-[100px] resize-y"
                             disabled={isValidating}
                             data-testid="edit-response-textarea"
