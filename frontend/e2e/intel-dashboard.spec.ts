@@ -463,3 +463,243 @@ test.describe('Intel Dashboard (US-012)', () => {
         await expect(page.getByText('No events yet')).toBeVisible();
     });
 });
+
+test.describe('Side Panel Collapse (US-026)', () => {
+    test.beforeEach(async ({ page }) => {
+        // Register and login
+        await page.goto('/register');
+
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        const email = `e2e-test-collapse-${timestamp}-${random}@example.com`;
+        const password = 'validPassword123';
+
+        await page.locator('#email').fill(email);
+        await page.locator('#password').fill(password);
+        await page.locator('#confirm-password').fill(password);
+
+        const registerButton = page.locator('#register-button');
+        await expect(registerButton).toBeEnabled();
+        await registerButton.click();
+
+        await expect(page.locator('#registration-success-message')).toBeVisible();
+
+        // Login
+        await page.locator('#email').fill(email);
+        await page.locator('#password').fill(password);
+        await page.getByRole('button', { name: 'Sign in' }).click();
+
+        await expect(page).toHaveURL('/dashboard');
+    });
+
+    test('should show collapse button in side panel header', async ({ page }) => {
+        // Set viewport to wide screen to ensure panel is expanded
+        await page.setViewportSize({ width: 1400, height: 900 });
+
+        // Mock the classification API
+        await page.route('**/api/v1/classification/analyze', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    attack_type: 'nigerian_419',
+                    confidence: 95,
+                    reasoning: '419 scam detected',
+                    classification_time_ms: 500,
+                    session_id: 'test-session-collapse',
+                    persona: {
+                        persona_type: 'naive_retiree',
+                        name: 'Margaret Thompson',
+                        age: 72,
+                        style_description: 'Trusting and polite',
+                        background: 'Retired teacher'
+                    }
+                })
+            });
+        });
+
+        // Input email content and analyze
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
+        await page.getByTestId('analyze-button').click();
+
+        // Wait for side panel to appear
+        await expect(page.getByTestId('side-panel')).toBeVisible();
+
+        // Collapse button should be visible
+        await expect(page.getByTestId('collapse-side-panel-button')).toBeVisible();
+    });
+
+    test('should collapse side panel when collapse button is clicked', async ({ page }) => {
+        // Set viewport to wide screen
+        await page.setViewportSize({ width: 1400, height: 900 });
+
+        // Mock the classification API
+        await page.route('**/api/v1/classification/analyze', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    attack_type: 'nigerian_419',
+                    confidence: 95,
+                    reasoning: '419 scam detected',
+                    classification_time_ms: 500,
+                    session_id: 'test-session-collapse-2',
+                    persona: {
+                        persona_type: 'naive_retiree',
+                        name: 'Margaret Thompson',
+                        age: 72,
+                        style_description: 'Trusting and polite',
+                        background: 'Retired teacher'
+                    }
+                })
+            });
+        });
+
+        // Input email content and analyze
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
+        await page.getByTestId('analyze-button').click();
+
+        // Wait for side panel
+        await expect(page.getByTestId('side-panel')).toBeVisible();
+
+        // Click collapse button
+        await page.getByTestId('collapse-side-panel-button').click();
+
+        // IntelDashboard should be hidden
+        await expect(page.getByTestId('intel-dashboard')).not.toBeVisible();
+
+        // Expand button should be visible
+        await expect(page.getByTestId('expand-side-panel-button')).toBeVisible();
+    });
+
+    test('should expand side panel when expand button is clicked', async ({ page }) => {
+        // Set viewport to wide screen
+        await page.setViewportSize({ width: 1400, height: 900 });
+
+        // Mock the classification API
+        await page.route('**/api/v1/classification/analyze', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    attack_type: 'nigerian_419',
+                    confidence: 95,
+                    reasoning: '419 scam detected',
+                    classification_time_ms: 500,
+                    session_id: 'test-session-expand',
+                    persona: {
+                        persona_type: 'naive_retiree',
+                        name: 'Margaret Thompson',
+                        age: 72,
+                        style_description: 'Trusting and polite',
+                        background: 'Retired teacher'
+                    }
+                })
+            });
+        });
+
+        // Input email content and analyze
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
+        await page.getByTestId('analyze-button').click();
+
+        // Wait for side panel
+        await expect(page.getByTestId('side-panel')).toBeVisible();
+
+        // Collapse first
+        await page.getByTestId('collapse-side-panel-button').click();
+        await expect(page.getByTestId('expand-side-panel-button')).toBeVisible();
+
+        // Expand again
+        await page.getByTestId('expand-side-panel-button').click();
+
+        // IntelDashboard should be visible again
+        await expect(page.getByTestId('intel-dashboard')).toBeVisible();
+
+        // Collapse button should be visible again
+        await expect(page.getByTestId('collapse-side-panel-button')).toBeVisible();
+    });
+
+    test('should auto-collapse on narrow screens', async ({ page }) => {
+        // Mock the classification API
+        await page.route('**/api/v1/classification/analyze', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    attack_type: 'nigerian_419',
+                    confidence: 95,
+                    reasoning: '419 scam detected',
+                    classification_time_ms: 500,
+                    session_id: 'test-session-auto-collapse',
+                    persona: {
+                        persona_type: 'naive_retiree',
+                        name: 'Margaret Thompson',
+                        age: 72,
+                        style_description: 'Trusting and polite',
+                        background: 'Retired teacher'
+                    }
+                })
+            });
+        });
+
+        // Set narrow viewport (below 1280px)
+        await page.setViewportSize({ width: 1100, height: 900 });
+
+        // Input email content and analyze
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
+        await page.getByTestId('analyze-button').click();
+
+        // Wait for side panel
+        await expect(page.getByTestId('side-panel')).toBeVisible();
+
+        // Panel should be collapsed automatically
+        await expect(page.getByTestId('expand-side-panel-button')).toBeVisible();
+        await expect(page.getByTestId('intel-dashboard')).not.toBeVisible();
+    });
+
+    test('should show IOC count badge when collapsed', async ({ page }) => {
+        // Set viewport to wide screen first
+        await page.setViewportSize({ width: 1400, height: 900 });
+
+        // Mock classification with IOCs
+        await page.route('**/api/v1/classification/analyze', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    attack_type: 'nigerian_419',
+                    confidence: 95,
+                    reasoning: '419 scam detected',
+                    classification_time_ms: 500,
+                    session_id: 'test-session-ioc-badge',
+                    persona: {
+                        persona_type: 'naive_retiree',
+                        name: 'Margaret Thompson',
+                        age: 72,
+                        style_description: 'Trusting and polite',
+                        background: 'Retired teacher'
+                    },
+                    extracted_iocs: [
+                        { type: 'url', value: 'https://scam.com', is_high_value: false },
+                        { type: 'btc_wallet', value: 'bc1test123', is_high_value: true }
+                    ]
+                })
+            });
+        });
+
+        // Input email content and analyze
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, send money to https://scam.com or bc1test123...');
+        await page.getByTestId('analyze-button').click();
+
+        // Wait for side panel
+        await expect(page.getByTestId('side-panel')).toBeVisible();
+
+        // Collapse the panel
+        await page.getByTestId('collapse-side-panel-button').click();
+
+        // Should show IOC count badge (use more specific selector within side panel)
+        const iocBadge = page.getByTestId('side-panel').locator('span[title="2 IOCs collected"]');
+        await expect(iocBadge).toBeVisible();
+        await expect(iocBadge).toHaveText('2');
+    });
+});

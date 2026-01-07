@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, LogOut, Loader2, RotateCcw } from "lucide-react";
+import { Shield, LogOut, Loader2, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
 import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
@@ -72,6 +72,23 @@ export default function DashboardPage() {
     const [usedFallbackModel, setUsedFallbackModel] = useState(false);
     // New Session state (US-025)
     const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
+    // Side panel collapse state (US-026)
+    const [isSidePanelCollapsed, setIsSidePanelCollapsed] = useState(false);
+
+    // Auto-collapse side panel on narrower screens (US-026)
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1280) {
+                setIsSidePanelCollapsed(true);
+            }
+        };
+
+        // Check on mount
+        handleResize();
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -831,35 +848,79 @@ export default function DashboardPage() {
                                 )}
                             </div>
 
-                            {/* Right Panel: Results (Side Panel) */}
+                            {/* Right Panel: Results (Side Panel) - Collapsible (US-026) */}
                             {classificationResult && !showSafeWarning && (
-                                <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
+                                <div
+                                    className={`transition-all duration-300 ease-in-out ${
+                                        isSidePanelCollapsed
+                                            ? "w-12"
+                                            : "w-full md:w-1/3"
+                                    } animate-in fade-in slide-in-from-right-10`}
+                                    data-testid="side-panel"
+                                >
                                     <div className="sticky top-6">
-                                        <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
-                                            <h3 className="text-lg font-semibold">Analysis Results</h3>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <ClassificationResult
-                                                attackType={classificationResult.attackType}
-                                                confidence={classificationResult.confidence}
-                                                reasoning={classificationResult.reasoning}
-                                            />
-                                            {classificationResult.persona && (
-                                                <PersonaCard persona={classificationResult.persona} />
-                                            )}
-                                            <IntelDashboard
-                                                iocs={extractedIOCs}
-                                                attackType={classificationResult.attackType}
-                                                confidence={classificationResult.confidence}
-                                                riskScore={Math.min(10, Math.max(1,
-                                                    (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
-                                                        classificationResult.attackType === 'not_phishing' ? 1 : 3) +
-                                                    Math.min(extractedIOCs.length, 3) +
-                                                    Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
-                                                ))}
-                                                timeline={timelineEvents}
-                                            />
-                                        </div>
+                                        {/* Collapsed state - just show toggle button */}
+                                        {isSidePanelCollapsed ? (
+                                            <div className="flex flex-col items-center">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => setIsSidePanelCollapsed(false)}
+                                                    data-testid="expand-side-panel-button"
+                                                    title="Expand panel"
+                                                    className="mb-2"
+                                                >
+                                                    <PanelRightOpen className="h-4 w-4" />
+                                                </Button>
+                                                {/* Show IOC count badge when collapsed */}
+                                                {extractedIOCs.length > 0 && (
+                                                    <span
+                                                        className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+                                                        title={`${extractedIOCs.length} IOCs collected`}
+                                                    >
+                                                        {extractedIOCs.length}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            /* Expanded state - full panel */
+                                            <>
+                                                <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
+                                                    <h3 className="text-lg font-semibold">Analysis Results</h3>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setIsSidePanelCollapsed(true)}
+                                                        data-testid="collapse-side-panel-button"
+                                                        title="Collapse panel"
+                                                    >
+                                                        <PanelRightClose className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <ClassificationResult
+                                                        attackType={classificationResult.attackType}
+                                                        confidence={classificationResult.confidence}
+                                                        reasoning={classificationResult.reasoning}
+                                                    />
+                                                    {classificationResult.persona && (
+                                                        <PersonaCard persona={classificationResult.persona} />
+                                                    )}
+                                                    <IntelDashboard
+                                                        iocs={extractedIOCs}
+                                                        attackType={classificationResult.attackType}
+                                                        confidence={classificationResult.confidence}
+                                                        riskScore={Math.min(10, Math.max(1,
+                                                            (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
+                                                                classificationResult.attackType === 'not_phishing' ? 1 : 3) +
+                                                            Math.min(extractedIOCs.length, 3) +
+                                                            Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
+                                                        ))}
+                                                        timeline={timelineEvents}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
