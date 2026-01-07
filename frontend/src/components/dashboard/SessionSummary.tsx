@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { IOC_ICONS, IOC_LABELS } from "@/lib/constants/ioc";
+import { IOC_ICONS, IOC_LABELS, getRiskScoreColor } from "@/lib/constants/ioc";
+import { StatCard } from "./StatCard";
 
 interface IOCSummary {
     id: string;
@@ -79,64 +80,31 @@ export function SessionSummary({
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Exchanges */}
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Exchanges</span>
-                    </div>
-                    <p className="text-2xl font-bold" data-testid="exchange-count">
-                        {summary.exchange_count}
-                    </p>
-                </div>
+                <StatCard icon={MessageSquare} label="Exchanges" testId="exchange-count">
+                    {summary.exchange_count}
+                </StatCard>
 
-                {/* Duration */}
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Duration</span>
-                    </div>
-                    <p className="text-2xl font-bold" data-testid="duration">
-                        {summary.formatted_duration}
-                    </p>
-                </div>
+                <StatCard icon={Clock} label="Duration" testId="duration">
+                    {summary.formatted_duration}
+                </StatCard>
 
-                {/* IOCs Found */}
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">IOCs Found</span>
-                    </div>
-                    <p className="text-2xl font-bold" data-testid="ioc-count">
-                        {summary.iocs.length}
-                        {summary.high_value_ioc_count > 0 && (
-                            <span className="text-sm font-normal text-red-500 ml-1">
-                                ({summary.high_value_ioc_count} high-value)
-                            </span>
-                        )}
-                    </p>
-                </div>
+                <StatCard icon={TrendingUp} label="IOCs Found" testId="ioc-count">
+                    {summary.iocs.length}
+                    {summary.high_value_ioc_count > 0 && (
+                        <span className="text-sm font-normal text-red-500 ml-1">
+                            ({summary.high_value_ioc_count} high-value)
+                        </span>
+                    )}
+                </StatCard>
 
-                {/* Risk Score */}
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Shield className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Risk Score</span>
-                    </div>
-                    <p
-                        className={cn(
-                            "text-2xl font-bold",
-                            summary.risk_score >= 7
-                                ? "text-red-500"
-                                : summary.risk_score >= 4
-                                    ? "text-yellow-500"
-                                    : "text-green-500"
-                        )}
-                        data-testid="risk-score"
-                    >
-                        {summary.risk_score}/10
-                    </p>
-                </div>
+                <StatCard
+                    icon={Shield}
+                    label="Risk Score"
+                    testId="risk-score"
+                    valueClassName={getRiskScoreColor(summary.risk_score)}
+                >
+                    {summary.risk_score}/10
+                </StatCard>
             </div>
 
             {/* Attack Type */}

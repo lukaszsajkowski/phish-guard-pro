@@ -1,28 +1,44 @@
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect } from 'vitest';
-import { EmailInput } from '../EmailInput';
+import { EmailInput } from '../app/email-input';
+
+/**
+ * Wrapper component to test the controlled EmailInput
+ * Manages state internally so tests can interact naturally
+ */
+function EmailInputWrapper({ onAnalyze }: { onAnalyze: (content: string) => Promise<void> }) {
+    const [value, setValue] = useState('');
+    return (
+        <EmailInput
+            value={value}
+            onChange={setValue}
+            onAnalyze={onAnalyze}
+        />
+    );
+}
 
 describe('EmailInput Component', () => {
     it('renders textarea with placeholder', () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
         expect(textarea).toBeInTheDocument();
     });
 
     it('has Analyze button disabled initially', () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         const button = screen.getByRole('button', { name: /Analyze/i });
         expect(button).toBeDisabled();
     });
 
     it('shows character counter', () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         expect(screen.getByText('0 / 50,000')).toBeInTheDocument();
     });
 
     it('enables Analyze button when input is valid (10 chars)', async () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
         const button = screen.getByRole('button', { name: /Analyze/i });
 
@@ -32,7 +48,7 @@ describe('EmailInput Component', () => {
     });
 
     it('shows validation warning and disables button when input is too short', async () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
         const button = screen.getByRole('button', { name: /Analyze/i });
 
@@ -43,7 +59,7 @@ describe('EmailInput Component', () => {
 
     it('calls onAnalyze callback when button is clicked', async () => {
         const mockAnalyze = vi.fn().mockResolvedValue(undefined);
-        render(<EmailInput onAnalyze={mockAnalyze} />);
+        render(<EmailInputWrapper onAnalyze={mockAnalyze} />);
 
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
         await userEvent.type(textarea, 'Valid email content for testing');
@@ -63,7 +79,7 @@ describe('EmailInput Component', () => {
         });
         const mockAnalyze = vi.fn().mockReturnValue(analyzePromise);
 
-        render(<EmailInput onAnalyze={mockAnalyze} />);
+        render(<EmailInputWrapper onAnalyze={mockAnalyze} />);
 
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
         await userEvent.type(textarea, 'Valid email content');
@@ -87,7 +103,7 @@ describe('EmailInput Component', () => {
     });
 
     it('validates maximum length', async () => {
-        render(<EmailInput onAnalyze={async () => { }} />);
+        render(<EmailInputWrapper onAnalyze={async () => { }} />);
         const textarea = screen.getByPlaceholderText(/Paste phishing email content here/i);
 
         // Use fireEvent for instant large text changes to speed up test
