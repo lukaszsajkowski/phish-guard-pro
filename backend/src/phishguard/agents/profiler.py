@@ -10,13 +10,11 @@ import logging
 import time
 from typing import Final
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
 from phishguard.agents.prompts.profiler import (
     PROFILER_SYSTEM_PROMPT,
     get_profiler_user_prompt,
 )
+from phishguard.llm import LLMClient, LLMRequestError, create_llm_client
 from phishguard.models.classification import AttackType, ClassificationResult
 
 logger = logging.getLogger(__name__)
@@ -34,9 +32,6 @@ class ClassificationError(Exception):
     It should be caught and handled by the caller.
     """
 
-
-from phishguard.core import get_settings
-
 class ProfilerAgent:
     """Agent responsible for classifying phishing emails into attack categories.
 
@@ -48,19 +43,14 @@ class ProfilerAgent:
     results and includes retry logic for handling malformed LLM responses.
     """
 
-    def __init__(self, model_name: str = "gpt-4o") -> None:
+    def __init__(self, llm_client: LLMClient | None = None) -> None:
         """Initialize the ProfilerAgent.
-        
+
         Args:
-            model_name: The name of the LLM model to use.
+            llm_client: Optional LLMClient for dependency injection.
+                If not provided, a default client with fallback support is created.
         """
-        settings = get_settings()
-        self.llm = ChatOpenAI(
-            model=model_name,
-            temperature=CLASSIFICATION_TEMPERATURE,
-            max_tokens=CLASSIFICATION_MAX_TOKENS,
-            api_key=settings.openai_api_key,
-        )
+        self._llm_client = llm_client or create_llm_client()
 
     async def classify(self, email_content: str) -> ClassificationResult:
         """Classify a phishing email into an attack category.
@@ -75,7 +65,7 @@ class ProfilerAgent:
 
         Returns:
             ClassificationResult with attack type, confidence,
-            reasoning, and classification time.
+            reasoning, classification time, and fallback status.
 
         Raises:
             ClassificationError: If the LLM request fails after retries.
@@ -83,27 +73,44 @@ class ProfilerAgent:
         start_time = time.perf_counter()
 
         messages = [
-            SystemMessage(content=PROFILER_SYSTEM_PROMPT),
-            HumanMessage(content=get_profiler_user_prompt(email_content)),
+            {"role": "system", "content": PROFILER_SYSTEM_PROMPT},
+            {"role": "user", "content": get_profiler_user_prompt(email_content)},
         ]
 
         attempts = 0
         last_error: str | None = None
+        used_fallback = False
 
         while attempts <= MAX_PARSE_RETRIES:
             try:
-                # We use structured output if possible, but the prompt handles JSON formatting too.
-                # For simplicity and porting from legacy, we'll parse the raw content for now,
-                # but could upgrade to with_structured_output later.
-                response = await self.llm.ainvoke(messages)
-                content = str(response.content)
+                # Use LLMClient for automatic retry and fallback (US-023)
+                llm_response = await self._llm_client.chat_completion(
+                    messages=messages,
+                    temperature=CLASSIFICATION_TEMPERATURE,
+                    max_tokens=CLASSIFICATION_MAX_TOKENS,
+                )
+                content = llm_response.content
+
+                # Track if fallback model was used
+                if llm_response.used_fallback:
+                    used_fallback = True
+                    logger.info(
+                        "Using fallback model %s for classification",
+                        llm_response.model_used,
+                    )
 
                 result = self._parse_classification_response(
                     content,
                     self._calculate_elapsed_ms(start_time),
+                    used_fallback,
                 )
                 return result
 
+            except LLMRequestError as e:
+                logger.error("LLM request failed during classification: %s", e)
+                raise ClassificationError(
+                    f"Failed to classify email: {e}"
+                ) from e
             except Exception as e:
                 attempts += 1
                 last_error = str(e)
@@ -127,18 +134,21 @@ class ProfilerAgent:
         return self._create_fallback_result(
             self._calculate_elapsed_ms(start_time),
             last_error,
+            used_fallback,
         )
 
     def _parse_classification_response(
         self,
         response_content: str,
         elapsed_ms: int,
+        used_fallback: bool = False,
     ) -> ClassificationResult:
         """Parse the LLM response into a ClassificationResult.
 
         Args:
             response_content: Raw JSON string from the LLM.
             elapsed_ms: Classification time in milliseconds.
+            used_fallback: Whether fallback model was used.
 
         Returns:
             Parsed ClassificationResult.
@@ -171,12 +181,14 @@ class ProfilerAgent:
             confidence=float(confidence),
             reasoning=reasoning,
             classification_time_ms=elapsed_ms,
+            used_fallback_model=used_fallback,
         )
 
     def _create_fallback_result(
         self,
         elapsed_ms: int,
         error_detail: str | None = None,
+        used_fallback: bool = False,
     ) -> ClassificationResult:
         """Create a safe fallback classification result.
 
@@ -186,6 +198,7 @@ class ProfilerAgent:
         Args:
             elapsed_ms: Classification time in milliseconds.
             error_detail: Optional error message for reasoning.
+            used_fallback: Whether fallback model was used.
 
         Returns:
             ClassificationResult with NOT_PHISHING and low confidence.
@@ -202,6 +215,7 @@ class ProfilerAgent:
             confidence=25.0,
             reasoning=reasoning,
             classification_time_ms=elapsed_ms,
+            used_fallback_model=used_fallback,
         )
 
     @staticmethod

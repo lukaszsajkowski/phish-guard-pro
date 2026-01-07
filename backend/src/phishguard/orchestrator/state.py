@@ -72,6 +72,7 @@ class PhishGuardState(TypedDict, total=False):
         safety_violations: List of safety violations if any.
         regeneration_count: Number of regeneration attempts.
         generation_time_ms: Time taken for response generation.
+        used_fallback_model: Whether fallback LLM was used (US-023).
         error: Error message if workflow failed.
     """
     
@@ -104,4 +105,5 @@ class PhishGuardState(TypedDict, total=False):
     
     # Metadata
     generation_time_ms: int
+    used_fallback_model: bool
     error: str | None

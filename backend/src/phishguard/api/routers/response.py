@@ -244,6 +244,7 @@ async def generate_response(
         is_safe = result_state.get("is_safe", True)
         regeneration_count = result_state.get("regeneration_count", 0)
         extracted_iocs = result_state.get("extracted_iocs", [])
+        used_fallback_model = result_state.get("used_fallback_model", False)
 
         # Build AgentThinking if present
         thinking = None
@@ -282,12 +283,20 @@ async def generate_response(
                 request.session_id,
             )
 
+        # Log fallback model usage for monitoring
+        if used_fallback_model:
+            logger.info(
+                "Response generated using fallback model for session %s",
+                request.session_id,
+            )
+
         logger.info(
-            "Generated response via LangGraph for session %s (user %s): %d chars in %dms",
+            "Generated response via LangGraph for session %s (user %s): %d chars in %dms (fallback=%s)",
             request.session_id,
             user_id,
             len(response_content),
             generation_time_ms,
+            used_fallback_model,
         )
 
         # Get turn count and limit info
@@ -316,7 +325,7 @@ async def generate_response(
             generation_time_ms=generation_time_ms,
             safety_validated=is_safe,
             regeneration_count=regeneration_count,
-            used_fallback_model=False,
+            used_fallback_model=used_fallback_model,
             thinking=thinking,
             message_id=message_id,
             scammer_message_id=scammer_message_id,

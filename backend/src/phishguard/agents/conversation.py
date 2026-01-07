@@ -10,14 +10,11 @@ import logging
 import time
 from typing import Final
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
 from phishguard.agents.prompts.conversation import (
     get_conversation_system_prompt,
     get_conversation_user_prompt,
 )
-from phishguard.core import get_settings
+from phishguard.llm import LLMClient, LLMRequestError, create_llm_client
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import (
     ConversationMessage,
@@ -74,23 +71,18 @@ class ConversationAgent:
 
     def __init__(
         self,
-        model_name: str = "gpt-4o",
+        llm_client: LLMClient | None = None,
         validator: OutputValidator | None = None,
     ) -> None:
         """Initialize the ConversationAgent.
 
         Args:
-            model_name: The name of the LLM model to use.
+            llm_client: Optional LLMClient for dependency injection.
+                If not provided, a default client with fallback support is created.
             validator: Optional output validator for dependency injection.
                 If not provided, a default validator will be created.
         """
-        settings = get_settings()
-        self._llm = ChatOpenAI(
-            model=model_name,
-            temperature=CONVERSATION_TEMPERATURE,
-            max_tokens=CONVERSATION_MAX_TOKENS,
-            api_key=settings.openai_api_key,
-        )
+        self._llm_client = llm_client or create_llm_client()
         self._validator = validator or OutputValidator()
 
     async def generate_response(
@@ -137,8 +129,8 @@ class ConversationAgent:
         )
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ]
 
         regeneration_count = 0
@@ -148,8 +140,21 @@ class ConversationAgent:
 
         while regeneration_count <= MAX_REGENERATION_ATTEMPTS:
             try:
-                response = await self._llm.ainvoke(messages)
-                content = str(response.content)
+                # Use LLMClient for automatic retry and fallback (US-023)
+                llm_response = await self._llm_client.chat_completion(
+                    messages=messages,
+                    temperature=CONVERSATION_TEMPERATURE,
+                    max_tokens=CONVERSATION_MAX_TOKENS,
+                )
+                content = llm_response.content
+
+                # Track if fallback model was used
+                if llm_response.used_fallback:
+                    used_fallback = True
+                    logger.info(
+                        "Using fallback model %s for response generation",
+                        llm_response.model_used,
+                    )
 
                 # Parse structured response to extract content and thinking
                 parsed_content, thinking = self._parse_structured_response(content)
@@ -195,8 +200,13 @@ class ConversationAgent:
                     messages, validation_result.violation_summary
                 )
 
-            except Exception as e:
+            except LLMRequestError as e:
                 logger.error("LLM request failed during response generation: %s", e)
+                raise ResponseGenerationError(
+                    f"Failed to generate response: {e}"
+                ) from e
+            except Exception as e:
+                logger.error("Unexpected error during response generation: %s", e)
                 raise ResponseGenerationError(
                     f"Failed to generate response: {e}"
                 ) from e
@@ -364,7 +374,7 @@ class ConversationAgent:
         )
 
         # Add as a new user message
-        return messages + [HumanMessage(content=safety_reminder)]
+        return messages + [{"role": "user", "content": safety_reminder}]
 
     @staticmethod
     def _calculate_elapsed_ms(start_time: float) -> int:

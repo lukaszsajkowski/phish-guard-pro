@@ -97,6 +97,7 @@ class ClassificationResult(BaseModel):
         reasoning: Human-readable explanation for the classification.
         classification_time_ms: Time taken to classify in milliseconds.
         persona: The suggested victim persona for engagement (optional).
+        used_fallback_model: Whether fallback LLM was used (US-023).
 
     Example:
         >>> result = ClassificationResult(
@@ -157,6 +158,10 @@ class ClassificationResult(BaseModel):
     session_id: str | None = Field(
         default=None,
         description="The database session ID for this classification.",
+    )
+    used_fallback_model: bool = Field(
+        default=False,
+        description="Whether the fallback LLM model was used (US-023).",
     )
 
     @field_validator("confidence", mode="after")

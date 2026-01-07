@@ -47,13 +47,17 @@ async def classify_email(state: PhishGuardState) -> dict[str, Any]:
         "classification_time_ms": result.classification_time_ms,
     }
     
+    # Track if fallback model was used (US-023)
+    used_fallback = getattr(result, "used_fallback_model", False)
+    
     logger.info(
-        "Node: classify_email completed - attack_type=%s, confidence=%.1f",
+        "Node: classify_email completed - attack_type=%s, confidence=%.1f, fallback=%s",
         result.attack_type.value,
         result.confidence,
+        used_fallback,
     )
     
-    return {"classification": classification}
+    return {"classification": classification, "used_fallback_model": used_fallback}
 
 
 async def select_persona(state: PhishGuardState) -> dict[str, Any]:
@@ -156,10 +160,14 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
             "reasoning": result.thinking.reasoning,
         }
     
+    # Track if fallback model was used (US-023)
+    used_fallback = result.used_fallback_model
+    
     logger.info(
-        "Node: generate_response completed - %d chars, %dms",
+        "Node: generate_response completed - %d chars, %dms, fallback=%s",
         len(result.content),
         elapsed_ms,
+        used_fallback,
     )
 
     # Note: regeneration_count is tracked at graph level by validate_safety,
@@ -169,6 +177,7 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         "current_thinking": thinking,
         "is_safe": result.safety_validated,
         "generation_time_ms": elapsed_ms,
+        "used_fallback_model": used_fallback,
     }
 
 

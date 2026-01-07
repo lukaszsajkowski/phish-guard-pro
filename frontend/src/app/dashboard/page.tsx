@@ -68,6 +68,8 @@ export default function DashboardPage() {
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [isRetryingAnalysis, setIsRetryingAnalysis] = useState(false);
     const [generationError, setGenerationError] = useState<string | null>(null);
+    // Fallback model state (US-023)
+    const [usedFallbackModel, setUsedFallbackModel] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -260,6 +262,11 @@ export default function DashboardPage() {
                 setShowSessionLimitDialog(true);
             }
 
+            // Track fallback model usage (US-023)
+            if (data.used_fallback_model) {
+                setUsedFallbackModel(true);
+            }
+
         } catch (error) {
             console.error("Error generating response:", error);
             // Set error for display (US-022)
@@ -434,6 +441,11 @@ export default function DashboardPage() {
                 setShowUnmaskingDialog(true);
             }
 
+            // Track fallback model usage (US-023)
+            if (data.used_fallback_model) {
+                setUsedFallbackModel(true);
+            }
+
         } catch (error) {
             console.error("Error submitting scammer message:", error);
             throw error; // Re-throw so ScammerInput can display the error
@@ -456,6 +468,7 @@ export default function DashboardPage() {
         setTimelineEvents([]);
         setTurnCount(0);
         setTurnLimit(20);
+        setUsedFallbackModel(false);  // Reset fallback state (US-023)
     };
 
     // Handler for extending session limit (US-015)
@@ -799,6 +812,7 @@ export default function DashboardPage() {
                                 sessionId={sessionId ?? undefined}
                                 turnCount={turnCount}
                                 turnLimit={turnLimit}
+                                usedFallbackModel={usedFallbackModel}
                             />
 
                             {/* Generation Error Display (US-022) */}

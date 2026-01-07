@@ -5,6 +5,7 @@ import { Loader2, MessageSquare, Sparkles } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/types/schemas";
 import { ChatMessage } from "./ChatMessage";
 import { ScammerInput } from "./ScammerInput";
+import { FallbackModelNotice } from "./FallbackModelNotice";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ interface ChatAreaProps {
     sessionId?: string;
     turnCount?: number;
     turnLimit?: number;
+    usedFallbackModel?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export function ChatArea({
     sessionId,
     turnCount,
     turnLimit = 20,
+    usedFallbackModel = false,
 }: ChatAreaProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +121,11 @@ export function ChatArea({
                     {formatTurnCounter(effectiveTurnCount, turnLimit)}
                 </span>
             </div>
+
+            {/* Fallback model notice (US-023) */}
+            {usedFallbackModel && (
+                <FallbackModelNotice className="mb-4" />
+            )}
 
             {/* Messages container */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
