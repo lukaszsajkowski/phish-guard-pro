@@ -11,7 +11,12 @@ import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
 import { SessionLimitDialog } from "@/components/dashboard/SessionLimitDialog";
+import { UnmaskingDialog } from "@/components/dashboard/UnmaskingDialog";
+import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
+import { SessionSummary } from "@/components/dashboard/SessionSummary";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent } from "@/types/schemas";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 
 import {
     AlertDialog,
@@ -47,6 +52,17 @@ export default function DashboardPage() {
     const [turnLimit, setTurnLimit] = useState(20);
     const [showSessionLimitDialog, setShowSessionLimitDialog] = useState(false);
     const [isExtendingSession, setIsExtendingSession] = useState(false);
+    // Unmasking detection state (US-016)
+    const [showUnmaskingDialog, setShowUnmaskingDialog] = useState(false);
+    const [unmaskingPhrases, setUnmaskingPhrases] = useState<string[]>([]);
+    const [unmaskingConfidence, setUnmaskingConfidence] = useState(0);
+    // Session end state (US-017)
+    const [showEndSessionDialog, setShowEndSessionDialog] = useState(false);
+    const [isEndingSession, setIsEndingSession] = useState(false);
+    // Session summary state (US-018)
+    const [showSummary, setShowSummary] = useState(false);
+    const [sessionSummary, setSessionSummary] = useState<any>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -384,6 +400,13 @@ export default function DashboardPage() {
                 setShowSessionLimitDialog(true);
             }
 
+            // Check for unmasking detection (US-016)
+            if (data.unmasking_detected) {
+                setUnmaskingPhrases(data.unmasking_phrases || []);
+                setUnmaskingConfidence(data.unmasking_confidence || 0);
+                setShowUnmaskingDialog(true);
+            }
+
         } catch (error) {
             console.error("Error submitting scammer message:", error);
             throw error; // Re-throw so ScammerInput can display the error
@@ -453,11 +476,152 @@ export default function DashboardPage() {
         }
     };
 
-    // Handler for ending session (US-015)
-    const handleEndSession = () => {
-        // TODO: Implement session summary page/modal (US-018)
+    // Handler for ending session (US-015/US-017)
+    const handleEndSession = async () => {
+        if (!sessionId) return;
+
+        setIsEndingSession(true);
         setShowSessionLimitDialog(false);
-        // For now, just close the dialog - summary feature to be implemented later
+        setShowUnmaskingDialog(false);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            // End the session
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            console.log('Ending session:', { sessionId, apiUrl, hasToken: !!session.access_token });
+
+            let endResponse: Response;
+            try {
+                endResponse = await fetch(`${apiUrl}/api/v1/session/${sessionId}/end`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ reason: 'manual' }),
+                });
+            } catch (fetchError) {
+                console.error('Fetch error details:', fetchError);
+                console.error('Fetch error name:', (fetchError as Error).name);
+                console.error('Fetch error message:', (fetchError as Error).message);
+                throw fetchError;
+            }
+
+            if (!endResponse.ok) {
+                const errorText = await endResponse.text();
+                console.error('End session failed:', endResponse.status, errorText);
+                throw new Error(`Failed to end session: ${endResponse.status}`);
+            }
+
+            // Get the session summary
+            const summaryResponse = await fetch(`${apiUrl}/api/v1/session/${sessionId}/summary`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+            });
+
+            if (!summaryResponse.ok) {
+                throw new Error('Failed to get session summary');
+            }
+
+            const summaryData = await summaryResponse.json();
+            setSessionSummary(summaryData);
+            setShowSummary(true);
+            setShowEndSessionDialog(false);
+
+        } catch (error) {
+            console.error("Error ending session:", error);
+            alert(`Failed to end session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsEndingSession(false);
+        }
+    };
+
+    // Handler for continuing after unmasking (US-016)
+    const handleUnmaskingContinue = () => {
+        setShowUnmaskingDialog(false);
+        setUnmaskingPhrases([]);
+        setUnmaskingConfidence(0);
+    };
+
+    // Handler for exporting JSON (US-019)
+    const handleExportJson = async () => {
+        if (!sessionId) return;
+
+        setIsExporting(true);
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (!supabaseUrl || !supabaseAnonKey) return;
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/session/${sessionId}/export/json`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phishguard_session_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // Handler for exporting CSV (US-020)
+    const handleExportCsv = async () => {
+        if (!sessionId) return;
+
+        setIsExporting(true);
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (!supabaseUrl || !supabaseAnonKey) return;
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/session/${sessionId}/export/csv`, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // Handler for new session (US-018)
+    const handleNewSession = () => {
+        setShowSummary(false);
+        setSessionSummary(null);
+        handlePasteDifferentEmail();
     };
 
     if (isLoading) {
@@ -486,6 +650,19 @@ export default function DashboardPage() {
                         </span>
                     </Link>
                     <div className="flex items-center gap-4">
+                        {/* End Session button (US-017) - visible when session is active */}
+                        {sessionId && !showSummary && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowEndSessionDialog(true)}
+                                disabled={isEndingSession}
+                                data-testid="end-session-header-button"
+                            >
+                                <FileText className="h-4 w-4 mr-2" />
+                                End session
+                            </Button>
+                        )}
                         <span className="text-sm text-muted-foreground">
                             {user?.email}
                         </span>
@@ -511,70 +688,82 @@ export default function DashboardPage() {
                 </div>
             </header>
 
-            {/* Main content */}
-            <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-                {/* Top row: Email Input + Analysis Results */}
-                <div className="flex flex-col md:flex-row gap-6">
-                    {/* Left Panel: Input */}
-                    <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
-                        <EmailInput
-                            value={emailContent}
-                            onChange={setEmailContent}
-                            onAnalyze={handleAnalyze}
-                        />
-                    </div>
+            {/* Main content - show summary or regular dashboard */}
+            {showSummary && sessionSummary ? (
+                <main className="flex flex-1 flex-col p-6">
+                    <SessionSummary
+                        summary={sessionSummary}
+                        onExportJson={handleExportJson}
+                        onExportCsv={handleExportCsv}
+                        onNewSession={handleNewSession}
+                        isExporting={isExporting}
+                    />
+                </main>
+            ) : (
+                <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+                    {/* Top row: Email Input + Analysis Results */}
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Left Panel: Input */}
+                        <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                            <EmailInput
+                                value={emailContent}
+                                onChange={setEmailContent}
+                                onAnalyze={handleAnalyze}
+                            />
+                        </div>
 
-                    {/* Right Panel: Results (Side Panel) */}
-                    {classificationResult && !showSafeWarning && (
-                        <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
-                            <div className="sticky top-6">
-                                <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
-                                    <h3 className="text-lg font-semibold">Analysis Results</h3>
-                                </div>
-                                <div className="space-y-4">
-                                <ClassificationResult
-                                    attackType={classificationResult.attackType}
-                                    confidence={classificationResult.confidence}
-                                    reasoning={classificationResult.reasoning}
-                                />
-                                {classificationResult.persona && (
-                                    <PersonaCard persona={classificationResult.persona} />
-                                )}
-                                <IntelDashboard
-                                    iocs={extractedIOCs}
-                                    attackType={classificationResult.attackType}
-                                    confidence={classificationResult.confidence}
-                                    riskScore={Math.min(10, Math.max(1,
-                                        (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
-                                            classificationResult.attackType === 'not_phishing' ? 1 : 3) +
-                                        Math.min(extractedIOCs.length, 3) +
-                                        Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
-                                    ))}
-                                    timeline={timelineEvents}
-                                />
+                        {/* Right Panel: Results (Side Panel) */}
+                        {classificationResult && !showSafeWarning && (
+                            <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
+                                <div className="sticky top-6">
+                                    <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
+                                        <h3 className="text-lg font-semibold">Analysis Results</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <ClassificationResult
+                                            attackType={classificationResult.attackType}
+                                            confidence={classificationResult.confidence}
+                                            reasoning={classificationResult.reasoning}
+                                        />
+                                        {classificationResult.persona && (
+                                            <PersonaCard persona={classificationResult.persona} />
+                                        )}
+                                        <IntelDashboard
+                                            iocs={extractedIOCs}
+                                            attackType={classificationResult.attackType}
+                                            confidence={classificationResult.confidence}
+                                            riskScore={Math.min(10, Math.max(1,
+                                                (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
+                                                    classificationResult.attackType === 'not_phishing' ? 1 : 3) +
+                                                Math.min(extractedIOCs.length, 3) +
+                                                Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
+                                            ))}
+                                            timeline={timelineEvents}
+                                        />
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                    </div>
+
+                    {/* Chat Area - shown after classification */}
+                    {showChatArea && (
+                        <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
+                            <ChatArea
+                                messages={messages}
+                                isGenerating={isGenerating}
+                                onGenerateResponse={handleGenerateResponse}
+                                showGenerateButton={sessionId !== null}
+                                onEditMessage={handleEditMessage}
+                                onSubmitScammerMessage={handleSubmitScammerMessage}
+                                sessionId={sessionId ?? undefined}
+                                turnCount={turnCount}
+                                turnLimit={turnLimit}
+                            />
                         </div>
                     )}
-                </div>
-
-                {/* Chat Area - shown after classification */}
-                {showChatArea && (
-                    <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
-                        <ChatArea
-                            messages={messages}
-                            isGenerating={isGenerating}
-                            onGenerateResponse={handleGenerateResponse}
-                            showGenerateButton={sessionId !== null}
-                            onEditMessage={handleEditMessage}
-                            onSubmitScammerMessage={handleSubmitScammerMessage}
-                            sessionId={sessionId ?? undefined}
-                            turnCount={turnCount}
-                            turnLimit={turnLimit}
-                        />
-                    </div>
-                )}
-            </main>
+                </main>
+            )}
 
             {/* Session Limit Dialog (US-015) */}
             <SessionLimitDialog
@@ -602,6 +791,24 @@ export default function DashboardPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Unmasking Dialog (US-016) */}
+            <UnmaskingDialog
+                open={showUnmaskingDialog}
+                matchedPhrases={unmaskingPhrases}
+                confidence={unmaskingConfidence}
+                onSummarize={handleEndSession}
+                onContinue={handleUnmaskingContinue}
+                isLoading={isEndingSession}
+            />
+
+            {/* End Session Confirmation Dialog (US-017) */}
+            <EndSessionDialog
+                open={showEndSessionDialog}
+                onOpenChange={setShowEndSessionDialog}
+                onConfirm={handleEndSession}
+                isLoading={isEndingSession}
+            />
         </div>
     );
 }

@@ -618,3 +618,242 @@ async def get_session_info(session_id: str) -> dict[str, Any]:
         "turn_limit": turn_limit,
         "is_at_limit": turn_count >= turn_limit,
     }
+
+
+async def end_session(session_id: str) -> None:
+    """Mark a session as ended/archived.
+
+    Used when user manually ends session (US-017) or unmasking is detected (US-016).
+
+    Args:
+        session_id: The session's UUID.
+
+    Raises:
+        Exception: If update fails.
+    """
+    from datetime import datetime, UTC
+
+    supabase = _get_supabase_client()
+
+    result = (
+        supabase.table("sessions")
+        .update({
+            "status": "archived",
+            "ended_at": datetime.now(UTC).isoformat(),
+        })
+        .eq("id", session_id)
+        .execute()
+    )
+
+    if not result.data or len(result.data) == 0:
+        raise Exception(f"Failed to end session {session_id}")
+
+    logger.info("Ended session %s", session_id)
+
+
+async def get_session_summary(session_id: str) -> dict[str, Any]:
+    """Generate a session summary for the final report (US-018).
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Dict containing all summary data.
+
+    Raises:
+        Exception: If session not found.
+    """
+    from datetime import datetime, UTC
+    from phishguard.models.classification import AttackType
+
+    session = await get_session(session_id)
+    if not session:
+        raise Exception(f"Session {session_id} not found")
+
+    # Get all messages for counting
+    messages = await get_session_messages(session_id)
+
+    # Count exchanges (bot responses)
+    bot_messages = [m for m in messages if m.get("role") == "assistant"]
+    exchange_count = len(bot_messages)
+
+    # Count safe responses (those that didn't require regeneration)
+    safe_responses = sum(
+        1 for m in bot_messages
+        if m.get("metadata", {}).get("safety_validated", True)
+    )
+
+    # Get IOCs
+    iocs = await get_session_iocs(session_id)
+
+    # Get attack type display name
+    attack_type = session.get("attack_type", "unknown")
+    try:
+        attack_type_enum = AttackType(attack_type)
+        attack_type_display = attack_type_enum.display_name
+    except ValueError:
+        attack_type_display = attack_type.replace("_", " ").title()
+
+    # Get confidence from first classification message metadata
+    attack_confidence = 0.0
+    for msg in messages:
+        metadata = msg.get("metadata", {})
+        if metadata.get("type") == "original_email":
+            break
+
+    # Build IOC summary list
+    ioc_summaries = []
+    for ioc in iocs:
+        ioc_type = ioc.get("type", "")
+        is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
+        ioc_summaries.append({
+            "id": ioc.get("id", ""),
+            "ioc_type": ioc_type,
+            "value": ioc.get("value", ""),
+            "is_high_value": is_high_value,
+            "timestamp": ioc.get("created_at", ""),
+        })
+
+    return {
+        "session_id": session_id,
+        "exchange_count": exchange_count,
+        "session_start": session.get("created_at", ""),
+        "session_end": session.get("ended_at") or datetime.now(UTC).isoformat(),
+        "attack_type": attack_type,
+        "attack_type_display": attack_type_display,
+        "attack_confidence": attack_confidence,
+        "iocs": ioc_summaries,
+        "total_responses": exchange_count,
+        "safe_responses": safe_responses,
+    }
+
+
+async def export_session_json(session_id: str) -> dict[str, Any]:
+    """Export full session data to JSON format (US-019).
+
+    Creates a dict containing:
+    - Session metadata
+    - Full conversation history
+    - All extracted IOCs
+
+    Args:
+        session_id: The session's UUID.
+
+    Returns:
+        Dict containing the full session export.
+    """
+    from datetime import datetime, UTC
+
+    session = await get_session(session_id)
+    if not session:
+        raise Exception(f"Session {session_id} not found")
+
+    messages = await get_session_messages(session_id)
+    iocs = await get_session_iocs(session_id)
+    summary = await get_session_summary(session_id)
+
+    # Build conversation history
+    conversation_history = []
+    for i, msg in enumerate(messages):
+        metadata = msg.get("metadata", {})
+        if metadata.get("type") == "original_email":
+            continue
+        conversation_history.append({
+            "sender": msg.get("role", ""),
+            "content": msg.get("content", ""),
+            "timestamp": msg.get("created_at", ""),
+            "turn_number": i,
+        })
+
+    # Get original email
+    original_email = None
+    for msg in messages:
+        if msg.get("metadata", {}).get("type") == "original_email":
+            original_email = msg.get("content", "")
+            break
+
+    return {
+        "phishguard_export_version": "1.0",
+        "exported_at": datetime.now(UTC).isoformat(),
+        "metadata": {
+            "session_id": session_id,
+            "created_at": session.get("created_at", ""),
+            "ended_at": session.get("ended_at", ""),
+            "attack_type": session.get("attack_type", ""),
+            "turn_count": summary.get("exchange_count", 0),
+            "turn_limit": session.get("turn_limit", 20),
+        },
+        "persona": session.get("persona"),
+        "original_email": original_email,
+        "conversation_history": conversation_history,
+        "extracted_iocs": iocs,
+        "summary_stats": {
+            "total_iocs": len(iocs),
+            "high_value_iocs": sum(
+                1 for ioc in iocs if ioc.get("type") in ("btc", "iban", "btc_wallet")
+            ),
+            "total_messages": len(conversation_history),
+            "bot_messages": sum(
+                1 for m in conversation_history if m.get("sender") == "assistant"
+            ),
+            "scammer_messages": sum(
+                1 for m in conversation_history if m.get("sender") == "scammer"
+            ),
+        },
+    }
+
+
+def export_iocs_csv(iocs: list[dict[str, Any]]) -> str:
+    """Export IOCs to CSV format (US-020).
+
+    Args:
+        iocs: List of IOC dicts from get_session_iocs.
+
+    Returns:
+        CSV string with headers and data.
+    """
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    writer.writerow([
+        "ioc_type",
+        "value",
+        "timestamp",
+        "confidence",
+        "is_high_value",
+    ])
+
+    # Write IOC rows
+    for ioc in iocs:
+        ioc_type = ioc.get("type", "")
+        is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
+        writer.writerow([
+            ioc_type,
+            ioc.get("value", ""),
+            ioc.get("created_at", ""),
+            ioc.get("confidence", 0.0),
+            "true" if is_high_value else "false",
+        ])
+
+    return output.getvalue()
+
+
+def generate_export_filename(prefix: str, extension: str) -> str:
+    """Generate a timestamped filename for export.
+
+    Args:
+        prefix: The filename prefix (e.g., "phishguard_session").
+        extension: The file extension without dot (e.g., "json").
+
+    Returns:
+        Filename with timestamp in format: prefix_YYYYMMDD_HHMMSS.extension
+    """
+    from datetime import datetime, UTC
+
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    return f"{prefix}_{timestamp}.{extension}"
+

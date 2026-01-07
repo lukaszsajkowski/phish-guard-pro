@@ -13,7 +13,7 @@ from phishguard.models.conversation import ConversationMessage, MessageSender
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
 from phishguard.orchestrator import create_continuation_graph, get_checkpointer
-from phishguard.safety import OutputValidator
+from phishguard.safety import OutputValidator, detect_unmasking
 from phishguard.services import session_service
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,9 @@ class ResponseGenerationResponse(BaseModel):
     turn_count: int = Field(..., description="Current conversation turn number")
     turn_limit: int = Field(20, description="Maximum turn limit for the session")
     is_at_limit: bool = Field(False, description="Whether the session has reached its turn limit")
+    unmasking_detected: bool = Field(False, description="Whether unmasking was detected in scammer message")
+    unmasking_phrases: list[str] = Field(default_factory=list, description="Phrases that triggered unmasking detection")
+    unmasking_confidence: float = Field(0.0, description="Confidence level of unmasking detection")
 
 
 class ResponseValidationRequest(BaseModel):
@@ -290,6 +293,24 @@ async def generate_response(
         # Get turn count and limit info
         session_info = await session_service.get_session_info(request.session_id)
 
+        # Detect bot unmasking in scammer message (US-016)
+        unmasking_detected = False
+        unmasking_phrases: list[str] = []
+        unmasking_confidence = 0.0
+
+        if request.scammer_message:
+            unmasking_result = detect_unmasking(request.scammer_message)
+            unmasking_detected = unmasking_result.is_unmasked
+            unmasking_phrases = unmasking_result.matched_phrases
+            unmasking_confidence = unmasking_result.confidence
+            if unmasking_detected:
+                logger.info(
+                    "Unmasking detected in session %s: %s (confidence: %.2f)",
+                    request.session_id,
+                    unmasking_phrases,
+                    unmasking_confidence,
+                )
+
         return ResponseGenerationResponse(
             content=response_content,
             generation_time_ms=generation_time_ms,
@@ -303,6 +324,9 @@ async def generate_response(
             turn_count=session_info["turn_count"],
             turn_limit=session_info["turn_limit"],
             is_at_limit=session_info["is_at_limit"],
+            unmasking_detected=unmasking_detected,
+            unmasking_phrases=unmasking_phrases,
+            unmasking_confidence=unmasking_confidence,
         )
 
     except ResponseGenerationError as e:
