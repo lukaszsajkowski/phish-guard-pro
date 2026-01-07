@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, LogOut, Loader2 } from "lucide-react";
+import { Shield, LogOut, Loader2, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
@@ -70,6 +70,8 @@ export default function DashboardPage() {
     const [generationError, setGenerationError] = useState<string | null>(null);
     // Fallback model state (US-023)
     const [usedFallbackModel, setUsedFallbackModel] = useState(false);
+    // New Session state (US-025)
+    const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -681,11 +683,13 @@ export default function DashboardPage() {
         }
     };
 
-    // Handler for new session (US-018)
+    // Handler for new session (US-018 & US-025)
+    // Used by summary page and header button confirmation
     const handleNewSession = () => {
         setShowSummary(false);
         setSessionSummary(null);
         handlePasteDifferentEmail();
+        setShowNewSessionDialog(false);
     };
 
     if (isLoading) {
@@ -727,6 +731,20 @@ export default function DashboardPage() {
                                 End session
                             </Button>
                         )}
+
+                        {/* New Session button (US-025) - visible when session is active */}
+                        {sessionId && !showSummary && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowNewSessionDialog(true)}
+                                data-testid="new-session-header-button"
+                            >
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                New Session
+                            </Button>
+                        )}
+
                         <span className="text-sm text-muted-foreground">
                             {user?.email}
                         </span>
@@ -750,111 +768,136 @@ export default function DashboardPage() {
                         </button>
                     </div>
                 </div>
-            </header>
+            </header >
 
             {/* Main content - show summary or regular dashboard */}
-            {showSummary && sessionSummary ? (
-                <main className="flex flex-1 flex-col p-6">
-                    <SessionSummary
-                        summary={sessionSummary}
-                        onExportJson={handleExportJson}
-                        onExportCsv={handleExportCsv}
-                        onNewSession={handleNewSession}
-                        isExporting={isExporting}
-                    />
-                </main>
-            ) : (
-                <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-                    {/* Top row: Email Input + Analysis Results */}
-                    <div className="flex flex-col md:flex-row gap-6">
-                        {/* Left Panel: Input */}
-                        <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
-                            <EmailInput
-                                value={emailContent}
-                                onChange={setEmailContent}
-                                onAnalyze={handleAnalyze}
-                            />
 
-                            {/* Analysis Error Display (US-022) */}
-                            {analysisError && (
-                                <div className="mt-4">
-                                    <ApiError
-                                        title="Analysis Failed"
-                                        message={analysisError}
-                                        onRetry={handleRetryAnalysis}
-                                        isRetrying={isRetryingAnalysis}
-                                        data-testid="analysis-error"
-                                    />
+            {/* New Session Confirmation Dialog (US-025) */}
+            <AlertDialog open={showNewSessionDialog} onOpenChange={setShowNewSessionDialog}>
+                <AlertDialogContent data-testid="new-session-dialog">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Start New Session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to start a new session? Any unsaved data will be lost.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="new-session-cancel-button">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleNewSession}
+                            data-testid="new-session-confirm-button"
+                        >
+                            Confirm
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Main content - show summary or regular dashboard */}
+            {
+                showSummary && sessionSummary ? (
+                    <main className="flex flex-1 flex-col p-6">
+                        <SessionSummary
+                            summary={sessionSummary}
+                            onExportJson={handleExportJson}
+                            onExportCsv={handleExportCsv}
+                            onNewSession={handleNewSession}
+                            isExporting={isExporting}
+                        />
+                    </main>
+                ) : (
+                    <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+                        {/* Top row: Email Input + Analysis Results */}
+                        <div className="flex flex-col md:flex-row gap-6">
+                            {/* Left Panel: Input */}
+                            <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                                <EmailInput
+                                    value={emailContent}
+                                    onChange={setEmailContent}
+                                    onAnalyze={handleAnalyze}
+                                />
+
+                                {/* Analysis Error Display (US-022) */}
+                                {analysisError && (
+                                    <div className="mt-4">
+                                        <ApiError
+                                            title="Analysis Failed"
+                                            message={analysisError}
+                                            onRetry={handleRetryAnalysis}
+                                            isRetrying={isRetryingAnalysis}
+                                            data-testid="analysis-error"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Panel: Results (Side Panel) */}
+                            {classificationResult && !showSafeWarning && (
+                                <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
+                                    <div className="sticky top-6">
+                                        <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
+                                            <h3 className="text-lg font-semibold">Analysis Results</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <ClassificationResult
+                                                attackType={classificationResult.attackType}
+                                                confidence={classificationResult.confidence}
+                                                reasoning={classificationResult.reasoning}
+                                            />
+                                            {classificationResult.persona && (
+                                                <PersonaCard persona={classificationResult.persona} />
+                                            )}
+                                            <IntelDashboard
+                                                iocs={extractedIOCs}
+                                                attackType={classificationResult.attackType}
+                                                confidence={classificationResult.confidence}
+                                                riskScore={Math.min(10, Math.max(1,
+                                                    (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
+                                                        classificationResult.attackType === 'not_phishing' ? 1 : 3) +
+                                                    Math.min(extractedIOCs.length, 3) +
+                                                    Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
+                                                ))}
+                                                timeline={timelineEvents}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Right Panel: Results (Side Panel) */}
-                        {classificationResult && !showSafeWarning && (
-                            <div className="w-full md:w-1/3 animate-in fade-in slide-in-from-right-10 duration-500">
-                                <div className="sticky top-6">
-                                    <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
-                                        <h3 className="text-lg font-semibold">Analysis Results</h3>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <ClassificationResult
-                                            attackType={classificationResult.attackType}
-                                            confidence={classificationResult.confidence}
-                                            reasoning={classificationResult.reasoning}
-                                        />
-                                        {classificationResult.persona && (
-                                            <PersonaCard persona={classificationResult.persona} />
-                                        )}
-                                        <IntelDashboard
-                                            iocs={extractedIOCs}
-                                            attackType={classificationResult.attackType}
-                                            confidence={classificationResult.confidence}
-                                            riskScore={Math.min(10, Math.max(1,
-                                                (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
-                                                    classificationResult.attackType === 'not_phishing' ? 1 : 3) +
-                                                Math.min(extractedIOCs.length, 3) +
-                                                Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
-                                            ))}
-                                            timeline={timelineEvents}
+                        {/* Chat Area - shown after classification */}
+                        {showChatArea && (
+                            <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
+                                <ChatArea
+                                    messages={messages}
+                                    isGenerating={isGenerating}
+                                    onGenerateResponse={handleGenerateResponse}
+                                    showGenerateButton={sessionId !== null}
+                                    onEditMessage={handleEditMessage}
+                                    onSubmitScammerMessage={handleSubmitScammerMessage}
+                                    sessionId={sessionId ?? undefined}
+                                    turnCount={turnCount}
+                                    turnLimit={turnLimit}
+                                    usedFallbackModel={usedFallbackModel}
+                                />
+
+                                {/* Generation Error Display (US-022) */}
+                                {generationError && (
+                                    <div className="mt-4">
+                                        <ApiError
+                                            title="Response Generation Failed"
+                                            message={generationError}
+                                            onRetry={handleRetryGeneration}
+                                            isRetrying={isGenerating}
+                                            data-testid="generation-error"
                                         />
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
-                    </div>
-
-                    {/* Chat Area - shown after classification */}
-                    {showChatArea && (
-                        <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
-                            <ChatArea
-                                messages={messages}
-                                isGenerating={isGenerating}
-                                onGenerateResponse={handleGenerateResponse}
-                                showGenerateButton={sessionId !== null}
-                                onEditMessage={handleEditMessage}
-                                onSubmitScammerMessage={handleSubmitScammerMessage}
-                                sessionId={sessionId ?? undefined}
-                                turnCount={turnCount}
-                                turnLimit={turnLimit}
-                                usedFallbackModel={usedFallbackModel}
-                            />
-
-                            {/* Generation Error Display (US-022) */}
-                            {generationError && (
-                                <div className="mt-4">
-                                    <ApiError
-                                        title="Response Generation Failed"
-                                        message={generationError}
-                                        onRetry={handleRetryGeneration}
-                                        isRetrying={isGenerating}
-                                        data-testid="generation-error"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </main>
-            )}
+                    </main>
+                )
+            }
 
             {/* Session Limit Dialog (US-015) */}
             <SessionLimitDialog
@@ -900,6 +943,6 @@ export default function DashboardPage() {
                 onConfirm={handleEndSession}
                 isLoading={isEndingSession}
             />
-        </div>
+        </div >
     );
 }

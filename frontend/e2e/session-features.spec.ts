@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Session Features (US-013, US-014, US-015)', () => {
+test.describe('Session Features (US-013, US-014, US-015, US-025)', () => {
     test.beforeEach(async ({ page }) => {
         // Register and login (using unique email)
         await page.goto('/register');
@@ -136,5 +136,57 @@ test.describe('Session Features (US-013, US-014, US-015)', () => {
         // Note: The mocked component state will need to reflect the update. 
         // Since our mock response above hardcoded turn_count: 20, we expect "Turn 20/30" after extension.
         await expect(page.getByTestId('turn-counter')).toHaveText('Turn 20/30');
+    });
+
+    test('US-025: Start New Session button resets application state', async ({ page }) => {
+        // Mock response generation to active session
+        await page.route('**/api/v1/response/generate', async (route) => {
+            await route.fulfill({
+                status: 200,
+                body: JSON.stringify({
+                    content: 'Response text',
+                    generation_time_ms: 1000,
+                    thinking: { turn_goal: 'Goal', selected_tactic: 'Tactic', reasoning: 'Reason' },
+                    message_id: 'msg-1',
+                    turn_count: 1,
+                    turn_limit: 20,
+                    is_at_limit: false,
+                }),
+            });
+        });
+
+        // Start session
+        await page.getByTestId('generate-response-button').click();
+
+        // Verify "New Session" button is visible in header
+        const newSessionBtn = page.getByTestId('new-session-header-button');
+        await expect(newSessionBtn).toBeVisible();
+
+        // Click it
+        await newSessionBtn.click();
+
+        // Verify confirmation dialog
+        const dialog = page.getByTestId('new-session-dialog');
+        await expect(dialog).toBeVisible();
+        await expect(page.getByText('Start New Session?')).toBeVisible();
+
+        // Test Cancel action
+        await page.getByTestId('new-session-cancel-button').click();
+        await expect(dialog).not.toBeVisible();
+        // Session should be preserved (turn counter still visible)
+        await expect(page.getByTestId('turn-counter')).toBeVisible();
+
+        // Test Confirm action
+        await newSessionBtn.click();
+        await page.getByTestId('new-session-confirm-button').click();
+
+        // Verify reset state
+        await expect(dialog).not.toBeVisible();
+        // Input should be empty and visible
+        const input = page.getByPlaceholder('Paste phishing email content here...');
+        await expect(input).toBeVisible();
+        await expect(input).toBeEmpty();
+        // Chat elements should be gone
+        await expect(page.getByTestId('turn-counter')).not.toBeVisible();
     });
 });
