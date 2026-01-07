@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
+import { ApiError } from "@/components/app/ApiError";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
@@ -63,6 +64,10 @@ export default function DashboardPage() {
     const [showSummary, setShowSummary] = useState(false);
     const [sessionSummary, setSessionSummary] = useState<any>(null);
     const [isExporting, setIsExporting] = useState(false);
+    // API Error state (US-022)
+    const [analysisError, setAnalysisError] = useState<string | null>(null);
+    const [isRetryingAnalysis, setIsRetryingAnalysis] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -109,6 +114,10 @@ export default function DashboardPage() {
     };
 
     const handleAnalyze = async (contentToAnalyze: string) => {
+        // Clear previous error but keep email content (US-022: session not lost on error)
+        setAnalysisError(null);
+        setIsRetryingAnalysis(false);
+
         try {
             // Reset previous result
             setClassificationResult(null);
@@ -146,7 +155,9 @@ export default function DashboardPage() {
                 if (response.status === 401) {
                     throw new Error('Session expired. Please log in again.');
                 }
-                throw new Error('Analysis failed');
+                // Parse standardized error response (US-022)
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Analysis failed. Please try again.');
             }
 
             const data = await response.json();
@@ -171,8 +182,17 @@ export default function DashboardPage() {
 
         } catch (error) {
             console.error("Error analyzing email:", error);
-            // TODO: generic error handling UI
+            // Set error for display (US-022)
+            setAnalysisError(error instanceof Error ? error.message : "An unexpected error occurred. Please try again.");
         }
+    };
+
+    // Retry handler for analysis errors (US-022)
+    const handleRetryAnalysis = async () => {
+        if (!emailContent) return;
+        setIsRetryingAnalysis(true);
+        await handleAnalyze(emailContent);
+        setIsRetryingAnalysis(false);
     };
 
     const handleGenerateResponse = async () => {
@@ -242,10 +262,17 @@ export default function DashboardPage() {
 
         } catch (error) {
             console.error("Error generating response:", error);
-            // TODO: Show error toast
+            // Set error for display (US-022)
+            setGenerationError(error instanceof Error ? error.message : "Failed to generate response. Please try again.");
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    // Clear generation error when retrying
+    const handleRetryGeneration = () => {
+        setGenerationError(null);
+        handleGenerateResponse();
     };
 
     const handleEditMessage = async (messageId: string, newContent: string) => {
@@ -710,6 +737,19 @@ export default function DashboardPage() {
                                 onChange={setEmailContent}
                                 onAnalyze={handleAnalyze}
                             />
+
+                            {/* Analysis Error Display (US-022) */}
+                            {analysisError && (
+                                <div className="mt-4">
+                                    <ApiError
+                                        title="Analysis Failed"
+                                        message={analysisError}
+                                        onRetry={handleRetryAnalysis}
+                                        isRetrying={isRetryingAnalysis}
+                                        data-testid="analysis-error"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Panel: Results (Side Panel) */}
@@ -760,6 +800,19 @@ export default function DashboardPage() {
                                 turnCount={turnCount}
                                 turnLimit={turnLimit}
                             />
+
+                            {/* Generation Error Display (US-022) */}
+                            {generationError && (
+                                <div className="mt-4">
+                                    <ApiError
+                                        title="Response Generation Failed"
+                                        message={generationError}
+                                        onRetry={handleRetryGeneration}
+                                        isRetrying={isGenerating}
+                                        data-testid="generation-error"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>
