@@ -177,6 +177,30 @@ export default function DashboardPage() {
                 persona: data.persona
             });
 
+            // Extract IOCs from initial email classification
+            if (data.extracted_iocs && data.extracted_iocs.length > 0) {
+                const iocs: ExtractedIOC[] = data.extracted_iocs.map((ioc: any, index: number) => ({
+                    id: `initial-${index}`,
+                    type: ioc.type,
+                    value: ioc.value,
+                    context: ioc.context,
+                    is_high_value: ioc.is_high_value,
+                    created_at: new Date().toISOString(),
+                }));
+                setExtractedIOCs(iocs);
+
+                // Add timeline events for extracted IOCs
+                const newEvents: TimelineEvent[] = iocs.map((ioc) => ({
+                    id: `event-${ioc.id}`,
+                    timestamp: ioc.created_at || new Date().toISOString(),
+                    event_type: "ioc_extracted" as const,
+                    description: `Extracted ${ioc.type.toUpperCase()}: ${ioc.value.substring(0, 20)}...`,
+                    ioc_id: ioc.id,
+                    is_high_value: ioc.is_high_value,
+                }));
+                setTimelineEvents(newEvents);
+            }
+
             // Check if safe
             if (data.attack_type === "not_phishing") {
                 setShowSafeWarning(true);

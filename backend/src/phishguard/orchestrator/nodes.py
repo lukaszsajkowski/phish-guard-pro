@@ -181,27 +181,27 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
     }
 
 
-async def extract_intel(state: PhishGuardState) -> dict[str, Any]:
-    """Node: Extract IOCs using IntelCollector.
-    
+async def extract_intel_from_email(state: PhishGuardState) -> dict[str, Any]:
+    """Node: Extract IOCs from initial email content using IntelCollector.
+
+    This node extracts IOCs from the first email message in the thread.
+
     Args:
-        state: Current workflow state with scammer_message.
-        
+        state: Current workflow state with email_content.
+
     Returns:
         State update with extracted IOCs.
     """
-    logger.info("Node: extract_intel starting for session %s", state.get("session_id"))
-    
-    scammer_message = state.get("scammer_message")
-    if not scammer_message:
+    session_id = state.get("session_id")
+    logger.info("Node: extract_intel_from_email starting for session %s", session_id)
+
+    email_content = state.get("email_content")
+    if not email_content:
         return {"extracted_iocs": []}
-    
-    history = state.get("conversation_history", [])
-    message_index = len(history)
-    
+
     collector = IntelCollector()
-    result = collector.extract(scammer_message, message_index)
-    
+    result = collector.extract(email_content, message_index=0)
+
     iocs = []
     if result.has_iocs:
         iocs = [
@@ -213,12 +213,53 @@ async def extract_intel(state: PhishGuardState) -> dict[str, Any]:
             }
             for ioc in result.iocs
         ]
-    
+
+    logger.info(
+        "Node: extract_intel_from_email - %d IOCs extracted",
+        len(iocs),
+    )
+
+    return {"extracted_iocs": iocs}
+
+
+async def extract_intel(state: PhishGuardState) -> dict[str, Any]:
+    """Node: Extract IOCs using IntelCollector.
+
+    Args:
+        state: Current workflow state with scammer_message.
+
+    Returns:
+        State update with extracted IOCs.
+    """
+    logger.info("Node: extract_intel starting for session %s", state.get("session_id"))
+
+    scammer_message = state.get("scammer_message")
+    if not scammer_message:
+        return {"extracted_iocs": []}
+
+    history = state.get("conversation_history", [])
+    message_index = len(history)
+
+    collector = IntelCollector()
+    result = collector.extract(scammer_message, message_index)
+
+    iocs = []
+    if result.has_iocs:
+        iocs = [
+            {
+                "type": ioc.ioc_type.value,
+                "value": ioc.value,
+                "context": ioc.context,
+                "is_high_value": ioc.is_high_value,
+            }
+            for ioc in result.iocs
+        ]
+
     logger.info(
         "Node: extract_intel completed - %d IOCs extracted",
         len(iocs),
     )
-    
+
     return {"extracted_iocs": iocs}
 
 

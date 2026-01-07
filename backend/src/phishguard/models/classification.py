@@ -163,6 +163,10 @@ class ClassificationResult(BaseModel):
         default=False,
         description="Whether the fallback LLM model was used (US-023).",
     )
+    extracted_iocs: list[dict] = Field(
+        default_factory=list,
+        description="IOCs extracted from the initial email.",
+    )
 
     @field_validator("confidence", mode="after")
     @classmethod

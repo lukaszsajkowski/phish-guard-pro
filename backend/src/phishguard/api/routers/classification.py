@@ -97,6 +97,9 @@ async def classify_email(
                 background=persona_data["background"],
             )
 
+        # Get extracted IOCs from graph state
+        extracted_iocs = result_state.get("extracted_iocs", [])
+
         result = ClassificationResult(
             attack_type=AttackType(classification.get("attack_type", "not_phishing")),
             confidence=classification.get("confidence", 0.0),
@@ -104,6 +107,7 @@ async def classify_email(
             classification_time_ms=classification.get("classification_time_ms", 0),
             persona=persona,
             session_id=session_id,
+            extracted_iocs=extracted_iocs,
         )
 
         # Update session with classification results
