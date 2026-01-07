@@ -149,8 +149,6 @@ You will then:
 
 Read .ai/prd.md and .ai/tech.md to get requirements.
 
-Scan /legacy_mvp to find relevant existing logic.
-
 Generate the Master Plan.
 
 Ask for approval to start the first Sub-Agent.

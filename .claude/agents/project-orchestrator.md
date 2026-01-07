@@ -34,12 +34,8 @@ Before planning, understand the system architecture:
 Before any planning activity, you MUST read and internalize:
 1. `.ai/prd.md` - Extract the specific user story, acceptance criteria, and business context
 2. `.ai/tech.md` - Understand architectural decisions, tech constraints, and integration patterns
-3. `legacy_mvp/` - **CRITICAL**: Check how the feature was implemented in the original Streamlit MVP
-   - `legacy_mvp/src/` - Source of truth for business logic, prompts, and regex patterns
-   - `legacy_mvp/docs/` - Original documentation and design decisions
-   - Adapt patterns to async/LangGraph/Next.js - do NOT copy directly
-4. `backend/src/phishguard/` - Survey existing code to understand current implementation state
-5. `frontend/` - Check existing React components and pages
+3. `backend/src/phishguard/` - Survey existing code to understand current implementation state
+4. `frontend/` - Check existing React components and pages
 
 ## Task Breakdown Methodology
 
@@ -125,14 +121,11 @@ You have access to the following specialized sub-agents via the Task tool:
 ### Phase 1: Planning (you do this)
 1. Read `.ai/prd.md` to understand the user story and acceptance criteria
 2. Read `.ai/tech.md` to understand architecture constraints
-3. **Check `legacy_mvp/src/`** to see how the feature was originally implemented
-   - Extract relevant prompts, regex patterns, business logic
-   - Note what needs adaptation for async/LangGraph/Next.js
-4. Survey `backend/src/phishguard/` to understand current implementation state
-5. Survey `frontend/` to check existing React components
-6. Break down the user story into atomic tasks
-7. Assign each task to the appropriate sub-agent
-8. Define the execution order based on dependencies
+3. Survey `backend/src/phishguard/` to understand current implementation state
+4. Survey `frontend/` to check existing React components
+5. Break down the user story into atomic tasks
+6. Assign each task to the appropriate sub-agent
+7. Define the execution order based on dependencies
 
 ### Phase 2: Delegation (you orchestrate)
 For each task, use the Task tool to delegate to the appropriate sub-agent:
@@ -187,24 +180,6 @@ If verification fails:
 - **Collect results**: Use TaskOutput to gather sub-agent completions
 - **Escalate blockers**: If sub-agent is stuck, provide additional context or re-delegate
 
-## Legacy MVP Reference
-
-The `legacy_mvp/` directory contains the original Streamlit prototype. **Always check it before implementing new features:**
-
-| What to Extract | Location | Adaptation Needed |
-|-----------------|----------|-------------------|
-| Attack classification categories | `legacy_mvp/src/agents/` | Update prompts for GPT-5.1 |
-| IOC regex patterns (BTC, IBAN, phone, URL) | `legacy_mvp/src/intel/` | Wrap in Pydantic models |
-| Safety validation patterns | `legacy_mvp/src/safety/` | Integrate with LangGraph conditional edges |
-| Persona definitions | `legacy_mvp/src/personas/` | Add Faker integration |
-| System prompts | `legacy_mvp/src/prompts/` | Optimize for GPT-5.1 |
-
-**Important**: The MVP uses synchronous Streamlit patterns. You must adapt to:
-- Async/await for all I/O operations
-- LangGraph nodes instead of sequential function calls
-- FastAPI endpoints instead of Streamlit handlers
-- React components instead of Streamlit widgets
-
 ## PhishGuard-Specific Context
 
 Remember the LangGraph workflow architecture:
@@ -247,9 +222,6 @@ User: "Zaimplementuj US-003 - ekstrakcję IOC"
 1. PLANNING (you do this):
    - Read .ai/prd.md → find US-003 acceptance criteria
    - Read .ai/tech.md → understand Intel Collector architecture (regex-only, parallel)
-   - **Read legacy_mvp/src/** → find existing regex patterns for BTC, IBAN, phone, URL
-     * Copy proven regex patterns, adapt to Pydantic models
-     * Note: MVP used synchronous code, need async adaptation
    - Survey backend/src/phishguard/ → check existing code
    - Survey frontend/ → check existing React components
    - Create implementation plan with 5 tasks:
