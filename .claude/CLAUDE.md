@@ -13,7 +13,6 @@ PhishGuard Pro is an AI-powered Active Defense system against phishing. It engag
 - **frontend/** - Next.js 16 (React 19, Tailwind CSS v4, shadcn/ui, Vercel AI SDK)
 - **backend/** - FastAPI with LangGraph orchestration, LangChain-OpenAI, Pydantic
 - **supabase/** - Database migrations (Postgres with RLS, pgvector for RAG)
-- **legacy_mvp/** - Original Streamlit prototype (READ-ONLY reference for business logic, prompts, and regexes)
 
 **Agent Workflow (LangGraph):**
 ```
@@ -61,16 +60,6 @@ supabase db push     # Apply migrations
 - **Vercel AI SDK**: SSE bridge between Python backend and React frontend for streaming
 - **Faker library**: Seeded per-session for consistent fake persona data
 - **Safety layer**: Bidirectional validation (input sanitization + output blocking of real PII)
-
-## Legacy MVP Reference
-
-The `/legacy_mvp` directory contains the original Streamlit prototype. Use it as source of truth for:
-- Attack classification categories and prompts
-- Regex patterns for IOC extraction
-- Safety validation patterns
-- Persona definitions
-
-**Important**: Adapt legacy code to async/Next.js patterns; do not copy directly.
 
 ## Database Schema
 
