@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, LogOut, Loader2, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
 import Link from "next/link";
 import { createClient, User } from "@supabase/supabase-js";
@@ -30,7 +30,23 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Wrapper component for Suspense boundary (required for useSearchParams in Next.js 16)
 export default function DashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="text-muted-foreground">Loading...</span>
+                </div>
+            </div>
+        }>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +90,11 @@ export default function DashboardPage() {
     const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
     // Side panel collapse state (US-026)
     const [isSidePanelCollapsed, setIsSidePanelCollapsed] = useState(false);
+    // Session restoration state (US-031)
+    const [isRestoringSession, setIsRestoringSession] = useState(false);
+    const searchParams = useSearchParams();
+    // Ref to track intentional session clearing (prevents restore effect from re-restoring)
+    const isClearingSessionRef = useRef(false);
 
     // Auto-collapse side panel on narrower screens (US-026)
     useEffect(() => {
@@ -183,9 +204,11 @@ export default function DashboardPage() {
 
             const data = await response.json();
 
-            // Store session ID for response generation
+            // Store session ID for response generation and URL (US-031)
             if (data.session_id) {
                 setSessionId(data.session_id);
+                // Store session ID in URL for persistence on refresh
+                router.replace(`/dashboard?session=${data.session_id}`, { scroll: false });
             }
 
             // Map API response to component props
@@ -501,7 +524,9 @@ export default function DashboardPage() {
         setShowSafeWarning(false);
     };
 
-    const handlePasteDifferentEmail = () => {
+    const handlePasteDifferentEmail = useCallback(() => {
+        // Set flag to prevent the restore effect from re-restoring the session
+        isClearingSessionRef.current = true;
         setShowSafeWarning(false);
         setClassificationResult(null);
         setEmailContent("");
@@ -512,7 +537,9 @@ export default function DashboardPage() {
         setTurnCount(0);
         setTurnLimit(20);
         setUsedFallbackModel(false);  // Reset fallback state (US-023)
-    };
+        // Clear session from URL using Next.js router (US-031)
+        router.replace('/dashboard', { scroll: false });
+    }, [router]);
 
     // Handler for extending session limit (US-015)
     const handleExtendSession = async () => {
@@ -702,12 +729,125 @@ export default function DashboardPage() {
 
     // Handler for new session (US-018 & US-025)
     // Used by summary page and header button confirmation
-    const handleNewSession = () => {
+    const handleNewSession = useCallback(() => {
         setShowSummary(false);
         setSessionSummary(null);
         handlePasteDifferentEmail();
         setShowNewSessionDialog(false);
-    };
+    }, [handlePasteDifferentEmail]);
+
+    // Restore session from URL parameter (US-031)
+    const restoreSession = useCallback(async (sessionIdToRestore: string) => {
+        setIsRestoringSession(true);
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                throw new Error("Not authenticated");
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/session/${sessionIdToRestore}/restore`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    // Session not found, clear URL and start fresh
+                    console.warn('Session not found, starting fresh');
+                    window.history.replaceState(null, '', window.location.pathname);
+                    return;
+                }
+                throw new Error('Failed to restore session');
+            }
+
+            const data = await response.json();
+
+            // Restore session state
+            setSessionId(sessionIdToRestore);
+            setClassificationResult({
+                attackType: data.attack_type,
+                confidence: data.confidence,
+                reasoning: '', // Not stored, but not essential for restoration
+                persona: data.persona,
+            });
+
+            // Restore original email content (for display purposes)
+            if (data.original_email) {
+                setEmailContent(data.original_email);
+            }
+
+            // Restore messages
+            const restoredMessages: ChatMessage[] = data.messages.map((msg: any) => ({
+                id: msg.id,
+                sender: msg.sender as "bot" | "scammer",
+                content: msg.content,
+                timestamp: new Date(msg.timestamp),
+                thinking: msg.thinking,
+            }));
+            setMessages(restoredMessages);
+
+            // Restore IOCs
+            const restoredIOCs: ExtractedIOC[] = data.iocs.map((ioc: any) => ({
+                id: ioc.id,
+                type: ioc.type,
+                value: ioc.value,
+                is_high_value: ioc.is_high_value,
+                created_at: ioc.created_at,
+            }));
+            setExtractedIOCs(restoredIOCs);
+
+            // Restore timeline events from IOCs
+            const restoredEvents: TimelineEvent[] = restoredIOCs.map((ioc) => ({
+                id: `event-${ioc.id}`,
+                timestamp: ioc.created_at || new Date().toISOString(),
+                event_type: "ioc_extracted" as const,
+                description: `Extracted ${ioc.type.toUpperCase()}: ${ioc.value.substring(0, 20)}...`,
+                ioc_id: ioc.id,
+                is_high_value: ioc.is_high_value,
+            }));
+            setTimelineEvents(restoredEvents);
+
+            // Restore turn count and limit
+            setTurnCount(data.turn_count);
+            setTurnLimit(data.turn_limit);
+
+            console.log(`Session ${sessionIdToRestore} restored successfully`);
+
+        } catch (error) {
+            console.error('Error restoring session:', error);
+            // Clear URL on error and start fresh
+            window.history.replaceState(null, '', window.location.pathname);
+        } finally {
+            setIsRestoringSession(false);
+        }
+    }, []);
+
+    // Effect to restore session from URL on page load (US-031)
+    useEffect(() => {
+        // Skip restoration if we're intentionally clearing the session
+        if (isClearingSessionRef.current) {
+            // Reset the flag once the URL has been cleared
+            if (!searchParams.get('session')) {
+                isClearingSessionRef.current = false;
+            }
+            return;
+        }
+
+        const sessionParamValue = searchParams.get('session');
+        if (sessionParamValue && !sessionId && user && !isRestoringSession) {
+            restoreSession(sessionParamValue);
+        }
+    }, [searchParams, sessionId, user, isRestoringSession, restoreSession]);
 
     if (isLoading) {
         return (
@@ -715,6 +855,18 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     <span className="text-muted-foreground">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+
+    // Show loading state while restoring session (US-031)
+    if (isRestoringSession) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <div className="flex items-center gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="text-muted-foreground">Restoring session...</span>
                 </div>
             </div>
         );
