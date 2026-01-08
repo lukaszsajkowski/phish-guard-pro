@@ -22,7 +22,10 @@ test.describe("Fallback Model Notice (US-023)", () => {
             });
         });
 
-        // Mock session for Supabase
+        // Navigate to the page first to establish context for localStorage
+        await page.goto("/");
+
+        // Mock session for Supabase (now we have a valid page context)
         await page.evaluate(() => {
             localStorage.setItem(
                 "sb-test-auth-token",
