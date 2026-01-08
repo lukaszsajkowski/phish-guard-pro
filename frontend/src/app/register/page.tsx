@@ -54,8 +54,8 @@ export default function RegisterPage() {
                 return;
             }
 
-            // Success - redirect to login
-            router.push("/login?registered=true");
+            // Success - redirect to home (login page)
+            router.push("/?registered=true");
         } catch {
             setError("Registration failed. Please try again.");
         } finally {
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                         <p className="mt-6 text-center text-sm text-muted-foreground">
                             Already have an account?{" "}
                             <Link
-                                href="/login"
+                                href="/"
                                 className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary"
                             >
                                 Sign in

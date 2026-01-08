@@ -1,138 +1,225 @@
-import { Shield, Zap, Eye, FileWarning } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Shield, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { Suspense } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+function LoginContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const isJustRegistered = searchParams.get("registered") === "true";
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const isEmailValid = email === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const canSubmit = email && password && isEmailValid && !isLoading;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!canSubmit) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (signInError) {
+                if (signInError.message.includes("Invalid login credentials")) {
+                    setError("Invalid email or password");
+                } else {
+                    setError(signInError.message);
+                }
+                return;
+            }
+
+            // Success - redirect to dashboard
+            router.push("/dashboard");
+        } catch {
+            setError("Login failed. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex min-h-screen flex-col bg-background">
+            {/* Header */}
+            <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="container flex h-16 items-center px-4">
+                    <div className="flex items-center gap-2">
+                        <Shield className="h-8 w-8 text-primary" />
+                        <span className="text-xl font-bold tracking-tight">
+                            PhishGuard Pro
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <main className="flex flex-1 items-center justify-center px-4 py-12">
+                <div className="w-full max-w-md space-y-8">
+                    {/* Success message for just-registered users */}
+                    {isJustRegistered && (
+                        <div
+                            id="registration-success-message"
+                            className="flex items-center gap-3 rounded-md border border-green-500/50 bg-green-500/10 p-4 text-sm text-green-600 dark:text-green-400"
+                        >
+                            <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                            <span>
+                                Registration successful! You can now log in to your account.
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Card */}
+                    <div className="rounded-xl border border-border/50 bg-card p-8 shadow-xl">
+                        {/* Header */}
+                        <div className="mb-8 text-center">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20">
+                                <Shield className="h-7 w-7 text-primary" />
+                            </div>
+                            <h1 className="text-2xl font-bold tracking-tight">
+                                Sign in
+                            </h1>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                Access your PhishGuard Pro account
+                            </p>
+                        </div>
+
+                        {/* Form */}
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Error message */}
+                            {error && (
+                                <div
+                                    id="login-error"
+                                    className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+                                >
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Email field */}
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="email"
+                                    className="text-sm font-medium leading-none"
+                                >
+                                    Email
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="flex h-11 w-full rounded-md border border-input bg-background px-4 py-2 text-sm transition-colors placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    autoComplete="email"
+                                    disabled={isLoading}
+                                />
+                                {email && !isEmailValid && (
+                                    <p className="text-xs text-destructive">
+                                        Please enter a valid email address
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Password field */}
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="password"
+                                    className="text-sm font-medium leading-none"
+                                >
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="flex h-11 w-full rounded-md border border-input bg-background px-4 py-2 pr-10 text-sm transition-colors placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                        autoComplete="current-password"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Submit button */}
+                            <button
+                                id="login-button"
+                                type="submit"
+                                disabled={!canSubmit}
+                                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    "Sign in"
+                                )}
+                            </button>
+                        </form>
+
+                        {/* Footer */}
+                        <p className="mt-6 text-center text-sm text-muted-foreground">
+                            Don&apos;t have an account?{" "}
+                            <Link
+                                href="/register"
+                                className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary"
+                            >
+                                Create one
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
-      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold tracking-tight">
-              PhishGuard Pro
-            </span>
-          </div>
-          <nav className="flex items-center gap-4">
-            <a
-              href="/login"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Login
-            </a>
-            <a
-              href="/register"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Get Started
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <main className="flex-1">
-        <section className="container flex flex-col items-center justify-center gap-8 px-4 py-24 text-center md:py-32">
-          <div className="inline-flex items-center rounded-full border border-border/50 bg-muted/50 px-4 py-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              🛡️ Active Defense Against Phishing
-            </span>
-          </div>
-
-          <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Turn Phishing Attacks Into{" "}
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Threat Intel
-            </span>
-          </h1>
-
-          <p className="max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Autonomous AI agents that engage scammers in believable
-            conversation, waste their time, and extract valuable Indicators of
-            Compromise — all while keeping you safe.
-          </p>
-
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <a
-              href="/demo"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Zap className="h-4 w-4" />
-              Try Demo Mode
-            </a>
-            <a
-              href="/register"
-              className="inline-flex h-12 items-center justify-center rounded-md border border-border bg-background px-8 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              Create Free Account
-            </a>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="container px-4 py-16">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="rounded-xl border border-border/50 bg-card p-6">
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                <FileWarning className="h-6 w-6 text-blue-500" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">
-                Smart Classification
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Automatically classify phishing emails into 8 attack categories
-                with confidence scoring.
-              </p>
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+                <Shield className="h-8 w-8 animate-pulse text-primary" />
             </div>
-
-            <div className="rounded-xl border border-border/50 bg-card p-6">
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10">
-                <Shield className="h-6 w-6 text-purple-500" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">Safe Engagement</h3>
-              <p className="text-sm text-muted-foreground">
-                AI personas engage scammers with fake data, never exposing your
-                real information.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-border/50 bg-card p-6">
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-pink-500/10">
-                <Eye className="h-6 w-6 text-pink-500" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">
-                Real-time Intel Extraction
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Extract BTC wallets, IBANs, phone numbers, and malicious URLs
-                automatically.
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/40 py-8">
-        <div className="container flex flex-col items-center justify-between gap-4 px-4 md:flex-row">
-          <p className="text-sm text-muted-foreground">
-            © 2024 PhishGuard Pro. Built for security researchers.
-          </p>
-          <div className="flex gap-4">
-            <a
-              href="#"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Documentation
-            </a>
-            <a
-              href="#"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              GitHub
-            </a>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+        }>
+            <LoginContent />
+        </Suspense>
+    );
 }
