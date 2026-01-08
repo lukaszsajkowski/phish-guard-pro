@@ -54,17 +54,20 @@ test.describe('Email Input & Analysis Flow', () => {
         await expect(analyzeButton).toBeEnabled();
 
         // Mock the backend API response
-        await page.route('*/**/api/v1/analysis', async route => {
-            console.log('API Mock hit for /analysis');
+        await page.route('**/api/v1/classification/analyze', async route => {
+            console.log('API Mock hit for /classification/analyze');
             // Simulate processing delay
             await new Promise(resolve => setTimeout(resolve, 1500));
             await route.fulfill({
-                status: 202,
+                status: 200,
                 contentType: 'application/json',
                 body: JSON.stringify({
                     analysis_id: '123e4567-e89b-12d3-a456-426614174000',
                     content_preview: 'Subject: Urgent...',
-                    status: 'processing'
+                    status: 'completed',
+                    attack_type: 'nigerian_419',
+                    confidence: 95.5,
+                    reasoning: 'Test reasoning'
                 })
             });
         });

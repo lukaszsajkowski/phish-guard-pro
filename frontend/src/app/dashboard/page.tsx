@@ -277,7 +277,7 @@ export default function DashboardPage() {
                     throw new Error('Session expired. Please log in again.');
                 }
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Response generation failed');
+                throw new Error(errorData.error || errorData.detail || 'Response generation failed');
             }
 
             const data = await response.json();
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     throw new Error('Session expired. Please log in again.');
                 }
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Response generation failed');
+                throw new Error(errorData.error || errorData.detail || 'Response generation failed');
             }
 
             const data = await response.json();
@@ -851,11 +851,10 @@ export default function DashboardPage() {
                             {/* Right Panel: Results (Side Panel) - Collapsible (US-026) */}
                             {classificationResult && !showSafeWarning && (
                                 <div
-                                    className={`transition-all duration-300 ease-in-out ${
-                                        isSidePanelCollapsed
-                                            ? "w-12"
-                                            : "w-full md:w-1/3"
-                                    } animate-in fade-in slide-in-from-right-10`}
+                                    className={`transition-all duration-300 ease-in-out ${isSidePanelCollapsed
+                                        ? "w-12"
+                                        : "w-full md:w-1/3"
+                                        } animate-in fade-in slide-in-from-right-10`}
                                     data-testid="side-panel"
                                 >
                                     <div className="sticky top-6">

@@ -79,7 +79,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
 
         // Click analyze
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -157,7 +157,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Input email content
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -243,7 +243,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Invest in crypto for guaranteed 500% returns!');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Crypto Investment')).toBeVisible();
+        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -296,6 +296,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
                         safety_validated: true,
                         regeneration_count: 0,
                         used_fallback_model: false,
+                        turn_count: 1,
                         message_id: 'msg-turn1'
                     })
                 });
@@ -311,6 +312,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
                         used_fallback_model: false,
                         message_id: 'msg-turn2',
                         scammer_message_id: 'scam-turn1',
+                        turn_count: 2,
                         extracted_iocs: []
                     })
                 });
@@ -320,7 +322,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Setup and generate first response
         await page.getByTestId('email-input-textarea').fill('Wire $50,000 urgently - CEO request');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('CEO Fraud')).toBeVisible();
+        await expect(page.getByText('CEO Fraud').first()).toBeVisible();
 
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();

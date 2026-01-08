@@ -9,32 +9,30 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Fallback Model Notice (US-023)", () => {
     test.beforeEach(async ({ page }) => {
-        // Mock auth for protected routes
-        await page.route("**/auth/v1/user", async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: "application/json",
-                body: JSON.stringify({
-                    id: "test-user-id",
-                    email: "test@example.com",
-                    role: "authenticated",
-                }),
-            });
-        });
+        // Register and login
+        await page.goto("/register");
 
-        // Navigate to the page first to establish context for localStorage
-        await page.goto("/");
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        const email = `e2e-test-fallback-${timestamp}-${random}@example.com`;
+        const password = "validPassword123";
 
-        // Mock session for Supabase (now we have a valid page context)
-        await page.evaluate(() => {
-            localStorage.setItem(
-                "sb-test-auth-token",
-                JSON.stringify({
-                    access_token: "test-token",
-                    user: { id: "test-user-id", email: "test@example.com" },
-                })
-            );
-        });
+        await page.locator("#email").fill(email);
+        await page.locator("#password").fill(password);
+        await page.locator("#confirm-password").fill(password);
+
+        const registerButton = page.locator("#register-button");
+        await expect(registerButton).toBeEnabled();
+        await registerButton.click();
+
+        await expect(page.locator("#registration-success-message")).toBeVisible();
+
+        // Login
+        await page.locator("#email").fill(email);
+        await page.locator("#password").fill(password);
+        await page.getByRole("button", { name: "Sign in" }).click();
+
+        await expect(page).toHaveURL("/dashboard");
     });
 
     test("displays fallback notice when used_fallback_model is true", async ({
@@ -86,11 +84,8 @@ test.describe("Fallback Model Notice (US-023)", () => {
             });
         });
 
-        // Navigate to dashboard
-        await page.goto("/dashboard");
-
         // Enter email and analyze
-        const emailInput = page.getByTestId("email-input");
+        const emailInput = page.getByTestId("email-input-textarea");
         await emailInput.fill(
             "Dear Friend, I am a Nigerian prince with $10M for you..."
         );
@@ -157,11 +152,8 @@ test.describe("Fallback Model Notice (US-023)", () => {
             });
         });
 
-        // Navigate to dashboard
-        await page.goto("/dashboard");
-
         // Enter email and analyze
-        const emailInput = page.getByTestId("email-input");
+        const emailInput = page.getByTestId("email-input-textarea");
         await emailInput.fill(
             "Dear Friend, I am a Nigerian prince with $10M for you..."
         );

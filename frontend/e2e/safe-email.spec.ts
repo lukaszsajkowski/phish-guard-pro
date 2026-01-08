@@ -60,7 +60,7 @@ test.describe('Safe Email Handling', () => {
 
         // 5. Expect Result Card (Green)
         await expect(page.getByRole('alertdialog')).toBeHidden();
-        await expect(page.getByText('Not Phishing')).toBeVisible();
+        await expect(page.getByText('Not Phishing').first()).toBeVisible();
         await expect(page.getByText('Legitimate Email Detected')).toBeVisible();
     });
 });

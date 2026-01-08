@@ -17,7 +17,7 @@ export function PersonaCard({ persona }: PersonaCardProps) {
     };
 
     return (
-        <Card className="w-full border-blue-200 bg-blue-50/10">
+        <Card className="w-full border-blue-200 bg-blue-50/10" data-testid="persona-card">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-semibold flex items-center gap-2">

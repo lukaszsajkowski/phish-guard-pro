@@ -59,7 +59,7 @@ test.describe('Generate First Response (US-007)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for classification to complete
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Should show the generate response button
         await expect(page.getByTestId('generate-response-button')).toBeVisible();
@@ -118,7 +118,7 @@ test.describe('Generate First Response (US-007)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for classification to complete
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Click generate response
         await page.getByTestId('generate-response-button').click();
@@ -169,7 +169,7 @@ test.describe('Generate First Response (US-007)', () => {
         // Input and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -223,7 +223,7 @@ test.describe('Generate First Response (US-007)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Click generate and check loading state
         await page.getByTestId('generate-response-button').click();

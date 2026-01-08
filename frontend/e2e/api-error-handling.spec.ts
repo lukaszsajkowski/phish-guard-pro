@@ -18,11 +18,23 @@ const TEST_USER = {
 
 test.describe('API Error Handling (US-022)', () => {
     test.beforeEach(async ({ page }) => {
-        // Login before each test
-        await page.goto('/login');
-        await page.fill('input[name="email"]', TEST_USER.email);
-        await page.fill('input[name="password"]', TEST_USER.password);
-        await page.click('button[type="submit"]');
+        // Register a new user for each test
+        await page.goto('/register');
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 10000);
+        const email = `test-error-${timestamp}-${random}@example.com`;
+        const password = 'TestPassword123!';
+
+        await page.locator('#email').fill(email);
+        await page.locator('#password').fill(password);
+        await page.locator('#confirm-password').fill(password);
+        await page.locator('#register-button').click();
+        await expect(page.locator('#registration-success-message')).toBeVisible();
+
+        // Login
+        await page.locator('#email').fill(email);
+        await page.locator('#password').fill(password);
+        await page.getByRole('button', { name: 'Sign in' }).click();
         await page.waitForURL('/dashboard');
     });
 
@@ -42,7 +54,7 @@ test.describe('API Error Handling (US-022)', () => {
 
         // Act: Submit an email for analysis
         const testEmail = 'Dear Winner, You have won $1,000,000 in our lottery!';
-        await page.fill('[data-testid="email-input"]', testEmail);
+        await page.getByTestId('email-input-textarea').fill(testEmail);
         await page.click('[data-testid="analyze-button"]');
 
         // Assert: Error message is displayed
@@ -80,6 +92,7 @@ test.describe('API Error Handling (US-022)', () => {
                         attack_type: 'lottery_scam',
                         confidence: 92,
                         reasoning: 'Classic lottery scam pattern detected',
+                        classification_time_ms: 500,
                         persona: {
                             name: 'Test User',
                             persona_type: 'naive_retiree',
@@ -94,7 +107,7 @@ test.describe('API Error Handling (US-022)', () => {
 
         // Act: Submit email and wait for error
         const testEmail = 'Congratulations! You won our lottery!';
-        await page.fill('[data-testid="email-input"]', testEmail);
+        await page.getByTestId('email-input-textarea').fill(testEmail);
         await page.click('[data-testid="analyze-button"]');
         await expect(page.locator('[data-testid="analysis-error"]')).toBeVisible();
 
@@ -123,14 +136,14 @@ test.describe('API Error Handling (US-022)', () => {
 
         // Act: Enter email and submit
         const testEmail = 'Important email content that should not be lost';
-        await page.fill('[data-testid="email-input"]', testEmail);
+        await page.getByTestId('email-input-textarea').fill(testEmail);
         await page.click('[data-testid="analyze-button"]');
 
         // Wait for error
         await expect(page.locator('[data-testid="analysis-error"]')).toBeVisible();
 
         // Assert: Email content is still present
-        const inputValue = await page.locator('[data-testid="email-input"]').inputValue();
+        const inputValue = await page.getByTestId('email-input-textarea').inputValue();
         expect(inputValue).toBe(testEmail);
     });
 
@@ -145,6 +158,7 @@ test.describe('API Error Handling (US-022)', () => {
                     attack_type: 'ceo_fraud',
                     confidence: 88,
                     reasoning: 'CEO fraud pattern detected',
+                    classification_time_ms: 500,
                     persona: {
                         name: 'John Doe',
                         persona_type: 'stressed_manager',
@@ -169,7 +183,7 @@ test.describe('API Error Handling (US-022)', () => {
         });
 
         // Act: Analyze email successfully
-        await page.fill('[data-testid="email-input"]', 'Urgent wire transfer needed immediately!');
+        await page.getByTestId('email-input-textarea').fill('Urgent wire transfer needed immediately!');
         await page.click('[data-testid="analyze-button"]');
         await expect(page.locator('[data-testid="classification-result"]')).toBeVisible();
 
@@ -200,7 +214,7 @@ test.describe('API Error Handling (US-022)', () => {
         });
 
         // Act: Submit email
-        await page.fill('[data-testid="email-input"]', 'Test email content');
+        await page.getByTestId('email-input-textarea').fill('Test email content');
         await page.click('[data-testid="analyze-button"]');
 
         // Assert: Rate limit error message is shown
@@ -221,6 +235,7 @@ test.describe('API Error Handling (US-022)', () => {
                     attack_type: 'nigerian_419',
                     confidence: 95,
                     reasoning: 'Nigerian 419 scam detected',
+                    classification_time_ms: 500,
                     persona: {
                         name: 'Jane Smith',
                         persona_type: 'greedy_investor',
@@ -262,7 +277,7 @@ test.describe('API Error Handling (US-022)', () => {
         });
 
         // Act: Complete analysis
-        await page.fill('[data-testid="email-input"]', 'Dear friend, I am a prince...');
+        await page.getByTestId('email-input-textarea').fill('Dear friend, I am a prince...');
         await page.click('[data-testid="analyze-button"]');
         await expect(page.locator('[data-testid="classification-result"]')).toBeVisible();
 
@@ -283,6 +298,6 @@ test.describe('API Error Handling (US-022)', () => {
 
         // Assert: Error disappears and chat message appears
         await expect(page.locator('[data-testid="generation-error"]')).not.toBeVisible();
-        await expect(page.locator('[data-testid="chat-message"]')).toBeVisible();
+        await expect(page.locator('[data-testid="chat-message-bot"]')).toBeVisible();
     });
 });

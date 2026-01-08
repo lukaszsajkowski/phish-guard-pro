@@ -54,7 +54,7 @@ test.describe('Attack Type Classification', () => {
         await page.getByTestId('analyze-button').click();
 
         // Verification
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
         await expect(page.getByText('95.5% Confidence')).toBeVisible();
         await expect(page.getByText('Classic 419 indicators detected')).toBeVisible();
     });

@@ -54,7 +54,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Input email content and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Intel Dashboard should be visible in side panel
         await expect(page.getByTestId('intel-dashboard')).toBeVisible();
@@ -129,7 +129,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Invest in crypto for guaranteed 500% returns!');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Crypto Investment')).toBeVisible();
+        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -143,8 +143,9 @@ test.describe('IOC Extraction (US-011)', () => {
         await expect(page.getByText('How do I start?')).toBeVisible();
 
         // IOC should appear in Intel Dashboard
-        await expect(page.getByTestId('ioc-item-btc_wallet')).toBeVisible();
-        await expect(page.getByText('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh')).toBeVisible();
+        const btcIocItem = page.getByTestId('ioc-item-btc_wallet');
+        await expect(btcIocItem).toBeVisible();
+        await expect(btcIocItem.getByText('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh')).toBeVisible();
         await expect(page.getByTestId('high-value-badge')).toBeVisible();
     });
 

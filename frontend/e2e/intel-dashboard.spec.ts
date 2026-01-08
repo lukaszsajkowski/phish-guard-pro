@@ -456,7 +456,7 @@ test.describe('Intel Dashboard (US-012)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Dashboard should show new attack type
-        await expect(page.getByText('Delivery Scam')).toBeVisible();
+        await expect(page.getByText('Delivery Scam').first()).toBeVisible();
         // IOCs should be reset
         await expect(page.getByText('No IOCs extracted yet')).toBeVisible();
         // Timeline should be reset

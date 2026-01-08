@@ -229,8 +229,7 @@ test.describe('Session Summary Features (US-016, US-017, US-018)', () => {
                     safe_responses: 3,
                     duration_seconds: 120,
                     formatted_duration: '2m 0s',
-                    safety_score: 100.0,
-                    formatted_safety_score: '100.0%',
+                    risk_score: 10,
                     high_value_ioc_count: 1,
                 }),
             });
@@ -247,8 +246,8 @@ test.describe('Session Summary Features (US-016, US-017, US-018)', () => {
         await expect(page.getByText('Session Complete')).toBeVisible();
         await expect(page.getByTestId('exchange-count')).toHaveText('3');
         await expect(page.getByTestId('duration')).toHaveText('2m 0s');
-        await expect(page.getByTestId('safety-score')).toHaveText('100.0%');
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByTestId('risk-score')).toHaveText('10/10');
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Verify IOCs are displayed
         await expect(page.getByTestId('ioc-item-btc')).toBeVisible();

@@ -39,7 +39,7 @@ export function ClassificationResult({ attackType, confidence, reasoning }: Clas
     const isHighConfidence = confidence >= 80
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="classification-result">
             <Card className={isPhishing ? "border-red-200 bg-red-50/10" : "border-green-200 bg-green-50/10"}>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -52,7 +52,7 @@ export function ClassificationResult({ attackType, confidence, reasoning }: Clas
                             {ATTACK_TYPE_LABELS[attackType]}
                         </CardTitle>
                         <span className={`text-sm font-medium px-2 py-1 rounded-full ${isHighConfidence ? "bg-green-100 text-green-700" :
-                                confidence < 50 ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"
+                            confidence < 50 ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"
                             }`}>
                             {confidence.toFixed(1)}% Confidence
                         </span>

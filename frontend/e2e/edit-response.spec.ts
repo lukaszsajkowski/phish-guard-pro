@@ -73,7 +73,7 @@ test.describe('Edit Generated Response (US-008)', () => {
         // Input email and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -280,7 +280,7 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
         // Input and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -335,7 +335,7 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
         // Input, analyze, generate
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419')).toBeVisible();
+        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
