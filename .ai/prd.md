@@ -680,6 +680,68 @@ Acceptance Criteria:
 - After exceeding 20, format changes to "Turn X/20+"
 - Counter color changes to yellow after turn 15, red after 20
 
+### US-028: View Session History List
+
+Title: Browse all past sessions
+
+Description: As a security researcher, I want to see a list of all my past
+sessions to review previous analyses and track my research progress.
+
+Acceptance Criteria:
+
+- "History" link is visible in application navigation
+- History page displays list of all user's sessions in reverse chronological order
+- Each session row shows: attack type, persona name, turn count, creation date, risk level
+- Sessions are paginated (20 per page)
+- Empty state message is displayed when no sessions exist
+- Only authenticated users can access history
+
+### US-029: View Session Details
+
+Title: Review past session details
+
+Description: As a security researcher, I want to view details of a specific
+past session to review the conversation and collected intelligence.
+
+Acceptance Criteria:
+
+- Clicking on a session row opens session detail view
+- Detail view shows full conversation history (all messages)
+- Detail view shows Intel Dashboard with all collected IOC
+- Detail view shows session summary (attack type, persona, metrics)
+- Read-only mode - no editing or continuing conversation
+- "Back to history" button returns to session list
+
+### US-030: Export from Session History
+
+Title: Export data from past sessions
+
+Description: As an analyst, I want to export conversation history and IOC
+from past sessions to document and share my findings.
+
+Acceptance Criteria:
+
+- "Export JSON" button is available in session detail view
+- "Export CSV" button is available in session detail view
+- Export functionality works identically to active session export (US-019, US-020)
+
+### US-031: Session Persistence on Page Refresh
+
+Title: Preserve active session on browser refresh
+
+Description: As a user, I want my active conversation to persist when I
+accidentally refresh the browser page to avoid losing my work.
+
+Acceptance Criteria:
+
+- Active session ID is stored in URL (e.g., /dashboard?session=uuid)
+- Refreshing browser page restores full conversation state
+- All messages (bot and scammer) are restored from database
+- Intel Dashboard shows all previously collected IOC
+- Persona and attack type classification are preserved
+- Turn counter shows correct value
+- User can continue conversation immediately after refresh
+
 ---
 
 ## 6. Success Metrics
