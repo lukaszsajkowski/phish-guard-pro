@@ -116,6 +116,18 @@ async def classify_email(
             classification_result=result,
         )
 
+        # Save extracted IOCs to database (US-031 fix)
+        if extracted_iocs:
+            await session_service.save_extracted_iocs(
+                session_id=session_id,
+                iocs=extracted_iocs,
+            )
+            logger.info(
+                "Saved %d IOCs for session %s during classification",
+                len(extracted_iocs),
+                session_id,
+            )
+
         logger.info(
             "Classified email via LangGraph for user %s: attack_type=%s, session=%s",
             user_id,

@@ -126,6 +126,7 @@ async def update_session_classification(
 
     update_data: dict[str, Any] = {
         "attack_type": classification_result.attack_type.value,
+        "attack_confidence": classification_result.confidence,  # Store confidence for session restore (US-031)
     }
 
     # Add persona if present
@@ -144,9 +145,10 @@ async def update_session_classification(
         raise Exception("Failed to update session")
 
     logger.info(
-        "Updated session %s with attack_type=%s",
+        "Updated session %s with attack_type=%s confidence=%s",
         session_id,
         classification_result.attack_type.value,
+        classification_result.confidence,
     )
 
 

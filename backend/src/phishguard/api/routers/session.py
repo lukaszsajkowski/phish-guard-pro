@@ -54,6 +54,142 @@ class SessionSummaryResponse(BaseModel):
     high_value_ioc_count: int
 
 
+class SessionRestoreResponse(BaseModel):
+    """Response model for session restoration (US-031)."""
+
+    session_id: str
+    status: str
+    attack_type: str
+    attack_type_display: str
+    confidence: float
+    persona: dict | None
+    original_email: str | None  # Original email content for input field restoration
+    messages: list[dict]
+    iocs: list[dict]
+    turn_count: int
+    turn_limit: int
+    is_at_limit: bool
+
+
+@router.get(
+    "/{session_id}/restore",
+    response_model=SessionRestoreResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def restore_session(
+    session_id: str,
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> SessionRestoreResponse:
+    """Restore a session's complete state for page refresh persistence.
+
+    Per US-031, allows the frontend to restore full conversation state
+    after browser refresh by fetching all session data in one call.
+
+    Args:
+        session_id: The session to restore.
+        user_id: The authenticated user's ID (from JWT).
+
+    Returns:
+        SessionRestoreResponse with complete session state.
+
+    Raises:
+        HTTPException: If session not found or not authorized.
+    """
+    from phishguard.models.classification import AttackType
+
+    # Verify session exists and belongs to user
+    session = await session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found",
+        )
+
+    if session.get("user_id") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this session",
+        )
+
+    # Get all session data
+    messages = await session_service.get_session_messages(session_id)
+    iocs = await session_service.get_session_iocs(session_id)
+    session_info = await session_service.get_session_info(session_id)
+
+    # Get attack type display name
+    attack_type = session.get("attack_type", "unknown")
+    try:
+        attack_type_enum = AttackType(attack_type)
+        attack_type_display = attack_type_enum.display_name
+    except ValueError:
+        attack_type_display = attack_type.replace("_", " ").title()
+
+    # Convert messages to frontend format
+    # Also extract original email for restoration
+    original_email = None
+    formatted_messages = []
+    for msg in messages:
+        metadata = msg.get("metadata", {})
+        if metadata.get("type") == "original_email":
+            original_email = msg.get("content", "")
+            continue
+
+        role = msg.get("role", "")
+        if role == "assistant":
+            sender = "bot"
+        elif role == "scammer":
+            sender = "scammer"
+        else:
+            continue  # Skip unknown roles
+
+        formatted_messages.append({
+            "id": msg.get("id", ""),
+            "sender": sender,
+            "content": msg.get("content", ""),
+            "timestamp": msg.get("created_at", ""),
+            "thinking": metadata.get("thinking"),
+        })
+
+    # Format IOCs for frontend
+    formatted_iocs = []
+    for ioc in iocs:
+        ioc_type = ioc.get("type", "")
+        is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
+        formatted_iocs.append({
+            "id": ioc.get("id", ""),
+            "type": ioc_type,
+            "value": ioc.get("value", ""),
+            "is_high_value": is_high_value,
+            "created_at": ioc.get("created_at", ""),
+        })
+
+    # Get confidence from session (US-031 fix)
+    confidence = session.get("attack_confidence", 0.0) or 0.0
+
+    logger.info(
+        "Restored session %s for user %s: %d messages, %d IOCs",
+        session_id,
+        user_id,
+        len(formatted_messages),
+        len(formatted_iocs),
+    )
+
+    return SessionRestoreResponse(
+        session_id=session_id,
+        status=session.get("status", "active"),
+        attack_type=attack_type,
+        attack_type_display=attack_type_display,
+        confidence=confidence,
+        persona=session.get("persona"),
+        original_email=original_email,
+        messages=formatted_messages,
+        iocs=formatted_iocs,
+        turn_count=session_info["turn_count"],
+        turn_limit=session_info["turn_limit"],
+        is_at_limit=session_info["is_at_limit"],
+    )
+
+
 @router.post(
     "/{session_id}/end",
     response_model=EndSessionResponse,
