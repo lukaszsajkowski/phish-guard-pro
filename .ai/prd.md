@@ -590,7 +590,29 @@ Acceptance Criteria:
 - File uses standard CSV format with headers
 - Filename: phishguard_ioc_YYYYMMDD_HHMMSS.csv
 
+### US-021: Navigation Sidebar ❌
 
+Title: Persistent navigation menu
+
+Description: As a user, I want to have a persistent side navigation menu to
+easily switch between different sections of the application without losing
+context.
+
+Acceptance Criteria:
+
+- Sidebar is visible on the left side of the screen on all authenticated pages
+- Sidebar contains navigation links:
+  - Dashboard (active session)
+  - History (session list)
+  - New Session (quick action)
+- Current section is visually highlighted
+- Sidebar can be collapsed to icon-only mode to save screen space
+- Collapsed/expanded state persists across page refreshes (localStorage)
+- Sidebar shows user avatar/email at the bottom
+- Logout button is visible in sidebar footer
+- Clicking logout signs out user and redirects to login page
+- On screens narrower than 1280px, sidebar defaults to collapsed state
+- Hovering over collapsed sidebar temporarily expands it
 
 ### US-022: API Error Handling ✅
 
