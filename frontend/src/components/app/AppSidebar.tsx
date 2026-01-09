@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    LayoutDashboard,
     History,
     PlusCircle,
     LogOut,
@@ -21,12 +20,6 @@ interface AppSidebarProps {
     onNewSession?: () => void;
 }
 
-interface NavItem {
-    href: string;
-    label: string;
-    icon: React.ReactNode;
-}
-
 export function AppSidebar({
     user,
     onLogout,
@@ -35,28 +28,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
     const pathname = usePathname();
 
-    const navItems: NavItem[] = [
-        {
-            href: "/dashboard",
-            label: "Dashboard",
-            icon: <LayoutDashboard className="h-5 w-5" />,
-        },
-        {
-            href: "/history",
-            label: "History",
-            icon: <History className="h-5 w-5" />,
-        },
-    ];
-
-    const isActive = (href: string) => {
-        if (href === "/dashboard") {
-            return pathname === "/dashboard" || pathname.startsWith("/dashboard?");
-        }
-        if (href === "/history") {
-            return pathname === "/history" || pathname.startsWith("/history/");
-        }
-        return pathname === href;
-    };
+    const isHistoryActive = pathname === "/history" || pathname.startsWith("/history/");
 
     return (
         <aside
@@ -67,7 +39,7 @@ export function AppSidebar({
             <div className="flex items-center h-16 px-4 border-b border-border">
                 <Link
                     href="/dashboard"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 cursor-pointer"
                 >
                     <Shield className="h-7 w-7 text-primary flex-shrink-0" />
                     <span className="font-bold text-lg tracking-tight">
@@ -78,31 +50,29 @@ export function AppSidebar({
 
             {/* Navigation */}
             <nav className="flex-1 py-4 px-2 space-y-1">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-accent hover:text-accent-foreground ${
-                            isActive(item.href)
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-muted-foreground"
-                        }`}
-                        data-testid={`sidebar-nav-${item.href.replace("/", "")}`}
-                    >
-                        {item.icon}
-                        <span>{item.label}</span>
-                    </Link>
-                ))}
-
-                {/* New Session - Quick Action */}
+                {/* New Session */}
                 <button
                     onClick={onNewSession}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full cursor-pointer hover:bg-accent hover:text-accent-foreground text-muted-foreground"
                     data-testid="sidebar-new-session"
                 >
                     <PlusCircle className="h-5 w-5" />
                     <span>New Session</span>
                 </button>
+
+                {/* History */}
+                <Link
+                    href="/history"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer hover:bg-accent hover:text-accent-foreground ${
+                        isHistoryActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground"
+                    }`}
+                    data-testid="sidebar-nav-history"
+                >
+                    <History className="h-5 w-5" />
+                    <span>History</span>
+                </Link>
             </nav>
 
             {/* User info and logout */}
@@ -125,7 +95,7 @@ export function AppSidebar({
                     size="sm"
                     onClick={onLogout}
                     disabled={isLoggingOut}
-                    className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="w-full justify-start cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     data-testid="sidebar-logout-button"
                 >
                     {isLoggingOut ? (
