@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { createClient, User } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { Loader2, Download, FileJson, FileSpreadsheet } from "lucide-react";
-import { AppHeader } from "@/components/app/AppHeader";
+import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
 import { Button } from "@/components/ui/button";
 import { SessionDetailHeader, ReadOnlyChatArea } from "@/components/history";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
@@ -45,9 +45,7 @@ export default function SessionDetailPage() {
     const params = useParams();
     const sessionId = params.sessionId as string;
 
-    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSigningOut, setIsSigningOut] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isRetrying, setIsRetrying] = useState(false);
     const [notFound, setNotFound] = useState(false);
@@ -61,16 +59,31 @@ export default function SessionDetailPage() {
     const [isExporting, setIsExporting] = useState(false);
 
     // Fetch session data from API
-    const fetchSessionData = useCallback(async (accessToken: string) => {
+    const fetchSessionData = useCallback(async () => {
         setError(null);
         setNotFound(false);
 
         try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase configuration missing");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                router.push("/login");
+                return;
+            }
+
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/session/${sessionId}/restore`,
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`,
+                        Authorization: `Bearer ${session.access_token}`,
                     },
                 }
             );
@@ -116,79 +129,19 @@ export default function SessionDetailPage() {
         } catch (err) {
             console.error("Error fetching session:", err);
             setError(err instanceof Error ? err.message : "Failed to load session");
+        } finally {
+            setIsLoading(false);
         }
     }, [sessionId, router]);
 
-    // Auth check and initial fetch
+    // Initial fetch
     useEffect(() => {
-        const checkAuthAndFetch = async () => {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-            if (!supabaseUrl || !supabaseAnonKey) {
-                router.push("/login");
-                return;
-            }
-
-            const supabase = createClient(supabaseUrl, supabaseAnonKey);
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                router.push("/login");
-                return;
-            }
-
-            setUser(user);
-
-            // Get access token for API calls
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-                await fetchSessionData(session.access_token);
-            }
-
-            setIsLoading(false);
-        };
-
-        checkAuthAndFetch();
-    }, [router, fetchSessionData]);
-
-    const handleSignOut = async () => {
-        setIsSigningOut(true);
-
-        try {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-            if (!supabaseUrl || !supabaseAnonKey) {
-                throw new Error("Supabase configuration missing");
-            }
-
-            const supabase = createClient(supabaseUrl, supabaseAnonKey);
-            await supabase.auth.signOut();
-            router.push("/login");
-        } catch {
-            setIsSigningOut(false);
-        }
-    };
+        fetchSessionData();
+    }, [fetchSessionData]);
 
     const handleRetry = async () => {
         setIsRetrying(true);
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseAnonKey) {
-            setIsRetrying(false);
-            return;
-        }
-
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session?.access_token) {
-            await fetchSessionData(session.access_token);
-        }
-
+        await fetchSessionData();
         setIsRetrying(false);
     };
 
@@ -270,35 +223,17 @@ export default function SessionDetailPage() {
         if (!sessionData) return 1;
         const highValueCount = sessionData.iocs.filter((ioc) => ioc.is_high_value).length;
         const totalCount = sessionData.iocs.length;
-        // Simple risk calculation: base 1 + 2 per high value + 1 per regular IOC, capped at 10
         return Math.min(10, 1 + highValueCount * 2 + (totalCount - highValueCount));
     };
 
-    if (isLoading) {
+    const handleNewSession = () => {
+        router.push("/dashboard");
+    };
+
+    // Not found state - show outside layout since we may not be authenticated
+    if (notFound && !isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Loading session...</span>
-                </div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return null;
-    }
-
-    // Not found state
-    if (notFound) {
-        return (
-            <div className="flex min-h-screen flex-col bg-background">
-                <AppHeader
-                    user={user}
-                    onSignOut={handleSignOut}
-                    isSigningOut={isSigningOut}
-                />
-
+            <AuthenticatedLayout onNewSession={handleNewSession}>
                 <main className="flex flex-1 flex-col items-center justify-center p-6">
                     <div className="text-center max-w-md">
                         <h1 className="text-2xl font-bold tracking-tight mb-2">
@@ -316,121 +251,124 @@ export default function SessionDetailPage() {
                         </Link>
                     </div>
                 </main>
-            </div>
+            </AuthenticatedLayout>
         );
     }
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
-            <AppHeader
-                user={user}
-                onSignOut={handleSignOut}
-                isSigningOut={isSigningOut}
-            />
-
-            <main className="flex flex-1 flex-col p-6">
-                <div className="max-w-6xl mx-auto w-full space-y-6">
-                    {/* Error state */}
-                    {error && (
-                        <ApiError
-                            title="Failed to Load Session"
-                            message={error}
-                            onRetry={handleRetry}
-                            isRetrying={isRetrying}
-                        />
-                    )}
-
-                    {/* Session content */}
-                    {sessionData && !error && (
-                        <>
-                            {/* Header */}
-                            <SessionDetailHeader
-                                attackType={sessionData.attack_type}
-                                attackTypeDisplay={sessionData.attack_type_display}
-                                createdAt={sessionData.created_at || new Date().toISOString()}
-                                status={sessionData.status}
-                                turnCount={sessionData.turn_count}
-                            />
-
-                            {/* Export buttons (US-030) */}
-                            <div className="flex items-center gap-3 p-4 rounded-lg border border-border/50 bg-card">
-                                <Download className="h-5 w-5 text-muted-foreground" />
-                                <span className="text-sm font-medium">Export Session Data</span>
-                                <div className="flex-1" />
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleExportJson}
-                                    disabled={isExporting}
-                                    data-testid="export-json-button"
-                                >
-                                    {isExporting ? (
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    ) : (
-                                        <FileJson className="h-4 w-4 mr-2" />
-                                    )}
-                                    Export JSON
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleExportCsv}
-                                    disabled={isExporting}
-                                    data-testid="export-csv-button"
-                                >
-                                    {isExporting ? (
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    ) : (
-                                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                    )}
-                                    Export CSV
-                                </Button>
-                            </div>
-
-                            {/* Main content grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Left column - Conversation */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    {/* Persona card */}
-                                    {sessionData.persona && (
-                                        <PersonaCard persona={sessionData.persona} />
-                                    )}
-
-                                    {/* Original email preview (if available) */}
-                                    {sessionData.original_email && (
-                                        <div className="rounded-lg border border-border/50 bg-card p-4">
-                                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                                                Original Phishing Email
-                                            </h3>
-                                            <div className="bg-muted/30 rounded-md p-4 text-sm whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                                                {sessionData.original_email}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Conversation history */}
-                                    <div className="rounded-lg border border-border/50 bg-card p-4 min-h-[400px]">
-                                        <ReadOnlyChatArea messages={messages} />
-                                    </div>
-                                </div>
-
-                                {/* Right column - Intel Dashboard */}
-                                <div className="lg:col-span-1">
-                                    <div className="sticky top-6">
-                                        <IntelDashboard
-                                            iocs={sessionData.iocs}
-                                            attackType={sessionData.attack_type}
-                                            confidence={sessionData.confidence}
-                                            riskScore={calculateRiskScore()}
-                                            timeline={timeline}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
+        <AuthenticatedLayout onNewSession={handleNewSession}>
+            {isLoading ? (
+                <div className="flex flex-1 items-center justify-center">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="text-muted-foreground">Loading session...</span>
+                    </div>
                 </div>
-            </main>
-        </div>
+            ) : (
+                <main className="flex flex-1 flex-col p-6">
+                    <div className="max-w-6xl mx-auto w-full space-y-6">
+                        {/* Error state */}
+                        {error && (
+                            <ApiError
+                                title="Failed to Load Session"
+                                message={error}
+                                onRetry={handleRetry}
+                                isRetrying={isRetrying}
+                            />
+                        )}
+
+                        {/* Session content */}
+                        {sessionData && !error && (
+                            <>
+                                {/* Header */}
+                                <SessionDetailHeader
+                                    attackType={sessionData.attack_type}
+                                    attackTypeDisplay={sessionData.attack_type_display}
+                                    createdAt={sessionData.created_at || new Date().toISOString()}
+                                    status={sessionData.status}
+                                    turnCount={sessionData.turn_count}
+                                />
+
+                                {/* Export buttons (US-030) */}
+                                <div className="flex items-center gap-3 p-4 rounded-lg border border-border/50 bg-card">
+                                    <Download className="h-5 w-5 text-muted-foreground" />
+                                    <span className="text-sm font-medium">Export Session Data</span>
+                                    <div className="flex-1" />
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleExportJson}
+                                        disabled={isExporting}
+                                        data-testid="export-json-button"
+                                    >
+                                        {isExporting ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <FileJson className="h-4 w-4 mr-2" />
+                                        )}
+                                        Export JSON
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleExportCsv}
+                                        disabled={isExporting}
+                                        data-testid="export-csv-button"
+                                    >
+                                        {isExporting ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                        )}
+                                        Export CSV
+                                    </Button>
+                                </div>
+
+                                {/* Main content grid */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Left column - Conversation */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        {/* Persona card */}
+                                        {sessionData.persona && (
+                                            <PersonaCard persona={sessionData.persona} />
+                                        )}
+
+                                        {/* Original email preview (if available) */}
+                                        {sessionData.original_email && (
+                                            <div className="rounded-lg border border-border/50 bg-card p-4">
+                                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                                                    Original Phishing Email
+                                                </h3>
+                                                <div className="bg-muted/30 rounded-md p-4 text-sm whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+                                                    {sessionData.original_email}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Conversation history */}
+                                        <div className="rounded-lg border border-border/50 bg-card p-4 min-h-[400px]">
+                                            <ReadOnlyChatArea messages={messages} />
+                                        </div>
+                                    </div>
+
+                                    {/* Right column - Intel Dashboard */}
+                                    <div className="lg:col-span-1">
+                                        <div className="sticky top-6">
+                                            <IntelDashboard
+                                                iocs={sessionData.iocs}
+                                                attackType={sessionData.attack_type}
+                                                confidence={sessionData.confidence}
+                                                riskScore={calculateRiskScore()}
+                                                timeline={timeline}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </main>
+            )}
+        </AuthenticatedLayout>
     );
 }

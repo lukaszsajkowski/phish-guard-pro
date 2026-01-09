@@ -8,6 +8,7 @@ import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { ApiError } from "@/components/app/ApiError";
 import { AppHeader } from "@/components/app/AppHeader";
+import { AppSidebar } from "@/components/app/AppSidebar";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
@@ -49,7 +50,7 @@ function DashboardContent() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSigningOut, setIsSigningOut] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [emailContent, setEmailContent] = useState("");
     const [showSafeWarning, setShowSafeWarning] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -95,16 +96,19 @@ function DashboardContent() {
     // Ref to track intentional session clearing (prevents restore effect from re-restoring)
     const isClearingSessionRef = useRef(false);
 
-    // Auto-collapse side panel on narrower screens (US-026)
+    // Handle responsive side panel collapse (US-026)
     useEffect(() => {
         const handleResize = () => {
+            // Auto-collapse intel side panel on narrower screens (US-026)
             if (window.innerWidth < 1280) {
                 setIsSidePanelCollapsed(true);
             }
         };
 
-        // Check on mount
-        handleResize();
+        // Check side panel on mount
+        if (window.innerWidth < 1280) {
+            setIsSidePanelCollapsed(true);
+        }
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
@@ -136,7 +140,7 @@ function DashboardContent() {
     }, [router]);
 
     const handleSignOut = async () => {
-        setIsSigningOut(true);
+        setIsLoggingOut(true);
 
         try {
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -150,7 +154,7 @@ function DashboardContent() {
             await supabase.auth.signOut();
             router.push("/login");
         } catch {
-            setIsSigningOut(false);
+            setIsLoggingOut(false);
         }
     };
 
@@ -875,235 +879,246 @@ function DashboardContent() {
     const showChatArea = classificationResult && !showSafeWarning && classificationResult.attackType !== "not_phishing";
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
-            {/* Header */}
-            <AppHeader
-                user={user!}
-                onSignOut={handleSignOut}
-                isSigningOut={isSigningOut}
-                showSessionActions={!showSummary}
-                sessionId={sessionId}
-                onEndSession={() => setShowEndSessionDialog(true)}
-                onNewSession={() => setShowNewSessionDialog(true)}
-                isEndingSession={isEndingSession}
-            />
+        <div className="flex min-h-screen bg-background">
+            {/* Fixed Sidebar (US-021) */}
+            <div
+                className="fixed left-0 top-0 h-full z-40 w-64"
+                data-testid="sidebar-container"
+            >
+                <AppSidebar
+                    user={user!}
+                    onLogout={handleSignOut}
+                    isLoggingOut={isLoggingOut}
+                    onNewSession={() => setShowNewSessionDialog(true)}
+                />
+            </div>
 
-            {/* Main content - show summary or regular dashboard */}
+            {/* Main content area with sidebar margin */}
+            <div className="flex-1 flex flex-col ml-64">
+                {/* Header */}
+                <AppHeader
+                    showSessionActions={!showSummary}
+                    sessionId={sessionId}
+                    onEndSession={() => setShowEndSessionDialog(true)}
+                    onNewSession={() => setShowNewSessionDialog(true)}
+                    isEndingSession={isEndingSession}
+                />
 
-            {/* New Session Confirmation Dialog (US-025) */}
-            <AlertDialog open={showNewSessionDialog} onOpenChange={setShowNewSessionDialog}>
-                <AlertDialogContent data-testid="new-session-dialog">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Start New Session?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to start a new session? Any unsaved data will be lost.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel data-testid="new-session-cancel-button">Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleNewSession}
-                            data-testid="new-session-confirm-button"
-                        >
-                            Confirm
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                {/* New Session Confirmation Dialog (US-025) */}
+                <AlertDialog open={showNewSessionDialog} onOpenChange={setShowNewSessionDialog}>
+                    <AlertDialogContent data-testid="new-session-dialog">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Start New Session?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to start a new session? Any unsaved data will be lost.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel data-testid="new-session-cancel-button">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleNewSession}
+                                data-testid="new-session-confirm-button"
+                            >
+                                Confirm
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
-            {/* Main content - show summary or regular dashboard */}
-            {
-                showSummary && sessionSummary ? (
-                    <main className="flex flex-1 flex-col p-6">
-                        <SessionSummary
-                            summary={sessionSummary}
-                            onExportJson={handleExportJson}
-                            onExportCsv={handleExportCsv}
-                            onNewSession={handleNewSession}
-                            isExporting={isExporting}
-                        />
-                    </main>
-                ) : (
-                    <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-                        {/* Top row: Email Input + Analysis Results */}
-                        <div className="flex flex-col md:flex-row gap-6">
-                            {/* Left Panel: Input */}
-                            <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
-                                <EmailInput
-                                    value={emailContent}
-                                    onChange={setEmailContent}
-                                    onAnalyze={handleAnalyze}
-                                />
+                {/* Main content - show summary or regular dashboard */}
+                {
+                    showSummary && sessionSummary ? (
+                        <main className="flex flex-1 flex-col p-6">
+                            <SessionSummary
+                                summary={sessionSummary}
+                                onExportJson={handleExportJson}
+                                onExportCsv={handleExportCsv}
+                                onNewSession={handleNewSession}
+                                isExporting={isExporting}
+                            />
+                        </main>
+                    ) : (
+                        <main className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+                            {/* Top row: Email Input + Analysis Results */}
+                            <div className="flex flex-col md:flex-row gap-6">
+                                {/* Left Panel: Input */}
+                                <div className={`flex-1 transition-all ${classificationResult && !showSafeWarning ? 'md:w-2/3' : 'w-full max-w-3xl mx-auto'}`}>
+                                    <EmailInput
+                                        value={emailContent}
+                                        onChange={setEmailContent}
+                                        onAnalyze={handleAnalyze}
+                                    />
 
-                                {/* Analysis Error Display (US-022) */}
-                                {analysisError && (
-                                    <div className="mt-4">
-                                        <ApiError
-                                            title="Analysis Failed"
-                                            message={analysisError}
-                                            onRetry={handleRetryAnalysis}
-                                            isRetrying={isRetryingAnalysis}
-                                            data-testid="analysis-error"
-                                        />
+                                    {/* Analysis Error Display (US-022) */}
+                                    {analysisError && (
+                                        <div className="mt-4">
+                                            <ApiError
+                                                title="Analysis Failed"
+                                                message={analysisError}
+                                                onRetry={handleRetryAnalysis}
+                                                isRetrying={isRetryingAnalysis}
+                                                data-testid="analysis-error"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Right Panel: Results (Side Panel) - Collapsible (US-026) */}
+                                {classificationResult && !showSafeWarning && (
+                                    <div
+                                        className={`transition-all duration-300 ease-in-out ${isSidePanelCollapsed
+                                            ? "w-12"
+                                            : "w-full md:w-1/3"
+                                            } animate-in fade-in slide-in-from-right-10`}
+                                        data-testid="side-panel"
+                                    >
+                                        <div className="sticky top-6">
+                                            {/* Collapsed state - just show toggle button */}
+                                            {isSidePanelCollapsed ? (
+                                                <div className="flex flex-col items-center">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => setIsSidePanelCollapsed(false)}
+                                                        data-testid="expand-side-panel-button"
+                                                        title="Expand panel"
+                                                        className="mb-2"
+                                                    >
+                                                        <PanelRightOpen className="h-4 w-4" />
+                                                    </Button>
+                                                    {/* Show IOC count badge when collapsed */}
+                                                    {extractedIOCs.length > 0 && (
+                                                        <span
+                                                            className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+                                                            title={`${extractedIOCs.length} IOCs collected`}
+                                                        >
+                                                            {extractedIOCs.length}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                /* Expanded state - full panel */
+                                                <>
+                                                    <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
+                                                        <h3 className="text-lg font-semibold">Analysis Results</h3>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setIsSidePanelCollapsed(true)}
+                                                            data-testid="collapse-side-panel-button"
+                                                            title="Collapse panel"
+                                                        >
+                                                            <PanelRightClose className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <ClassificationResult
+                                                            attackType={classificationResult.attackType}
+                                                            confidence={classificationResult.confidence}
+                                                            reasoning={classificationResult.reasoning}
+                                                        />
+                                                        {classificationResult.persona && (
+                                                            <PersonaCard persona={classificationResult.persona} />
+                                                        )}
+                                                        <IntelDashboard
+                                                            iocs={extractedIOCs}
+                                                            attackType={classificationResult.attackType}
+                                                            confidence={classificationResult.confidence}
+                                                            riskScore={Math.min(10, Math.max(1,
+                                                                (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
+                                                                    classificationResult.attackType === 'not_phishing' ? 1 : 3) +
+                                                                Math.min(extractedIOCs.length, 3) +
+                                                                Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
+                                                            ))}
+                                                            timeline={timelineEvents}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Right Panel: Results (Side Panel) - Collapsible (US-026) */}
-                            {classificationResult && !showSafeWarning && (
-                                <div
-                                    className={`transition-all duration-300 ease-in-out ${isSidePanelCollapsed
-                                        ? "w-12"
-                                        : "w-full md:w-1/3"
-                                        } animate-in fade-in slide-in-from-right-10`}
-                                    data-testid="side-panel"
-                                >
-                                    <div className="sticky top-6">
-                                        {/* Collapsed state - just show toggle button */}
-                                        {isSidePanelCollapsed ? (
-                                            <div className="flex flex-col items-center">
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    onClick={() => setIsSidePanelCollapsed(false)}
-                                                    data-testid="expand-side-panel-button"
-                                                    title="Expand panel"
-                                                    className="mb-2"
-                                                >
-                                                    <PanelRightOpen className="h-4 w-4" />
-                                                </Button>
-                                                {/* Show IOC count badge when collapsed */}
-                                                {extractedIOCs.length > 0 && (
-                                                    <span
-                                                        className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
-                                                        title={`${extractedIOCs.length} IOCs collected`}
-                                                    >
-                                                        {extractedIOCs.length}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            /* Expanded state - full panel */
-                                            <>
-                                                <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
-                                                    <h3 className="text-lg font-semibold">Analysis Results</h3>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => setIsSidePanelCollapsed(true)}
-                                                        data-testid="collapse-side-panel-button"
-                                                        title="Collapse panel"
-                                                    >
-                                                        <PanelRightClose className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <ClassificationResult
-                                                        attackType={classificationResult.attackType}
-                                                        confidence={classificationResult.confidence}
-                                                        reasoning={classificationResult.reasoning}
-                                                    />
-                                                    {classificationResult.persona && (
-                                                        <PersonaCard persona={classificationResult.persona} />
-                                                    )}
-                                                    <IntelDashboard
-                                                        iocs={extractedIOCs}
-                                                        attackType={classificationResult.attackType}
-                                                        confidence={classificationResult.confidence}
-                                                        riskScore={Math.min(10, Math.max(1,
-                                                            (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
-                                                                classificationResult.attackType === 'not_phishing' ? 1 : 3) +
-                                                            Math.min(extractedIOCs.length, 3) +
-                                                            Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
-                                                        ))}
-                                                        timeline={timelineEvents}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                            {/* Chat Area - shown after classification */}
+                            {showChatArea && (
+                                <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
+                                    <ChatArea
+                                        messages={messages}
+                                        isGenerating={isGenerating}
+                                        onGenerateResponse={handleGenerateResponse}
+                                        showGenerateButton={sessionId !== null}
+                                        onEditMessage={handleEditMessage}
+                                        onSubmitScammerMessage={handleSubmitScammerMessage}
+                                        sessionId={sessionId ?? undefined}
+                                        turnCount={turnCount}
+                                        turnLimit={turnLimit}
+                                        usedFallbackModel={usedFallbackModel}
+                                    />
+
+                                    {/* Generation Error Display (US-022) */}
+                                    {generationError && (
+                                        <div className="mt-4">
+                                            <ApiError
+                                                title="Response Generation Failed"
+                                                message={generationError}
+                                                onRetry={handleRetryGeneration}
+                                                isRetrying={isGenerating}
+                                                data-testid="generation-error"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </main>
+                    )
+                }
 
-                        {/* Chat Area - shown after classification */}
-                        {showChatArea && (
-                            <div className="animate-in fade-in slide-in-from-bottom-10 duration-500">
-                                <ChatArea
-                                    messages={messages}
-                                    isGenerating={isGenerating}
-                                    onGenerateResponse={handleGenerateResponse}
-                                    showGenerateButton={sessionId !== null}
-                                    onEditMessage={handleEditMessage}
-                                    onSubmitScammerMessage={handleSubmitScammerMessage}
-                                    sessionId={sessionId ?? undefined}
-                                    turnCount={turnCount}
-                                    turnLimit={turnLimit}
-                                    usedFallbackModel={usedFallbackModel}
-                                />
+                {/* Session Limit Dialog (US-015) */}
+                <SessionLimitDialog
+                    open={showSessionLimitDialog}
+                    turnCount={turnCount}
+                    turnLimit={turnLimit}
+                    onContinue={handleExtendSession}
+                    onEndSession={handleEndSession}
+                    isExtending={isExtendingSession}
+                />
 
-                                {/* Generation Error Display (US-022) */}
-                                {generationError && (
-                                    <div className="mt-4">
-                                        <ApiError
-                                            title="Response Generation Failed"
-                                            message={generationError}
-                                            onRetry={handleRetryGeneration}
-                                            isRetrying={isGenerating}
-                                            data-testid="generation-error"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </main>
-                )
-            }
+                <AlertDialog open={showSafeWarning} onOpenChange={setShowSafeWarning}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Possible Safe Email Detected</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This email doesn't appear to be phishing (Confidence: {classificationResult?.confidence}%).
+                                PhishGuard is designed to simulate conversations with scammers.
+                                Are you sure you want to continue with a legitimate email?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={handlePasteDifferentEmail}>Paste different email</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleContinueAnyway}>Continue anyway</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
-            {/* Session Limit Dialog (US-015) */}
-            <SessionLimitDialog
-                open={showSessionLimitDialog}
-                turnCount={turnCount}
-                turnLimit={turnLimit}
-                onContinue={handleExtendSession}
-                onEndSession={handleEndSession}
-                isExtending={isExtendingSession}
-            />
+                {/* Unmasking Dialog (US-016) */}
+                <UnmaskingDialog
+                    open={showUnmaskingDialog}
+                    matchedPhrases={unmaskingPhrases}
+                    confidence={unmaskingConfidence}
+                    onSummarize={handleEndSession}
+                    onContinue={handleUnmaskingContinue}
+                    isLoading={isEndingSession}
+                />
 
-            <AlertDialog open={showSafeWarning} onOpenChange={setShowSafeWarning}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Possible Safe Email Detected</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This email doesn't appear to be phishing (Confidence: {classificationResult?.confidence}%).
-                            PhishGuard is designed to simulate conversations with scammers.
-                            Are you sure you want to continue with a legitimate email?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={handlePasteDifferentEmail}>Paste different email</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleContinueAnyway}>Continue anyway</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Unmasking Dialog (US-016) */}
-            <UnmaskingDialog
-                open={showUnmaskingDialog}
-                matchedPhrases={unmaskingPhrases}
-                confidence={unmaskingConfidence}
-                onSummarize={handleEndSession}
-                onContinue={handleUnmaskingContinue}
-                isLoading={isEndingSession}
-            />
-
-            {/* End Session Confirmation Dialog (US-017) */}
-            <EndSessionDialog
-                open={showEndSessionDialog}
-                onOpenChange={setShowEndSessionDialog}
-                onConfirm={handleEndSession}
-                isLoading={isEndingSession}
-            />
-        </div >
+                {/* End Session Confirmation Dialog (US-017) */}
+                <EndSessionDialog
+                    open={showEndSessionDialog}
+                    onOpenChange={setShowEndSessionDialog}
+                    onConfirm={handleEndSession}
+                    isLoading={isEndingSession}
+                />
+            </div>
+        </div>
     );
 }
