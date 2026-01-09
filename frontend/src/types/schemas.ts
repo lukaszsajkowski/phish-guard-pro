@@ -66,3 +66,23 @@ export interface IntelDashboardData {
     risk_score: number;
     timeline: TimelineEvent[];
 }
+
+export interface SessionHistoryItem {
+    session_id: string;
+    title: string | null;
+    attack_type: string | null;
+    attack_type_display: string;
+    persona_name: string | null;
+    turn_count: number;
+    created_at: string;
+    risk_score: number;
+    status: string;
+}
+
+export interface PaginatedSessionsResponse {
+    items: SessionHistoryItem[];
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+}

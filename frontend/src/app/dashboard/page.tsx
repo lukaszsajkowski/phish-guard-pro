@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shield, LogOut, Loader2, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
-import Link from "next/link";
+import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { ApiError } from "@/components/app/ApiError";
+import { AppHeader } from "@/components/app/AppHeader";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
@@ -17,7 +17,6 @@ import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
 
 import {
     AlertDialog,
@@ -878,66 +877,16 @@ function DashboardContent() {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             {/* Header */}
-            <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-16 items-center justify-between px-4">
-                    <Link href="/dashboard" className="flex items-center gap-2">
-                        <Shield className="h-8 w-8 text-primary" />
-                        <span className="text-xl font-bold tracking-tight">
-                            PhishGuard Pro
-                        </span>
-                    </Link>
-                    <div className="flex items-center gap-4">
-                        {/* End Session button (US-017) - visible when session is active */}
-                        {sessionId && !showSummary && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowEndSessionDialog(true)}
-                                disabled={isEndingSession}
-                                data-testid="end-session-header-button"
-                            >
-                                <FileText className="h-4 w-4 mr-2" />
-                                End session
-                            </Button>
-                        )}
-
-                        {/* New Session button (US-025) - visible when session is active */}
-                        {sessionId && !showSummary && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowNewSessionDialog(true)}
-                                data-testid="new-session-header-button"
-                            >
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                New Session
-                            </Button>
-                        )}
-
-                        <span className="text-sm text-muted-foreground">
-                            {user?.email}
-                        </span>
-                        <button
-                            id="signout-button"
-                            onClick={handleSignOut}
-                            disabled={isSigningOut}
-                            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-                        >
-                            {isSigningOut ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Signing out...
-                                </>
-                            ) : (
-                                <>
-                                    <LogOut className="h-4 w-4" />
-                                    Sign out
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </header >
+            <AppHeader
+                user={user!}
+                onSignOut={handleSignOut}
+                isSigningOut={isSigningOut}
+                showSessionActions={!showSummary}
+                sessionId={sessionId}
+                onEndSession={() => setShowEndSessionDialog(true)}
+                onNewSession={() => setShowNewSessionDialog(true)}
+                isEndingSession={isEndingSession}
+            />
 
             {/* Main content - show summary or regular dashboard */}
 

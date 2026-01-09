@@ -2,11 +2,11 @@
 
 import { formatDistanceToNow } from "date-fns";
 import {
+    AlertCircle,
     AlertTriangle,
     Shield,
     Target,
     Clock,
-    Gauge,
     TrendingUp,
     Link,
 } from "lucide-react";
@@ -165,12 +165,9 @@ export function IntelDashboard({
             </div>
 
             {/* Section 3: Risk Score */}
-            <div
-                data-testid="risk-score-section"
-                className={`rounded-md p-3 ${getRiskScoreBg(riskScore)}`}
-            >
+            <div data-testid="risk-score-section">
                 <div className="flex items-center gap-2 mb-2">
-                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Risk Score
                     </span>

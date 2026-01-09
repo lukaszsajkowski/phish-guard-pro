@@ -6,9 +6,8 @@ sessions and their associated messages in the database.
 
 import logging
 from typing import Any
-from uuid import UUID
 
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 from phishguard.core import get_settings
 from phishguard.models.classification import AttackType, ClassificationResult
@@ -139,7 +138,9 @@ async def update_session_classification(
             "background": classification_result.persona.background,
         }
 
-    result = supabase.table("sessions").update(update_data).eq("id", session_id).execute()
+    result = (
+        supabase.table("sessions").update(update_data).eq("id", session_id).execute()
+    )
 
     if not result.data or len(result.data) == 0:
         raise Exception("Failed to update session")
@@ -150,7 +151,6 @@ async def update_session_classification(
         classification_result.attack_type.value,
         classification_result.confidence,
     )
-
 
 
 def _generate_session_title(email_content: str, max_length: int = 50) -> str:
@@ -360,10 +360,12 @@ async def get_conversation_history(session_id: str) -> list[dict[str, Any]]:
         else:
             continue  # Skip unknown roles
 
-        history.append({
-            "sender": sender,
-            "content": msg.get("content", ""),
-        })
+        history.append(
+            {
+                "sender": sender,
+                "content": msg.get("content", ""),
+            }
+        )
 
     return history
 
@@ -397,12 +399,14 @@ async def save_extracted_iocs(
         if ioc_type == "btc_wallet":
             ioc_type = "btc"
 
-        ioc_records.append({
-            "session_id": session_id,
-            "type": ioc_type,
-            "value": ioc.get("value", ""),
-            "confidence": 1.0 if ioc.get("is_high_value", False) else 0.8,
-        })
+        ioc_records.append(
+            {
+                "session_id": session_id,
+                "type": ioc_type,
+                "value": ioc.get("value", ""),
+                "confidence": 1.0 if ioc.get("is_high_value", False) else 0.8,
+            }
+        )
 
     result = supabase.table("ioc_extracted").insert(ioc_records).execute()
 
@@ -481,9 +485,7 @@ def calculate_risk_score(
 
     # Score from high-value IOCs (up to +3)
     high_value_types = {"btc", "btc_wallet", "iban"}
-    high_value_count = sum(
-        1 for ioc in iocs if ioc.get("type", "") in high_value_types
-    )
+    high_value_count = sum(1 for ioc in iocs if ioc.get("type", "") in high_value_types)
     high_value_score = min(high_value_count, 3)
 
     # Total score capped at 10
@@ -510,13 +512,15 @@ async def get_session_timeline(session_id: str) -> list[dict[str, Any]]:
         ioc_type = ioc.get("type", "")
         is_high_value = ioc_type in ("btc", "iban")
 
-        timeline_events.append({
-            "timestamp": ioc.get("created_at", ""),
-            "event_type": "ioc_extracted",
-            "description": f"Extracted {ioc_type.upper()}: {ioc.get('value', '')[:20]}...",
-            "ioc_id": ioc.get("id"),
-            "is_high_value": is_high_value,
-        })
+        timeline_events.append(
+            {
+                "timestamp": ioc.get("created_at", ""),
+                "event_type": "ioc_extracted",
+                "description": f"Extracted {ioc_type.upper()}: {ioc.get('value', '')[:20]}...",
+                "ioc_id": ioc.get("id"),
+                "is_high_value": is_high_value,
+            }
+        )
 
     return timeline_events
 
@@ -633,16 +637,18 @@ async def end_session(session_id: str) -> None:
     Raises:
         Exception: If update fails.
     """
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
 
     supabase = _get_supabase_client()
 
     result = (
         supabase.table("sessions")
-        .update({
-            "status": "archived",
-            "ended_at": datetime.now(UTC).isoformat(),
-        })
+        .update(
+            {
+                "status": "archived",
+                "ended_at": datetime.now(UTC).isoformat(),
+            }
+        )
         .eq("id", session_id)
         .execute()
     )
@@ -665,8 +671,7 @@ async def get_session_summary(session_id: str) -> dict[str, Any]:
     Raises:
         Exception: If session not found.
     """
-    from datetime import datetime, UTC
-    from phishguard.models.classification import AttackType
+    from datetime import UTC, datetime
 
     session = await get_session(session_id)
     if not session:
@@ -681,8 +686,7 @@ async def get_session_summary(session_id: str) -> dict[str, Any]:
 
     # Count safe responses (those that didn't require regeneration)
     safe_responses = sum(
-        1 for m in bot_messages
-        if m.get("metadata", {}).get("safety_validated", True)
+        1 for m in bot_messages if m.get("metadata", {}).get("safety_validated", True)
     )
 
     # Get IOCs
@@ -708,13 +712,15 @@ async def get_session_summary(session_id: str) -> dict[str, Any]:
     for ioc in iocs:
         ioc_type = ioc.get("type", "")
         is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
-        ioc_summaries.append({
-            "id": ioc.get("id", ""),
-            "ioc_type": ioc_type,
-            "value": ioc.get("value", ""),
-            "is_high_value": is_high_value,
-            "timestamp": ioc.get("created_at", ""),
-        })
+        ioc_summaries.append(
+            {
+                "id": ioc.get("id", ""),
+                "ioc_type": ioc_type,
+                "value": ioc.get("value", ""),
+                "is_high_value": is_high_value,
+                "timestamp": ioc.get("created_at", ""),
+            }
+        )
 
     return {
         "session_id": session_id,
@@ -744,7 +750,7 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
     Returns:
         Dict containing the full session export.
     """
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
 
     session = await get_session(session_id)
     if not session:
@@ -760,12 +766,14 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
         metadata = msg.get("metadata", {})
         if metadata.get("type") == "original_email":
             continue
-        conversation_history.append({
-            "sender": msg.get("role", ""),
-            "content": msg.get("content", ""),
-            "timestamp": msg.get("created_at", ""),
-            "turn_number": i,
-        })
+        conversation_history.append(
+            {
+                "sender": msg.get("role", ""),
+                "content": msg.get("content", ""),
+                "timestamp": msg.get("created_at", ""),
+                "turn_number": i,
+            }
+        )
 
     # Get original email
     original_email = None
@@ -821,25 +829,29 @@ def export_iocs_csv(iocs: list[dict[str, Any]]) -> str:
     writer = csv.writer(output)
 
     # Write header
-    writer.writerow([
-        "ioc_type",
-        "value",
-        "timestamp",
-        "confidence",
-        "is_high_value",
-    ])
+    writer.writerow(
+        [
+            "ioc_type",
+            "value",
+            "timestamp",
+            "confidence",
+            "is_high_value",
+        ]
+    )
 
     # Write IOC rows
     for ioc in iocs:
         ioc_type = ioc.get("type", "")
         is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
-        writer.writerow([
-            ioc_type,
-            ioc.get("value", ""),
-            ioc.get("created_at", ""),
-            ioc.get("confidence", 0.0),
-            "true" if is_high_value else "false",
-        ])
+        writer.writerow(
+            [
+                ioc_type,
+                ioc.get("value", ""),
+                ioc.get("created_at", ""),
+                ioc.get("confidence", 0.0),
+                "true" if is_high_value else "false",
+            ]
+        )
 
     return output.getvalue()
 
@@ -854,8 +866,99 @@ def generate_export_filename(prefix: str, extension: str) -> str:
     Returns:
         Filename with timestamp in format: prefix_YYYYMMDD_HHMMSS.extension
     """
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     return f"{prefix}_{timestamp}.{extension}"
 
+
+async def get_user_sessions(
+    user_id: str,
+    page: int = 1,
+    per_page: int = 20,
+) -> tuple[list[dict[str, Any]], int]:
+    """Retrieve paginated sessions for a user with turn counts and risk scores.
+
+    Fetches sessions ordered by creation time (descending) with pagination,
+    enriched with turn counts from the messages table and calculated risk scores.
+
+    Args:
+        user_id: The authenticated user's UUID.
+        page: Page number (1-indexed). Defaults to 1.
+        per_page: Number of sessions per page. Defaults to 20.
+
+    Returns:
+        A tuple of (sessions_list, total_count) where sessions_list contains
+        dicts with session data, turn_count, and risk_score.
+
+    Raises:
+        ValueError: If page or per_page is invalid.
+    """
+    if page < 1:
+        raise ValueError("Page must be >= 1")
+    if per_page < 1 or per_page > 100:
+        raise ValueError("per_page must be between 1 and 100")
+
+    supabase = _get_supabase_client()
+
+    # Calculate offset for pagination
+    offset = (page - 1) * per_page
+
+    # Query sessions with pagination
+    result = (
+        supabase.table("sessions")
+        .select("*", count="exact")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + per_page - 1)
+        .execute()
+    )
+
+    total_count = result.count if result.count else 0
+    sessions = result.data if result.data else []
+
+    # Enrich sessions with turn counts and risk scores
+    enriched_sessions = []
+    for session in sessions:
+        session_id = session.get("id", "")
+
+        # Get turn count (assistant messages)
+        turn_count_result = (
+            supabase.table("messages")
+            .select("id", count="exact")
+            .eq("session_id", session_id)
+            .eq("role", "assistant")
+            .execute()
+        )
+        turn_count = turn_count_result.count if turn_count_result.count else 0
+
+        # Get IOCs for risk score calculation
+        iocs_result = (
+            supabase.table("ioc_extracted")
+            .select("type")
+            .eq("session_id", session_id)
+            .execute()
+        )
+        iocs = iocs_result.data if iocs_result.data else []
+
+        # Calculate risk score
+        attack_type = session.get("attack_type", "unknown")
+        risk_score = calculate_risk_score(attack_type, iocs)
+
+        enriched_sessions.append(
+            {
+                **session,
+                "turn_count": turn_count,
+                "risk_score": risk_score,
+            }
+        )
+
+    logger.debug(
+        "Retrieved %d sessions for user %s (page %d, total %d)",
+        len(enriched_sessions),
+        user_id,
+        page,
+        total_count,
+    )
+
+    return enriched_sessions, total_count

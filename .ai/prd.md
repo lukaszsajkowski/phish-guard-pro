@@ -742,6 +742,54 @@ Acceptance Criteria:
 - Turn counter shows correct value
 - User can continue conversation immediately after refresh
 
+### US-032: Enhanced Risk Score
+
+Title: Multi-dimensional threat risk assessment
+
+Description: As a security researcher, I want to see a detailed, multi-factor
+risk score to better understand the threat level and scammer tactics.
+
+Acceptance Criteria:
+
+- Risk Score calculated from 6 weighted components:
+  - Attack Severity (25%): CEO Fraud=4, Crypto=4, Nigerian 419=3, etc.
+  - IOC Quality (25%): BTC wallet=3, IBAN=3, phone=2, URL=1
+  - IOC Quantity (15%): +0.5 per IOC up to max 1.5 points
+  - Scammer Engagement (15%): Based on response length and frequency
+  - Urgency Tactics (10%): Detection of pressure keywords (urgent, deadline)
+  - Personalization (10%): Scammer uses victim name or references context
+- Risk Score displayed with breakdown panel (expandable)
+- Each component shows individual score and contribution
+- Color coding: Green (1-3), Yellow (4-6), Red (7-10)
+- Breakdown updates in real-time as conversation progresses
+- Algorithm is transparent and explainable to user
+
+### US-033: IOC Enrichment
+
+Title: External threat intelligence for extracted IOCs
+
+Description: As a security researcher, I want to see enriched IOC data from
+external threat intelligence sources to better assess the threat and gather
+additional context.
+
+Acceptance Criteria:
+
+- "Enrich" button available for each extracted IOC in Intel Dashboard
+- Enrichment sources per IOC type:
+  - BTC wallet: Blockchain.com (balance, tx count, first seen, risk label)
+  - URL/Domain: VirusTotal (detection score, categories, domain age)
+  - IP address: AbuseIPDB (abuse score, reports count)
+  - Phone: Country, carrier, line type (mobile/voip)
+- Enriched IOC card displays:
+  - Threat score (0-100) with color indicator
+  - Reputation badge (malicious, suspicious, clean, unknown)
+  - Source-specific data in expandable section
+- Enrichment results cached for 24 hours (URLs) / 7 days (domains)
+- Rate limiting respects external API quotas (VirusTotal: 500/day free tier)
+- Loading state shown during enrichment
+- Graceful handling when enrichment unavailable or fails
+- Enriched data included in JSON/CSV export
+
 ---
 
 ## 6. Success Metrics
