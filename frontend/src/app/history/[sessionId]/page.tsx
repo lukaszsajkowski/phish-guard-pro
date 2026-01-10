@@ -290,10 +290,12 @@ export default function SessionDetailPage() {
                                 />
 
                                 {/* Export buttons (US-030) */}
-                                <div className="flex items-center gap-3 p-4 rounded-lg border border-border/50 bg-card">
-                                    <Download className="h-5 w-5 text-muted-foreground" />
-                                    <span className="text-sm font-medium">Export Session Data</span>
-                                    <div className="flex-1" />
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border/50 bg-card">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <Download className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm font-medium">Export Session Data</span>
+                                    </div>
+                                    <div className="flex gap-2">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -322,12 +324,13 @@ export default function SessionDetailPage() {
                                         )}
                                         Export CSV
                                     </Button>
+                                    </div>
                                 </div>
 
-                                {/* Main content grid */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Main content grid - US-026 responsive */}
+                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                                     {/* Left column - Conversation */}
-                                    <div className="lg:col-span-2 space-y-6">
+                                    <div className="xl:col-span-2 space-y-6">
                                         {/* Persona card */}
                                         {sessionData.persona && (
                                             <PersonaCard persona={sessionData.persona} />
@@ -352,7 +355,7 @@ export default function SessionDetailPage() {
                                     </div>
 
                                     {/* Right column - Intel Dashboard */}
-                                    <div className="lg:col-span-1">
+                                    <div className="xl:col-span-1">
                                         <div className="sticky top-6">
                                             <IntelDashboard
                                                 iocs={sessionData.iocs}

@@ -212,7 +212,13 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    min-width: 1024px;
+    overflow-x: auto;
+  }
+
   body {
     @apply bg-background text-foreground;
+    min-width: 1024px;
   }
 }

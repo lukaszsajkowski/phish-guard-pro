@@ -8,7 +8,7 @@ import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult } from "@/components/app/ClassificationResult";
 import { ApiError } from "@/components/app/ApiError";
 import { AppHeader } from "@/components/app/AppHeader";
-import { AppSidebar } from "@/components/app/AppSidebar";
+import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { ChatArea } from "@/components/dashboard/ChatArea";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
@@ -18,6 +18,7 @@ import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import {
     AlertDialog,
@@ -49,8 +50,6 @@ export default function DashboardPage() {
 function DashboardContent() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [emailContent, setEmailContent] = useState("");
     const [showSafeWarning, setShowSafeWarning] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -96,23 +95,15 @@ function DashboardContent() {
     // Ref to track intentional session clearing (prevents restore effect from re-restoring)
     const isClearingSessionRef = useRef(false);
 
-    // Handle responsive side panel collapse (US-026)
-    useEffect(() => {
-        const handleResize = () => {
-            // Auto-collapse intel side panel on narrower screens (US-026)
-            if (window.innerWidth < 1280) {
-                setIsSidePanelCollapsed(true);
-            }
-        };
+    // Responsive side panel collapse (US-026)
+    const isLargeScreen = useMediaQuery("(min-width: 1280px)");
 
-        // Check side panel on mount
-        if (window.innerWidth < 1280) {
+    // Auto-collapse intel side panel on narrower screens (US-026)
+    useEffect(() => {
+        if (!isLargeScreen) {
             setIsSidePanelCollapsed(true);
         }
-
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    }, [isLargeScreen]);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -133,30 +124,10 @@ function DashboardContent() {
             }
 
             setUser(user);
-            setIsLoading(false);
         };
 
         checkAuth();
     }, [router]);
-
-    const handleSignOut = async () => {
-        setIsLoggingOut(true);
-
-        try {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-            if (!supabaseUrl || !supabaseAnonKey) {
-                throw new Error("Supabase configuration missing");
-            }
-
-            const supabase = createClient(supabaseUrl, supabaseAnonKey);
-            await supabase.auth.signOut();
-            router.push("/login");
-        } catch {
-            setIsLoggingOut(false);
-        }
-    };
 
     const handleAnalyze = async (contentToAnalyze: string) => {
         // Clear previous error but keep email content (US-022: session not lost on error)
@@ -852,26 +823,18 @@ function DashboardContent() {
         }
     }, [searchParams, sessionId, user, isRestoringSession, restoreSession]);
 
-    if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Loading...</span>
-                </div>
-            </div>
-        );
-    }
-
     // Show loading state while restoring session (US-031)
+    // Note: Auth loading is handled by AuthenticatedLayout
     if (isRestoringSession) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Restoring session...</span>
+            <AuthenticatedLayout onNewSession={() => setShowNewSessionDialog(true)}>
+                <div className="flex min-h-screen items-center justify-center">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="text-muted-foreground">Restoring session...</span>
+                    </div>
                 </div>
-            </div>
+            </AuthenticatedLayout>
         );
     }
 
@@ -879,22 +842,8 @@ function DashboardContent() {
     const showChatArea = classificationResult && !showSafeWarning && classificationResult.attackType !== "not_phishing";
 
     return (
-        <div className="flex min-h-screen bg-background">
-            {/* Fixed Sidebar (US-021) */}
-            <div
-                className="fixed left-0 top-0 h-full z-40 w-64"
-                data-testid="sidebar-container"
-            >
-                <AppSidebar
-                    user={user!}
-                    onLogout={handleSignOut}
-                    isLoggingOut={isLoggingOut}
-                    onNewSession={() => setShowNewSessionDialog(true)}
-                />
-            </div>
-
-            {/* Main content area with sidebar margin */}
-            <div className="flex-1 flex flex-col ml-64">
+        <AuthenticatedLayout onNewSession={() => setShowNewSessionDialog(true)}>
+            <div className="flex flex-col min-h-screen">
                 {/* Header */}
                 <AppHeader
                     showSessionActions={!showSummary}
@@ -1119,6 +1068,6 @@ function DashboardContent() {
                     isLoading={isEndingSession}
                 />
             </div>
-        </div>
+        </AuthenticatedLayout>
     );
 }

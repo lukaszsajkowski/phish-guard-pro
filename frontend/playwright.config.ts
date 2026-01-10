@@ -35,11 +35,24 @@ export default defineConfig({
         screenshot: 'only-on-failure',
     },
 
-    /* Configure projects for major browsers - Chromium only per project rules */
+    /* Configure projects for major browsers */
     projects: [
         {
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
+        },
+        {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'] },
+        },
+        {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'] },
+        },
+        /* Mobile Safari for responsive testing */
+        {
+            name: 'mobile-safari',
+            use: { ...devices['iPhone 14'] },
         },
     ],
 

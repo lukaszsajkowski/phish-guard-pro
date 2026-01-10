@@ -590,7 +590,7 @@ Acceptance Criteria:
 - File uses standard CSV format with headers
 - Filename: phishguard_ioc_YYYYMMDD_HHMMSS.csv
 
-### US-021: Navigation Sidebar ❌
+### US-021: Navigation Sidebar ✅
 
 Title: Persistent navigation menu
 
@@ -673,7 +673,7 @@ Acceptance Criteria:
 - User returns to start screen with empty paste field
 - Previous session data is lost (unless exported)
 
-### US-026: Interface Responsiveness ⚠️
+### US-026: Interface Responsiveness ✅
 
 Title: Application operation on different desktop resolutions
 
