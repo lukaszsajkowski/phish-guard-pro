@@ -5,7 +5,7 @@ including attack type, IOCs, risk score, and timeline.
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -38,6 +38,28 @@ class IOCItem(BaseModel):
     created_at: str = Field(..., description="Extraction timestamp")
 
 
+class RiskComponentScoreResponse(BaseModel):
+    """Score for a single risk component (US-032)."""
+
+    component: str = Field(..., description="Component identifier")
+    raw_score: float = Field(..., description="Raw score (0-4 scale)")
+    weight: float = Field(..., description="Weight of this component (0-1)")
+    weighted_score: float = Field(..., description="Weighted contribution to total")
+    explanation: str = Field(..., description="Human-readable explanation")
+
+
+class RiskScoreBreakdown(BaseModel):
+    """Enhanced risk score breakdown with all components (US-032)."""
+
+    total_score: float = Field(..., description="Final risk score (1-10)")
+    risk_level: Literal["low", "medium", "high"] = Field(
+        ..., description="Risk level classification"
+    )
+    components: list[RiskComponentScoreResponse] = Field(
+        ..., description="Individual component scores"
+    )
+
+
 class IntelDashboardResponse(BaseModel):
     """Complete Intel Dashboard data response."""
 
@@ -52,8 +74,11 @@ class IntelDashboardResponse(BaseModel):
     total_iocs: int = Field(..., description="Total IOC count")
     high_value_count: int = Field(..., description="High-value IOC count")
 
-    # Section 3: Risk Score
+    # Section 3: Risk Score (US-032: Enhanced with breakdown)
     risk_score: int = Field(..., description="Risk score from 1-10", ge=1, le=10)
+    risk_score_breakdown: RiskScoreBreakdown | None = Field(
+        None, description="Detailed breakdown of risk score components (US-032)"
+    )
 
     # Section 4: Timeline
     timeline: list[TimelineEvent] = Field(
@@ -133,8 +158,25 @@ async def get_intel_dashboard(
             )
         )
 
-    # Calculate risk score
-    risk_score = session_service.calculate_risk_score(attack_type, iocs_data)
+    # Calculate enhanced risk score with breakdown (US-032)
+    enhanced_score = await session_service.get_session_enhanced_risk_score(session_id)
+    risk_score = int(round(enhanced_score.total_score))
+
+    # Build breakdown response
+    risk_score_breakdown = RiskScoreBreakdown(
+        total_score=enhanced_score.total_score,
+        risk_level=enhanced_score.risk_level.value,
+        components=[
+            RiskComponentScoreResponse(
+                component=c.component.value,
+                raw_score=c.raw_score,
+                weight=c.weight,
+                weighted_score=c.weighted_score,
+                explanation=c.explanation,
+            )
+            for c in enhanced_score.components
+        ],
+    )
 
     # Get timeline
     timeline_data = await session_service.get_session_timeline(session_id)
@@ -166,5 +208,6 @@ async def get_intel_dashboard(
         total_iocs=len(iocs),
         high_value_count=high_value_count,
         risk_score=risk_score,
+        risk_score_breakdown=risk_score_breakdown,
         timeline=timeline,
     )

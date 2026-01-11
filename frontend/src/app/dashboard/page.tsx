@@ -16,7 +16,7 @@ import { SessionLimitDialog } from "@/components/dashboard/SessionLimitDialog";
 import { UnmaskingDialog } from "@/components/dashboard/UnmaskingDialog";
 import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
-import { Persona, ChatMessage, ExtractedIOC, TimelineEvent } from "@/types/schemas";
+import { Persona, ChatMessage, ExtractedIOC, TimelineEvent, RiskScoreBreakdown } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -63,6 +63,8 @@ function DashboardContent() {
     } | null>(null);
     const [extractedIOCs, setExtractedIOCs] = useState<ExtractedIOC[]>([]);
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+    const [riskScoreBreakdown, setRiskScoreBreakdown] = useState<RiskScoreBreakdown | undefined>();
+    const [riskScore, setRiskScore] = useState<number>(1);
     // Turn count and limit state (US-015)
     const [turnCount, setTurnCount] = useState(0);
     const [turnLimit, setTurnLimit] = useState(20);
@@ -97,6 +99,42 @@ function DashboardContent() {
 
     // Responsive side panel collapse (US-026)
     const isLargeScreen = useMediaQuery("(min-width: 1280px)");
+
+    // Fetch intel dashboard data for risk score breakdown (US-032)
+    const fetchIntelDashboard = useCallback(async (targetSessionId: string) => {
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseAnonKey) return;
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) return;
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/intel/dashboard/${targetSessionId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.risk_score_breakdown) {
+                    setRiskScoreBreakdown(data.risk_score_breakdown);
+                }
+                if (data.risk_score) {
+                    setRiskScore(data.risk_score);
+                }
+            }
+        } catch (err) {
+            console.warn("Failed to fetch intel dashboard:", err);
+        }
+    }, []);
 
     // Auto-collapse intel side panel on narrower screens (US-026)
     useEffect(() => {
@@ -142,6 +180,8 @@ function DashboardContent() {
             setMessages([]);
             setExtractedIOCs([]);
             setTimelineEvents([]);
+            setRiskScoreBreakdown(undefined);
+            setRiskScore(1);
 
             // Get auth token from Supabase
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -215,6 +255,11 @@ function DashboardContent() {
                     is_high_value: ioc.is_high_value,
                 }));
                 setTimelineEvents(newEvents);
+            }
+
+            // Fetch enhanced risk score breakdown (US-032)
+            if (data.session_id) {
+                fetchIntelDashboard(data.session_id);
             }
 
             // Check if safe
@@ -460,6 +505,11 @@ function DashboardContent() {
                     is_high_value: ioc.is_high_value,
                 }));
                 setTimelineEvents(prev => [...prev, ...newTimelineEvents]);
+
+                // Refresh enhanced risk score (US-032)
+                if (sessionId) {
+                    fetchIntelDashboard(sessionId);
+                }
             }
 
             // Update turn count and limit from response (US-015)
@@ -508,6 +558,8 @@ function DashboardContent() {
         setMessages([]);
         setExtractedIOCs([]);
         setTimelineEvents([]);
+        setRiskScoreBreakdown(undefined);
+        setRiskScore(1);
         setTurnCount(0);
         setTurnLimit(20);
         setUsedFallbackModel(false);  // Reset fallback state (US-023)
@@ -795,6 +847,9 @@ function DashboardContent() {
             setTurnCount(data.turn_count);
             setTurnLimit(data.turn_limit);
 
+            // Fetch enhanced risk score breakdown (US-032)
+            fetchIntelDashboard(sessionIdToRestore);
+
             console.log(`Session ${sessionIdToRestore} restored successfully`);
 
         } catch (error) {
@@ -804,7 +859,7 @@ function DashboardContent() {
         } finally {
             setIsRestoringSession(false);
         }
-    }, []);
+    }, [fetchIntelDashboard]);
 
     // Effect to restore session from URL on page load (US-031)
     useEffect(() => {
@@ -973,12 +1028,13 @@ function DashboardContent() {
                                                             iocs={extractedIOCs}
                                                             attackType={classificationResult.attackType}
                                                             confidence={classificationResult.confidence}
-                                                            riskScore={Math.min(10, Math.max(1,
+                                                            riskScore={riskScore || Math.min(10, Math.max(1,
                                                                 (classificationResult.attackType === 'ceo_fraud' || classificationResult.attackType === 'crypto_investment' ? 4 :
                                                                     classificationResult.attackType === 'not_phishing' ? 1 : 3) +
                                                                 Math.min(extractedIOCs.length, 3) +
                                                                 Math.min(extractedIOCs.filter(ioc => ioc.is_high_value).length, 3)
                                                             ))}
+                                                            riskScoreBreakdown={riskScoreBreakdown}
                                                             timeline={timelineEvents}
                                                         />
                                                     </div>

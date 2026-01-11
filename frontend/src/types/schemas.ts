@@ -56,6 +56,42 @@ export interface TimelineEvent {
     is_high_value?: boolean;
 }
 
+/**
+ * Risk component types for enhanced risk score (US-032)
+ */
+export type RiskComponentType =
+    | "attack_severity"
+    | "ioc_quality"
+    | "ioc_quantity"
+    | "scammer_engagement"
+    | "urgency_tactics"
+    | "personalization";
+
+/**
+ * Risk level classification based on total score
+ */
+export type RiskLevel = "low" | "medium" | "high";
+
+/**
+ * Score for a single risk component (US-032)
+ */
+export interface RiskComponentScore {
+    component: RiskComponentType;
+    raw_score: number;
+    weight: number;
+    weighted_score: number;
+    explanation: string;
+}
+
+/**
+ * Enhanced risk score breakdown with all components (US-032)
+ */
+export interface RiskScoreBreakdown {
+    total_score: number;
+    risk_level: RiskLevel;
+    components: RiskComponentScore[];
+}
+
 export interface IntelDashboardData {
     session_id: string;
     attack_type: string;
@@ -64,6 +100,7 @@ export interface IntelDashboardData {
     total_iocs: number;
     high_value_count: number;
     risk_score: number;
+    risk_score_breakdown?: RiskScoreBreakdown;
     timeline: TimelineEvent[];
 }
 

@@ -10,7 +10,7 @@ import {
     TrendingUp,
     Link,
 } from "lucide-react";
-import { ExtractedIOC, TimelineEvent } from "@/types/schemas";
+import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType } from "@/types/schemas";
 import {
     IOC_ICONS,
     IOC_LABELS,
@@ -20,12 +20,14 @@ import {
     getRiskLabel,
     getRiskScoreBarColor,
 } from "@/lib/constants/ioc";
+import { RiskScoreBreakdown } from "./RiskScoreBreakdown";
 
 interface IntelDashboardProps {
     iocs: ExtractedIOC[];
     attackType?: string;
     confidence?: number;
     riskScore?: number;
+    riskScoreBreakdown?: RiskScoreBreakdownType;
     timeline?: TimelineEvent[];
     isLoading?: boolean;
 }
@@ -35,6 +37,7 @@ export function IntelDashboard({
     attackType,
     confidence,
     riskScore = 1,
+    riskScoreBreakdown,
     timeline = [],
     isLoading = false,
 }: IntelDashboardProps) {
@@ -164,7 +167,7 @@ export function IntelDashboard({
                 )}
             </div>
 
-            {/* Section 3: Risk Score */}
+            {/* Section 3: Risk Score (US-032 Enhanced with breakdown) */}
             <div data-testid="risk-score-section">
                 <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="h-4 w-4 text-muted-foreground" />
@@ -172,29 +175,38 @@ export function IntelDashboard({
                         Risk Score
                     </span>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div
-                        data-testid="risk-score-value"
-                        className={`text-3xl font-bold ${getRiskScoreColor(riskScore)}`}
-                    >
-                        {riskScore}
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                            <span className={`font-medium ${getRiskScoreColor(riskScore)}`}>
-                                {getRiskLabel(riskScore)} Risk
-                            </span>
-                            <span className="text-muted-foreground">/10</span>
+
+                {/* Use enhanced breakdown if available, otherwise fall back to simple display */}
+                {riskScoreBreakdown ? (
+                    <RiskScoreBreakdown
+                        breakdown={riskScoreBreakdown}
+                        isLoading={isLoading}
+                    />
+                ) : (
+                    <div className="flex items-center gap-3">
+                        <div
+                            data-testid="risk-score-value"
+                            className={`text-3xl font-bold ${getRiskScoreColor(riskScore)}`}
+                        >
+                            {riskScore}
                         </div>
-                        <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
-                            <div
-                                data-testid="risk-score-bar"
-                                className={`h-full transition-all duration-500 ${getRiskScoreBarColor(riskScore)}`}
-                                style={{ width: `${(riskScore / 10) * 100}%` }}
-                            />
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className={`font-medium ${getRiskScoreColor(riskScore)}`}>
+                                    {getRiskLabel(riskScore)} Risk
+                                </span>
+                                <span className="text-muted-foreground">/10</span>
+                            </div>
+                            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+                                <div
+                                    data-testid="risk-score-bar"
+                                    className={`h-full transition-all duration-500 ${getRiskScoreBarColor(riskScore)}`}
+                                    style={{ width: `${(riskScore / 10) * 100}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Section 4: Timeline */}

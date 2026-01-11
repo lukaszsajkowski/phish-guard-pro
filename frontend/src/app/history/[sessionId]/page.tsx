@@ -11,7 +11,7 @@ import { SessionDetailHeader, ReadOnlyChatArea } from "@/components/history";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
 import { ApiError } from "@/components/app/ApiError";
-import { ChatMessage, ExtractedIOC, Persona, TimelineEvent } from "@/types/schemas";
+import { ChatMessage, ExtractedIOC, Persona, TimelineEvent, RiskScoreBreakdown } from "@/types/schemas";
 
 // API response type for session restore
 interface SessionRestoreResponse {
@@ -54,6 +54,8 @@ export default function SessionDetailPage() {
     const [sessionData, setSessionData] = useState<SessionRestoreResponse | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+    const [riskScoreBreakdown, setRiskScoreBreakdown] = useState<RiskScoreBreakdown | undefined>();
+    const [riskScore, setRiskScore] = useState<number>(1);
 
     // Export state (US-030)
     const [isExporting, setIsExporting] = useState(false);
@@ -126,6 +128,29 @@ export default function SessionDetailPage() {
                 }))
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setTimeline(iocTimeline);
+
+            // Fetch intel dashboard data for risk score breakdown (US-032)
+            try {
+                const intelResponse = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/intel/dashboard/${sessionId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                        },
+                    }
+                );
+
+                if (intelResponse.ok) {
+                    const intelData = await intelResponse.json();
+                    if (intelData.risk_score_breakdown) {
+                        setRiskScoreBreakdown(intelData.risk_score_breakdown);
+                    }
+                    setRiskScore(intelData.risk_score || 1);
+                }
+            } catch (intelError) {
+                console.warn("Failed to fetch intel dashboard data:", intelError);
+                // Fall back to calculated risk score
+            }
         } catch (err) {
             console.error("Error fetching session:", err);
             setError(err instanceof Error ? err.message : "Failed to load session");
@@ -218,9 +243,10 @@ export default function SessionDetailPage() {
         }
     };
 
-    // Calculate risk score from IOCs
-    const calculateRiskScore = (): number => {
-        if (!sessionData) return 1;
+    // Fallback risk score calculation (used when API doesn't return breakdown)
+    const calculateFallbackRiskScore = (): number => {
+        if (!sessionData) return riskScore || 1;
+        if (riskScore > 1) return riskScore; // Use API score if available
         const highValueCount = sessionData.iocs.filter((ioc) => ioc.is_high_value).length;
         const totalCount = sessionData.iocs.length;
         return Math.min(10, 1 + highValueCount * 2 + (totalCount - highValueCount));
@@ -361,7 +387,8 @@ export default function SessionDetailPage() {
                                                 iocs={sessionData.iocs}
                                                 attackType={sessionData.attack_type}
                                                 confidence={sessionData.confidence}
-                                                riskScore={calculateRiskScore()}
+                                                riskScore={calculateFallbackRiskScore()}
+                                                riskScoreBreakdown={riskScoreBreakdown}
                                                 timeline={timeline}
                                             />
                                         </div>

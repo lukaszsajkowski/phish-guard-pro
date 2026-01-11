@@ -11,6 +11,11 @@ from supabase import Client, create_client
 
 from phishguard.core import get_settings
 from phishguard.models.classification import AttackType, ClassificationResult
+from phishguard.models.risk_score import EnhancedRiskScore
+from phishguard.services.risk_score_service import (
+    calculate_enhanced_risk_score,
+    calculate_simple_risk_score,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +130,7 @@ async def update_session_classification(
 
     update_data: dict[str, Any] = {
         "attack_type": classification_result.attack_type.value,
-        "attack_confidence": classification_result.confidence,  # Store confidence for session restore (US-031)
+        "attack_confidence": classification_result.confidence,  # For US-031
     }
 
     # Add persona if present
@@ -449,49 +454,87 @@ async def get_session_iocs(session_id: str) -> list[dict[str, Any]]:
 def calculate_risk_score(
     attack_type: str,
     iocs: list[dict[str, Any]],
+    scammer_messages: list[str] | None = None,
+    victim_name: str | None = None,
+    victim_first_name: str | None = None,
 ) -> int:
-    """Calculate risk score (1-10) based on attack type and IOCs.
+    """Calculate risk score (1-10) using the enhanced multi-dimensional calculator.
 
-    Risk score formula:
-    - Base score from attack type severity (1-4)
-    - +1 for each IOC extracted (up to +3)
-    - +1 for each high-value IOC (BTC, IBAN) (up to +3)
+    Uses 6 weighted components (US-032):
+    - Attack Severity (25%): CEO Fraud=4, Crypto=4, etc.
+    - IOC Quality (25%): BTC=3, IBAN=3, phone=2, URL=1
+    - IOC Quantity (15%): +0.5 per IOC, max 1.5 points
+    - Scammer Engagement (15%): Response length and frequency
+    - Urgency Tactics (10%): Pressure keywords detection
+    - Personalization (10%): Name usage and context references
 
     Args:
         attack_type: The classified attack type.
         iocs: List of extracted IOCs.
+        scammer_messages: Optional list of scammer message texts.
+        victim_name: Optional full name of victim persona.
+        victim_first_name: Optional first name of victim persona.
 
     Returns:
         Risk score from 1 to 10.
     """
-    # Attack type severity mapping
-    attack_severity = {
-        "nigerian_419": 3,
-        "ceo_fraud": 4,
-        "fake_invoice": 3,
-        "romance_scam": 3,
-        "tech_support": 2,
-        "lottery_prize": 2,
-        "crypto_investment": 4,
-        "delivery_scam": 2,
-        "not_phishing": 1,
-    }
+    return calculate_simple_risk_score(
+        attack_type=attack_type,
+        iocs=iocs,
+        scammer_messages=scammer_messages,
+        victim_name=victim_name,
+        victim_first_name=victim_first_name,
+    )
 
-    # Base score from attack type
-    base_score = attack_severity.get(attack_type, 2)
 
-    # Score from IOC count (up to +3)
-    ioc_count_score = min(len(iocs), 3)
+async def get_session_enhanced_risk_score(
+    session_id: str,
+) -> EnhancedRiskScore:
+    """Calculate enhanced risk score with full breakdown for a session.
 
-    # Score from high-value IOCs (up to +3)
-    high_value_types = {"btc", "btc_wallet", "iban"}
-    high_value_count = sum(1 for ioc in iocs if ioc.get("type", "") in high_value_types)
-    high_value_score = min(high_value_count, 3)
+    Retrieves all necessary data from the session and calculates
+    the multi-dimensional risk score with component breakdown.
 
-    # Total score capped at 10
-    total_score = min(base_score + ioc_count_score + high_value_score, 10)
+    Args:
+        session_id: The session's UUID.
 
-    return max(total_score, 1)  # Ensure minimum of 1
+    Returns:
+        EnhancedRiskScore with total score and component breakdown.
+    """
+    # Get session data
+    session = await get_session(session_id)
+    if not session:
+        raise Exception(f"Session {session_id} not found")
+
+    # Get attack type
+    attack_type = session.get("attack_type", "unknown")
+
+    # Get persona info for personalization detection
+    persona = session.get("persona", {})
+    victim_name = persona.get("name") if persona else None
+    victim_first_name = None
+    if victim_name:
+        parts = victim_name.split()
+        victim_first_name = parts[0] if len(parts) > 1 else victim_name
+
+    # Get IOCs
+    iocs = await get_session_iocs(session_id)
+
+    # Get scammer messages
+    messages = await get_session_messages(session_id)
+    scammer_messages = [
+        msg.get("content", "")
+        for msg in messages
+        if msg.get("role") == "scammer"
+    ]
+
+    return calculate_enhanced_risk_score(
+        attack_type=attack_type,
+        iocs=iocs,
+        scammer_messages=scammer_messages,
+        victim_name=victim_name,
+        victim_first_name=victim_first_name,
+    )
 
 
 async def get_session_timeline(session_id: str) -> list[dict[str, Any]]:
@@ -511,12 +554,14 @@ async def get_session_timeline(session_id: str) -> list[dict[str, Any]]:
     for ioc in iocs:
         ioc_type = ioc.get("type", "")
         is_high_value = ioc_type in ("btc", "iban")
+        ioc_val = ioc.get("value", "")[:20]
+        desc = f"Extracted {ioc_type.upper()}: {ioc_val}..."
 
         timeline_events.append(
             {
                 "timestamp": ioc.get("created_at", ""),
                 "event_type": "ioc_extracted",
-                "description": f"Extracted {ioc_type.upper()}: {ioc.get('value', '')[:20]}...",
+                "description": desc,
                 "ioc_id": ioc.get("id"),
                 "is_high_value": is_high_value,
             }
@@ -941,9 +986,36 @@ async def get_user_sessions(
         )
         iocs = iocs_result.data if iocs_result.data else []
 
-        # Calculate risk score
+        # Get scammer messages for enhanced risk calculation
+        scammer_msg_result = (
+            supabase.table("messages")
+            .select("content")
+            .eq("session_id", session_id)
+            .eq("role", "scammer")
+            .execute()
+        )
+        scammer_messages = [
+            m.get("content", "") for m in (scammer_msg_result.data or [])
+        ]
+
+        # Get persona for personalization detection
+        persona = session.get("persona", {})
+        victim_name = persona.get("name") if persona else None
+        victim_first_name = None
+        if victim_name:
+            victim_first_name = (
+                victim_name.split()[0] if " " in victim_name else victim_name
+            )
+
+        # Calculate risk score using enhanced calculator
         attack_type = session.get("attack_type", "unknown")
-        risk_score = calculate_risk_score(attack_type, iocs)
+        risk_score = calculate_risk_score(
+            attack_type=attack_type,
+            iocs=iocs,
+            scammer_messages=scammer_messages,
+            victim_name=victim_name,
+            victim_first_name=victim_first_name,
+        )
 
         enriched_sessions.append(
             {
