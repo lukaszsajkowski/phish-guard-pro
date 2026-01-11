@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { createClient, User } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
-import { useSidebarState } from "@/hooks/useSidebarState";
-import { cn } from "@/lib/utils";
 
 interface AuthenticatedLayoutProps {
     children: ReactNode;
@@ -21,13 +19,6 @@ export function AuthenticatedLayout({
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-    const {
-        isCollapsed,
-        isEffectivelyCollapsed,
-        toggleCollapsed,
-        setIsHovered,
-    } = useSidebarState();
 
     // Auth check
     useEffect(() => {
@@ -76,16 +67,6 @@ export function AuthenticatedLayout({
         }
     }, [router]);
 
-    const handleMouseEnter = useCallback(() => {
-        if (isCollapsed) {
-            setIsHovered(true);
-        }
-    }, [isCollapsed, setIsHovered]);
-
-    const handleMouseLeave = useCallback(() => {
-        setIsHovered(false);
-    }, [setIsHovered]);
-
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
@@ -105,10 +86,7 @@ export function AuthenticatedLayout({
         <div className="flex min-h-screen bg-background">
             {/* Fixed sidebar */}
             <div
-                className={cn(
-                    "fixed left-0 top-0 h-full z-40 transition-all duration-300 ease-in-out",
-                    isEffectivelyCollapsed ? "w-16" : "w-64"
-                )}
+                className="fixed left-0 top-0 h-full w-64 z-40"
                 data-testid="sidebar-container"
             >
                 <AppSidebar
@@ -116,22 +94,11 @@ export function AuthenticatedLayout({
                     onLogout={handleLogout}
                     isLoggingOut={isLoggingOut}
                     onNewSession={onNewSession}
-                    isCollapsed={isCollapsed}
-                    isEffectivelyCollapsed={isEffectivelyCollapsed}
-                    onToggleCollapse={toggleCollapsed}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
                 />
             </div>
 
             {/* Main content area */}
-            <main
-                className={cn(
-                    "flex-1 transition-all duration-300 ease-in-out",
-                    isEffectivelyCollapsed ? "ml-16" : "ml-64"
-                )}
-                data-testid="main-content"
-            >
+            <main className="flex-1 ml-64" data-testid="main-content">
                 {children}
             </main>
         </div>

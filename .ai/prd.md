@@ -764,7 +764,7 @@ Acceptance Criteria:
 - Turn counter shows correct value
 - User can continue conversation immediately after refresh
 
-### US-032: Enhanced Risk Score ❌
+### US-032: Enhanced Risk Score ✅
 
 Title: Multi-dimensional threat risk assessment
 
