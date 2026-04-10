@@ -357,7 +357,18 @@ test.describe('Response Security Validation (US-024)', () => {
         test('generated response always has safety_validated true', async ({ page }) => {
             // This test verifies the contract that generated responses
             // returned to frontend are always validated
-            let receivedResponse: any = null;
+            interface MockResponsePayload {
+                content: string;
+                generation_time_ms: number;
+                safety_validated: boolean;
+                regeneration_count: number;
+                used_fallback_model: boolean;
+                message_id: string;
+                turn_count: number;
+                turn_limit: number;
+                is_at_limit: boolean;
+            }
+            let receivedResponse: MockResponsePayload | null = null;
 
             await page.route('**/api/v1/response/generate', async route => {
                 receivedResponse = {
@@ -386,7 +397,7 @@ test.describe('Response Security Validation (US-024)', () => {
             await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
             // Verify our mock returned safety_validated: true
-            expect(receivedResponse.safety_validated).toBe(true);
+            expect((receivedResponse as MockResponsePayload | null)?.safety_validated).toBe(true);
         });
     });
 });

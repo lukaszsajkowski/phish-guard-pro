@@ -1,13 +1,11 @@
 """Integration tests for response generation API endpoint."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from phishguard.main import app
-from phishguard.models.classification import AttackType
-from phishguard.models.persona import PersonaType
 
 
 @pytest.fixture
@@ -78,7 +76,9 @@ class TestResponseGenerationEndpoint:
                 return_value="Dear Friend, I have $5M to share with you..."
             )
             mock_session_service.get_conversation_history = AsyncMock(return_value=[])
-            mock_session_service.add_bot_response = AsyncMock(return_value="message-id-123")
+            mock_session_service.add_bot_response = AsyncMock(
+                return_value="message-id-123"
+            )
             mock_session_service.save_extracted_iocs = AsyncMock(return_value=None)
             mock_session_service.get_session_info = AsyncMock(
                 return_value={"turn_count": 1, "turn_limit": 20, "is_at_limit": False}
@@ -88,7 +88,9 @@ class TestResponseGenerationEndpoint:
             mock_graph = AsyncMock()
             mock_graph.ainvoke = AsyncMock(
                 return_value={
-                    "current_response": "Oh my, this sounds wonderful! How did you find me?",
+                    "current_response": (
+                        "Oh my, this sounds wonderful! How did you find me?"
+                    ),
                     "current_thinking": {
                         "turn_goal": "Build rapport",
                         "selected_tactic": "Ask Questions",
@@ -119,7 +121,9 @@ class TestResponseGenerationEndpoint:
             # Verify successful response
             assert response.status_code == 200
             data = response.json()
-            assert data["content"] == "Oh my, this sounds wonderful! How did you find me?"
+            assert (
+                data["content"] == "Oh my, this sounds wonderful! How did you find me?"
+            )
             assert data["generation_time_ms"] == 2500
             assert data["safety_validated"] is True
             assert data["message_id"] == "message-id-123"

@@ -120,13 +120,75 @@ class IntelCollector:
 
     # Valid IBAN country codes
     VALID_IBAN_COUNTRIES: Final[set[str]] = {
-        "AD", "AE", "AL", "AT", "AZ", "BA", "BE", "BG", "BH", "BR",
-        "CH", "CR", "CY", "CZ", "DE", "DK", "DO", "EE", "ES", "FI",
-        "FO", "FR", "GB", "GE", "GI", "GL", "GR", "GT", "HR", "HU",
-        "IE", "IL", "IS", "IT", "JO", "KW", "KZ", "LB", "LI", "LT",
-        "LU", "LV", "MC", "MD", "ME", "MK", "MR", "MT", "MU", "NG",
-        "NL", "NO", "PK", "PL", "PS", "PT", "QA", "RO", "RS", "SA",
-        "SE", "SI", "SK", "SM", "TN", "TR", "UA", "VG", "XK",
+        "AD",
+        "AE",
+        "AL",
+        "AT",
+        "AZ",
+        "BA",
+        "BE",
+        "BG",
+        "BH",
+        "BR",
+        "CH",
+        "CR",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "DO",
+        "EE",
+        "ES",
+        "FI",
+        "FO",
+        "FR",
+        "GB",
+        "GE",
+        "GI",
+        "GL",
+        "GR",
+        "GT",
+        "HR",
+        "HU",
+        "IE",
+        "IL",
+        "IS",
+        "IT",
+        "JO",
+        "KW",
+        "KZ",
+        "LB",
+        "LI",
+        "LT",
+        "LU",
+        "LV",
+        "MC",
+        "MD",
+        "ME",
+        "MK",
+        "MR",
+        "MT",
+        "MU",
+        "NG",
+        "NL",
+        "NO",
+        "PK",
+        "PL",
+        "PS",
+        "PT",
+        "QA",
+        "RO",
+        "RS",
+        "SA",
+        "SE",
+        "SI",
+        "SK",
+        "SM",
+        "TN",
+        "TR",
+        "UA",
+        "VG",
+        "XK",
     }
 
     # Patterns indicating a bank account context (to exclude from phone detection)
@@ -155,30 +217,48 @@ class IntelCollector:
         # Extract BTC wallets (bech32)
         for match in self.BTC_BECH32_PATTERN.finditer(text):
             excluded_ranges.append((match.start(), match.end()))
-            iocs.append(self._create_ioc(
-                IOCType.BTC_WALLET, match.group(0), text,
-                match.start(), match.end(), message_index,
-            ))
+            iocs.append(
+                self._create_ioc(
+                    IOCType.BTC_WALLET,
+                    match.group(0),
+                    text,
+                    match.start(),
+                    match.end(),
+                    message_index,
+                )
+            )
 
         # Extract BTC wallets (legacy)
         for match in self.BTC_LEGACY_PATTERN.finditer(text):
             value = match.group(0)
             if not self._looks_like_iban(value):
                 excluded_ranges.append((match.start(), match.end()))
-                iocs.append(self._create_ioc(
-                    IOCType.BTC_WALLET, value, text,
-                    match.start(), match.end(), message_index,
-                ))
+                iocs.append(
+                    self._create_ioc(
+                        IOCType.BTC_WALLET,
+                        value,
+                        text,
+                        match.start(),
+                        match.end(),
+                        message_index,
+                    )
+                )
 
         # Extract IBANs
         for match in self.IBAN_PATTERN.finditer(text):
             value = match.group(0).upper()
             if self._is_valid_iban(value):
                 excluded_ranges.append((match.start(), match.end()))
-                iocs.append(self._create_ioc(
-                    IOCType.IBAN, value, text,
-                    match.start(), match.end(), message_index,
-                ))
+                iocs.append(
+                    self._create_ioc(
+                        IOCType.IBAN,
+                        value,
+                        text,
+                        match.start(),
+                        match.end(),
+                        message_index,
+                    )
+                )
 
         # Extract phone numbers (skip if inside excluded ranges or bank context)
         for match in self.PHONE_PATTERN.finditer(text):
@@ -188,17 +268,29 @@ class IntelCollector:
             if self._is_valid_phone(value) and not self._in_bank_context(
                 text, match.start()
             ):
-                iocs.append(self._create_ioc(
-                    IOCType.PHONE, value, text,
-                    match.start(), match.end(), message_index,
-                ))
+                iocs.append(
+                    self._create_ioc(
+                        IOCType.PHONE,
+                        value,
+                        text,
+                        match.start(),
+                        match.end(),
+                        message_index,
+                    )
+                )
 
         # Extract URLs
         for match in self.URL_PATTERN.finditer(text):
-            iocs.append(self._create_ioc(
-                IOCType.URL, match.group(0), text,
-                match.start(), match.end(), message_index,
-            ))
+            iocs.append(
+                self._create_ioc(
+                    IOCType.URL,
+                    match.group(0),
+                    text,
+                    match.start(),
+                    match.end(),
+                    message_index,
+                )
+            )
 
         # Deduplicate by value
         seen_values: set[str] = set()
@@ -214,7 +306,9 @@ class IntelCollector:
         if unique_iocs:
             logger.info(
                 "Extracted %d IOCs from message %d in %dms",
-                len(unique_iocs), message_index, elapsed_ms,
+                len(unique_iocs),
+                message_index,
+                elapsed_ms,
             )
 
         return ExtractionResult(

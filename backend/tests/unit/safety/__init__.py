@@ -4,8 +4,6 @@ import pytest
 
 from phishguard.safety.output_validator import (
     OutputValidator,
-    SafetyViolation,
-    ValidationResult,
     ViolationType,
     validate_output,
 )
@@ -99,14 +97,18 @@ class TestOutputValidator:
         text = "My card number is 4532-1234-5678-9012"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CREDIT_CARD for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CREDIT_CARD for v in result.violations
+        )
 
     def test_credit_card_no_spaces_detected(self, validator: OutputValidator) -> None:
         """Credit card numbers without separators should be detected."""
         text = "Card: 4532123456789012"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CREDIT_CARD for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CREDIT_CARD for v in result.violations
+        )
 
     def test_repeated_digits_card_allowed(self, validator: OutputValidator) -> None:
         """Credit card with all same digits (test card) should be allowed."""
@@ -121,21 +123,23 @@ class TestOutputValidator:
 
     def test_real_phone_number_detected(self, validator: OutputValidator) -> None:
         """Real US phone numbers should be detected."""
-        text = "Call me at 212-555-1234"  # 212 is NYC area code
-        result = validator.validate(text)
-        # This should actually pass because 555-1234 is a safe pattern
-        # Let's test with a different pattern
+        # 212-555-1234 should pass because 555-1234 is a safe pattern.
+        # Use a non-555 suffix to verify detection.
         text2 = "Call me at 212-456-7890"
         result2 = validator.validate(text2)
         assert result2.is_safe is False
-        assert any(v.violation_type == ViolationType.PHONE_REAL for v in result2.violations)
+        assert any(
+            v.violation_type == ViolationType.PHONE_REAL for v in result2.violations
+        )
 
     def test_international_phone_detected(self, validator: OutputValidator) -> None:
         """International phone numbers should be detected."""
         text = "My number is +1-212-456-7890"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.PHONE_REAL for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.PHONE_REAL for v in result.violations
+        )
 
     # -------------------------------------------------------------------------
     # Email and Domain Detection Tests
@@ -146,14 +150,19 @@ class TestOutputValidator:
         text = "Contact john@google.com for details"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CORPORATE_DOMAIN for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CORPORATE_DOMAIN
+            for v in result.violations
+        )
 
     def test_real_email_detected(self, validator: OutputValidator) -> None:
         """Real email addresses should be detected."""
         text = "My email is margaret.smith@randomdomain.com"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.EMAIL_REAL for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.EMAIL_REAL for v in result.violations
+        )
 
     def test_multiple_blocked_domains(self, validator: OutputValidator) -> None:
         """Multiple corporate domains should all be blocked."""
@@ -174,12 +183,16 @@ class TestOutputValidator:
         assert result.is_safe is False
         assert any(v.violation_type == ViolationType.ADDRESS for v in result.violations)
 
-    def test_address_not_detected_loose_mode(self, loose_validator: OutputValidator) -> None:
+    def test_address_not_detected_loose_mode(
+        self, loose_validator: OutputValidator
+    ) -> None:
         """Addresses should not be checked in loose mode."""
         text = "I live at 456 Oak Avenue"
         result = loose_validator.validate(text)
         # Address check is skipped in non-strict mode
-        assert not any(v.violation_type == ViolationType.ADDRESS for v in result.violations)
+        assert not any(
+            v.violation_type == ViolationType.ADDRESS for v in result.violations
+        )
 
     def test_fake_address_allowed(self, validator: OutputValidator) -> None:
         """Obviously fake addresses should be allowed."""
@@ -237,9 +250,13 @@ class TestOutputValidator:
         loose_result = validate_output(text, strict=False)
 
         # Strict mode detects address
-        assert any(v.violation_type == ViolationType.ADDRESS for v in strict_result.violations)
+        assert any(
+            v.violation_type == ViolationType.ADDRESS for v in strict_result.violations
+        )
         # Loose mode doesn't check addresses
-        assert not any(v.violation_type == ViolationType.ADDRESS for v in loose_result.violations)
+        assert not any(
+            v.violation_type == ViolationType.ADDRESS for v in loose_result.violations
+        )
 
     # -------------------------------------------------------------------------
     # is_safe Method Tests
@@ -262,4 +279,7 @@ class TestOutputValidator:
         validator = OutputValidator(additional_blocked_domains={"mycompany.com"})
         result = validator.validate("Contact us at info@mycompany.com")
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CORPORATE_DOMAIN for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CORPORATE_DOMAIN
+            for v in result.violations
+        )

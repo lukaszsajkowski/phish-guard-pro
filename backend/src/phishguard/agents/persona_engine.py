@@ -5,7 +5,7 @@ believable victim personas based on the classified attack type.
 """
 
 import random
-from typing import Final, Dict, Tuple, List
+from typing import Final
 
 from faker import Faker
 
@@ -15,7 +15,7 @@ from phishguard.models.persona import PersonaProfile, PersonaType
 
 # Attack type to persona type mapping
 # Each attack type is mapped to the most vulnerable persona type
-ATTACK_PERSONA_MAPPING: Final[Dict[AttackType, PersonaType]] = {
+ATTACK_PERSONA_MAPPING: Final[dict[AttackType, PersonaType]] = {
     AttackType.NIGERIAN_419: PersonaType.NAIVE_RETIREE,
     AttackType.CEO_FRAUD: PersonaType.STRESSED_MANAGER,
     AttackType.FAKE_INVOICE: PersonaType.STRESSED_MANAGER,
@@ -28,7 +28,7 @@ ATTACK_PERSONA_MAPPING: Final[Dict[AttackType, PersonaType]] = {
 }
 
 # Age ranges for each persona type (min, max)
-PERSONA_AGE_RANGES: Final[Dict[PersonaType, Tuple[int, int]]] = {
+PERSONA_AGE_RANGES: Final[dict[PersonaType, tuple[int, int]]] = {
     PersonaType.NAIVE_RETIREE: (65, 82),
     PersonaType.STRESSED_MANAGER: (35, 55),
     PersonaType.GREEDY_INVESTOR: (28, 50),
@@ -36,7 +36,7 @@ PERSONA_AGE_RANGES: Final[Dict[PersonaType, Tuple[int, int]]] = {
 }
 
 # Style descriptions for each persona type
-PERSONA_STYLES: Final[Dict[PersonaType, str]] = {
+PERSONA_STYLES: Final[dict[PersonaType, str]] = {
     PersonaType.NAIVE_RETIREE: (
         "Trusting and polite, uses formal language. "
         "Easily confused by technology and modern terms. "
@@ -60,7 +60,7 @@ PERSONA_STYLES: Final[Dict[PersonaType, str]] = {
 }
 
 # Background stories for each persona type
-PERSONA_BACKGROUNDS: Final[Dict[PersonaType, List[str]]] = {
+PERSONA_BACKGROUNDS: Final[dict[PersonaType, list[str]]] = {
     PersonaType.NAIVE_RETIREE: [
         "Retired teacher, recently widowed, lives alone with two cats",
         "Former factory worker, enjoys gardening and church activities",

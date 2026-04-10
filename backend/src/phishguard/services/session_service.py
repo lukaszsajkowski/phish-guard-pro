@@ -523,9 +523,7 @@ async def get_session_enhanced_risk_score(
     # Get scammer messages
     messages = await get_session_messages(session_id)
     scammer_messages = [
-        msg.get("content", "")
-        for msg in messages
-        if msg.get("role") == "scammer"
+        msg.get("content", "") for msg in messages if msg.get("role") == "scammer"
     ]
 
     return calculate_enhanced_risk_score(

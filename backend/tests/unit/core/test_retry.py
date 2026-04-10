@@ -6,16 +6,14 @@ exponential backoff timing, and error handling.
 Requirements: US-022 (API Error Handling)
 """
 
-import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from openai import RateLimitError as OpenAIRateLimitError
-from openai import APIConnectionError as OpenAIConnectionError
 
 from phishguard.core.retry import (
-    RetryExhaustedError,
     RateLimitError,
+    RetryExhaustedError,
     retry_with_backoff,
 )
 
@@ -29,10 +27,10 @@ class TestRetryWithBackoff:
         # Arrange
         mock_func = AsyncMock(return_value="success")
         decorated = retry_with_backoff(max_attempts=3)(mock_func)
-        
+
         # Act
         result = await decorated()
-        
+
         # Assert
         assert result == "success"
         assert mock_func.call_count == 1
@@ -41,15 +39,17 @@ class TestRetryWithBackoff:
     async def test_retries_on_connection_error(self):
         """Function retries on connection errors."""
         # Arrange
-        mock_func = AsyncMock(side_effect=[
-            ConnectionError("Connection refused"),
-            "success",
-        ])
+        mock_func = AsyncMock(
+            side_effect=[
+                ConnectionError("Connection refused"),
+                "success",
+            ]
+        )
         decorated = retry_with_backoff(max_attempts=3, base_delay=0.01)(mock_func)
-        
+
         # Act
         result = await decorated()
-        
+
         # Assert
         assert result == "success"
         assert mock_func.call_count == 2
@@ -58,16 +58,18 @@ class TestRetryWithBackoff:
     async def test_retries_on_timeout_error(self):
         """Function retries on timeout errors."""
         # Arrange
-        mock_func = AsyncMock(side_effect=[
-            asyncio.TimeoutError(),
-            asyncio.TimeoutError(),
-            "success",
-        ])
+        mock_func = AsyncMock(
+            side_effect=[
+                TimeoutError(),
+                TimeoutError(),
+                "success",
+            ]
+        )
         decorated = retry_with_backoff(max_attempts=3, base_delay=0.01)(mock_func)
-        
+
         # Act
         result = await decorated()
-        
+
         # Assert
         assert result == "success"
         assert mock_func.call_count == 3
@@ -78,11 +80,11 @@ class TestRetryWithBackoff:
         # Arrange
         mock_func = AsyncMock(side_effect=ConnectionError("Connection refused"))
         decorated = retry_with_backoff(max_attempts=3, base_delay=0.01)(mock_func)
-        
+
         # Act & Assert
         with pytest.raises(RetryExhaustedError) as exc_info:
             await decorated()
-        
+
         assert "multiple attempts" in exc_info.value.message.lower()
         assert exc_info.value.attempts == 3
         assert isinstance(exc_info.value.original_error, ConnectionError)
@@ -94,8 +96,9 @@ class TestRetryWithBackoff:
         # Arrange - use simple retry decorator and mock rate limit behavior
         call_count = 0
 
-        # Create a mock response object that satisfies OpenAI's RateLimitError requirements
+        # Create a mock response object for OpenAI's RateLimitError
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.request = MagicMock()
         mock_response.status_code = 429
@@ -125,27 +128,26 @@ class TestRetryWithBackoff:
         """Verifies exponential backoff increases delay between retries."""
         # Arrange
         delays = []
-        original_sleep = asyncio.sleep
-        
+
         async def mock_sleep(delay):
             delays.append(delay)
             # Don't actually sleep in tests
-        
-        mock_func = AsyncMock(side_effect=[
-            ConnectionError("1"),
-            ConnectionError("2"),
-            "success",
-        ])
-        decorated = retry_with_backoff(
-            max_attempts=3, 
-            base_delay=1.0, 
-            max_delay=10.0
-        )(mock_func)
-        
+
+        mock_func = AsyncMock(
+            side_effect=[
+                ConnectionError("1"),
+                ConnectionError("2"),
+                "success",
+            ]
+        )
+        decorated = retry_with_backoff(max_attempts=3, base_delay=1.0, max_delay=10.0)(
+            mock_func
+        )
+
         # Act
         with patch("phishguard.core.retry.asyncio.sleep", mock_sleep):
             result = await decorated()
-        
+
         # Assert
         assert result == "success"
         assert len(delays) == 2  # Two retries = two sleeps
@@ -157,24 +159,24 @@ class TestRetryWithBackoff:
         """Verifies delay is capped at max_delay."""
         # Arrange
         delays = []
-        
+
         async def mock_sleep(delay):
             delays.append(delay)
-        
+
         mock_func = AsyncMock(side_effect=ConnectionError("error"))
         decorated = retry_with_backoff(
-            max_attempts=5, 
+            max_attempts=5,
             base_delay=5.0,  # Would grow to 20, 40, etc.
-            max_delay=10.0   # But should be capped
+            max_delay=10.0,  # But should be capped
         )(mock_func)
-        
+
         # Act
         with patch("phishguard.core.retry.asyncio.sleep", mock_sleep):
             try:
                 await decorated()
             except RetryExhaustedError:
                 pass
-        
+
         # Assert - all delays should be <= max_delay
         for delay in delays:
             assert delay <= 10.0
@@ -185,11 +187,11 @@ class TestRetryWithBackoff:
         # Arrange
         mock_func = AsyncMock(side_effect=ValueError("Invalid input"))
         decorated = retry_with_backoff(max_attempts=3)(mock_func)
-        
+
         # Act & Assert
         with pytest.raises(RetryExhaustedError) as exc_info:
             await decorated()
-        
+
         # Should fail immediately on first attempt
         assert exc_info.value.attempts == 1
         assert isinstance(exc_info.value.original_error, ValueError)
@@ -202,10 +204,10 @@ class TestRetryWithBackoff:
         expected = {"data": [1, 2, 3], "status": "ok"}
         mock_func = AsyncMock(return_value=expected)
         decorated = retry_with_backoff()(mock_func)
-        
+
         # Act
         result = await decorated()
-        
+
         # Assert
         assert result == expected
 
@@ -214,7 +216,7 @@ class TestRetryWithBackoff:
         """Retries on connection errors and succeeds."""
         # Arrange - using function-level retry to avoid mock issues
         call_count = 0
-        
+
         @retry_with_backoff(max_attempts=3, base_delay=0.01)
         async def flaky_func():
             nonlocal call_count
@@ -222,10 +224,10 @@ class TestRetryWithBackoff:
             if call_count < 2:
                 raise ConnectionError("Connection refused")
             return "success"
-        
+
         # Act
         result = await flaky_func()
-        
+
         # Assert
         assert result == "success"
         assert call_count == 2

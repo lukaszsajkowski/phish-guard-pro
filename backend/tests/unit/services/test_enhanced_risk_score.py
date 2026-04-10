@@ -167,9 +167,7 @@ class TestPersonalizationAnalyzer:
         assert result.score > 0
         assert len(result.context_references) > 0
 
-    def test_combined_name_and_context(
-        self, analyzer: PersonalizationAnalyzer
-    ) -> None:
+    def test_combined_name_and_context(self, analyzer: PersonalizationAnalyzer) -> None:
         """Combined name usage and context references."""
         result = analyzer.analyze(
             ["John, as we discussed, your company needs this service."],
@@ -232,9 +230,7 @@ class TestRiskScoreCalculator:
         )
         assert result.total_score <= 10.0
 
-    def test_all_six_components_present(
-        self, calculator: RiskScoreCalculator
-    ) -> None:
+    def test_all_six_components_present(self, calculator: RiskScoreCalculator) -> None:
         """Result contains all 6 risk components."""
         result = calculator.calculate("ceo_fraud", [])
         assert len(result.components) == 6
@@ -254,9 +250,7 @@ class TestRiskScoreCalculator:
         quality_component = result.get_component(RiskComponent.IOC_QUALITY)
         assert quality_component.raw_score == 0
 
-    def test_ioc_quality_high_value_iocs(
-        self, calculator: RiskScoreCalculator
-    ) -> None:
+    def test_ioc_quality_high_value_iocs(self, calculator: RiskScoreCalculator) -> None:
         """IOC quality reflects high-value IOCs."""
         result = calculator.calculate(
             "ceo_fraud",
@@ -328,9 +322,7 @@ class TestRiskScoreCalculator:
         urgency = result.get_component(RiskComponent.URGENCY_TACTICS)
         assert urgency.raw_score > 0
 
-    def test_personalization_detection(
-        self, calculator: RiskScoreCalculator
-    ) -> None:
+    def test_personalization_detection(self, calculator: RiskScoreCalculator) -> None:
         """Personalization is detected when name is used."""
         result = calculator.calculate(
             "ceo_fraud",

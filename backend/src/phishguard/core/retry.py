@@ -13,11 +13,11 @@ import asyncio
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
-from openai import RateLimitError as OpenAIRateLimitError
-from openai import APIError as OpenAIAPIError
 from openai import APIConnectionError as OpenAIConnectionError
+from openai import APIError as OpenAIAPIError
+from openai import RateLimitError as OpenAIRateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ NON_RETRYABLE_EXCEPTIONS = (
 
 class RetryExhaustedError(Exception):
     """Raised when all retry attempts have been exhausted.
-    
+
     Attributes:
         message: User-friendly error message.
         original_error: The underlying exception that caused the retry failure.
@@ -61,7 +61,7 @@ class RetryExhaustedError(Exception):
 
 class RateLimitError(Exception):
     """Raised when API rate limit is hit.
-    
+
     Attributes:
         message: User-friendly error message.
         retry_after: Suggested wait time in seconds before retry.
@@ -79,23 +79,23 @@ def retry_with_backoff(
     max_delay: float = 10.0,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator for async functions with retry logic and exponential backoff.
-    
+
     Retries the decorated function on transient errors (connection issues,
     rate limits, timeouts) up to max_attempts times. Uses exponential backoff
     to avoid overwhelming the API.
-    
+
     Args:
         max_attempts: Maximum number of attempts (default 3).
         base_delay: Initial delay in seconds (default 1.0).
         max_delay: Maximum delay cap in seconds (default 10.0).
-    
+
     Returns:
         Decorated function with retry logic.
-    
+
     Raises:
         RetryExhaustedError: After all attempts fail.
         RateLimitError: On rate limit with retry_after hint.
-        
+
     Example:
         @retry_with_backoff(max_attempts=3, base_delay=1.0)
         async def call_llm(prompt: str) -> str:
@@ -106,18 +106,18 @@ def retry_with_backoff(
         @functools.wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             last_exception: Exception | None = None
-            
+
             for attempt in range(1, max_attempts + 1):
                 try:
                     return await func(*args, **kwargs)
-                    
+
                 except OpenAIRateLimitError as e:
                     # Extract retry-after if available
                     retry_after = getattr(e, "retry_after", None)
                     if retry_after is None:
                         # Default to exponential backoff if not provided
                         retry_after = min(base_delay * (2 ** (attempt - 1)), max_delay)
-                    
+
                     if attempt < max_attempts:
                         logger.warning(
                             "Rate limit hit on attempt %d/%d for %s, "
@@ -132,10 +132,11 @@ def retry_with_backoff(
                     else:
                         # Last attempt - raise as RateLimitError
                         raise RateLimitError(
-                            "The AI service is currently busy. Please try again in a moment.",
+                            "The AI service is currently busy. "
+                            "Please try again in a moment.",
                             retry_after=int(retry_after) if retry_after else 30,
                         ) from e
-                
+
                 except NON_RETRYABLE_EXCEPTIONS as e:
                     # Don't retry on non-retryable errors (e.g., bad request)
                     logger.error(
@@ -148,10 +149,10 @@ def retry_with_backoff(
                         original_error=e,
                         attempts=attempt,
                     ) from e
-                
+
                 except RETRYABLE_EXCEPTIONS as e:
                     last_exception = e
-                    
+
                     if attempt < max_attempts:
                         delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
                         logger.warning(
@@ -171,7 +172,7 @@ def retry_with_backoff(
                             func.__name__,
                             str(e),
                         )
-                
+
                 except Exception as e:
                     # Unexpected exception - log and raise immediately
                     logger.error(
@@ -186,7 +187,7 @@ def retry_with_backoff(
                         original_error=e,
                         attempts=attempt,
                     ) from e
-            
+
             # All retries exhausted
             raise RetryExhaustedError(
                 "Unable to connect to the AI service after multiple attempts. "
@@ -194,7 +195,7 @@ def retry_with_backoff(
                 original_error=last_exception,
                 attempts=max_attempts,
             )
-        
+
         return wrapper  # type: ignore
-    
+
     return decorator

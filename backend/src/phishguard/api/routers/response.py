@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from phishguard.agents.conversation import ResponseGenerationError
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.models.classification import AttackType
-from phishguard.models.conversation import ConversationMessage, MessageSender
+from phishguard.models.conversation import MessageSender
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
 from phishguard.orchestrator import create_continuation_graph, get_checkpointer
@@ -24,7 +24,9 @@ router = APIRouter(prefix="/response", tags=["response"])
 class ResponseGenerationRequest(BaseModel):
     """Request model for response generation."""
 
-    session_id: str = Field(..., description="The session ID to generate a response for")
+    session_id: str = Field(
+        ..., description="The session ID to generate a response for"
+    )
     scammer_message: str | None = Field(
         default=None,
         min_length=1,
@@ -40,17 +42,31 @@ class ResponseGenerationResponse(BaseModel):
     generation_time_ms: int = Field(..., description="Time to generate in milliseconds")
     safety_validated: bool = Field(True, description="Whether safety validation passed")
     regeneration_count: int = Field(0, description="Number of regeneration attempts")
-    used_fallback_model: bool = Field(False, description="Whether fallback model was used")
+    used_fallback_model: bool = Field(
+        False, description="Whether fallback model was used"
+    )
     thinking: AgentThinking | None = Field(None, description="Agent thinking metadata")
     message_id: str = Field(..., description="The stored message ID")
-    scammer_message_id: str | None = Field(None, description="The stored scammer message ID if provided")
-    extracted_iocs: list[dict] = Field(default_factory=list, description="IOCs extracted from scammer message")
+    scammer_message_id: str | None = Field(
+        None, description="The stored scammer message ID if provided"
+    )
+    extracted_iocs: list[dict] = Field(
+        default_factory=list, description="IOCs extracted from scammer message"
+    )
     turn_count: int = Field(..., description="Current conversation turn number")
     turn_limit: int = Field(20, description="Maximum turn limit for the session")
-    is_at_limit: bool = Field(False, description="Whether the session has reached its turn limit")
-    unmasking_detected: bool = Field(False, description="Whether unmasking was detected in scammer message")
-    unmasking_phrases: list[str] = Field(default_factory=list, description="Phrases that triggered unmasking detection")
-    unmasking_confidence: float = Field(0.0, description="Confidence level of unmasking detection")
+    is_at_limit: bool = Field(
+        False, description="Whether the session has reached its turn limit"
+    )
+    unmasking_detected: bool = Field(
+        False, description="Whether unmasking was detected in scammer message"
+    )
+    unmasking_phrases: list[str] = Field(
+        default_factory=list, description="Phrases that triggered unmasking detection"
+    )
+    unmasking_confidence: float = Field(
+        0.0, description="Confidence level of unmasking detection"
+    )
 
 
 class ResponseValidationRequest(BaseModel):
@@ -80,7 +96,10 @@ class ResponseValidationResponse(BaseModel):
     response_model=ResponseGenerationResponse,
     status_code=status.HTTP_200_OK,
     summary="Generate victim persona response",
-    description="Generates a believable response to scammer in the selected persona's style. Requires authentication.",
+    description=(
+        "Generates a believable response to scammer in the selected persona's style. "
+        "Requires authentication."
+    ),
 )
 async def generate_response(
     request: ResponseGenerationRequest,
@@ -173,10 +192,12 @@ async def generate_response(
         sender_str = msg.get("sender", "")
         try:
             MessageSender(sender_str)  # Validate sender
-            conversation_history.append({
-                "sender": sender_str,
-                "content": msg.get("content", ""),
-            })
+            conversation_history.append(
+                {
+                    "sender": sender_str,
+                    "content": msg.get("content", ""),
+                }
+            )
         except ValueError:
             logger.warning("Unknown sender type: %s", sender_str)
             continue
@@ -291,7 +312,8 @@ async def generate_response(
             )
 
         logger.info(
-            "Generated response via LangGraph for session %s (user %s): %d chars in %dms (fallback=%s)",
+            "Generated response via LangGraph for session %s (user %s): "
+            "%d chars in %dms (fallback=%s)",
             request.session_id,
             user_id,
             len(response_content),
@@ -347,7 +369,9 @@ async def generate_response(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Unexpected error during response generation: %s", e, exc_info=True)
+        logger.error(
+            "Unexpected error during response generation: %s", e, exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Response generation failed. Please try again.",
@@ -359,7 +383,10 @@ async def generate_response(
     response_model=ResponseValidationResponse,
     status_code=status.HTTP_200_OK,
     summary="Validate edited response content",
-    description="Validates user-edited response content for safety violations. Used before saving edits.",
+    description=(
+        "Validates user-edited response content for safety violations. "
+        "Used before saving edits."
+    ),
 )
 async def validate_response(
     request: ResponseValidationRequest,
@@ -465,7 +492,10 @@ class SessionExtendResponse(BaseModel):
     response_model=SessionExtendResponse,
     status_code=status.HTTP_200_OK,
     summary="Extend session turn limit",
-    description="Extends the turn limit for a session. Used when user clicks 'Continue (+10 turns)'.",
+    description=(
+        "Extends the turn limit for a session. "
+        "Used when user clicks 'Continue (+10 turns)'."
+    ),
 )
 async def extend_session(
     session_id: str,

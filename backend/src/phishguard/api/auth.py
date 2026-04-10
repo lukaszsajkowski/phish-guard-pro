@@ -4,10 +4,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
-from supabase import create_client, AuthApiError
+from supabase import AuthApiError, create_client
 
 from phishguard.core import Settings, get_settings
-
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

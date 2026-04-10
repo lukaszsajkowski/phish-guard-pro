@@ -4,18 +4,18 @@ Tests the retry logic, fallback mechanism, and error handling
 for graceful degradation when the primary model is unavailable.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from openai import RateLimitError, APIConnectionError, AuthenticationError
+
+import pytest
+from openai import AuthenticationError, RateLimitError
 from openai._exceptions import APIStatusError
 
 from phishguard.llm.client import (
     LLMClient,
     LLMClientConfig,
-    LLMResponse,
-    LLMClientError,
     LLMConfigurationError,
     LLMRequestError,
+    LLMResponse,
     create_llm_client,
 )
 

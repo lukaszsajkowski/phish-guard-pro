@@ -1,6 +1,6 @@
 """Health check endpoint for monitoring and load balancer probes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
@@ -19,6 +19,6 @@ async def health_check() -> dict:
 
     return {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "version": __version__,
     }

@@ -1,8 +1,8 @@
 """Integration tests for Intel Dashboard API endpoint."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from phishguard.main import app
@@ -85,27 +85,31 @@ class TestIntelDashboardEndpoint:
         mock_get_user_id.return_value = mock_user_id
         mock_session_service.get_session = AsyncMock(return_value=mock_session_data)
         mock_session_service.get_session_iocs = AsyncMock(return_value=mock_iocs_data)
-        mock_session_service.get_session_timeline = AsyncMock(return_value=[
-            {
-                "timestamp": "2026-01-06T14:00:00Z",
-                "event_type": "ioc_extracted",
-                "description": "Extracted BTC: bc1qxy2kgdygjrsqtz...",
-                "ioc_id": "ioc-1",
-                "is_high_value": True,
-            },
-            {
-                "timestamp": "2026-01-06T14:01:00Z",
-                "event_type": "ioc_extracted",
-                "description": "Extracted URL: https://scammer-si...",
-                "ioc_id": "ioc-2",
-                "is_high_value": False,
-            },
-        ])
+        mock_session_service.get_session_timeline = AsyncMock(
+            return_value=[
+                {
+                    "timestamp": "2026-01-06T14:00:00Z",
+                    "event_type": "ioc_extracted",
+                    "description": "Extracted BTC: bc1qxy2kgdygjrsqtz...",
+                    "ioc_id": "ioc-1",
+                    "is_high_value": True,
+                },
+                {
+                    "timestamp": "2026-01-06T14:01:00Z",
+                    "event_type": "ioc_extracted",
+                    "description": "Extracted URL: https://scammer-si...",
+                    "ioc_id": "ioc-2",
+                    "is_high_value": False,
+                },
+            ]
+        )
         mock_session_service.calculate_risk_score = lambda at, iocs: 7
 
         # Make request
-        with patch("phishguard.api.dependencies.get_current_user_id", return_value=mock_user_id):
-            response = client.get(
+        with patch(
+            "phishguard.api.dependencies.get_current_user_id", return_value=mock_user_id
+        ):
+            client.get(
                 f"/api/v1/intel/dashboard/{mock_session_id}",
                 headers={"Authorization": "Bearer test-token"},
             )
@@ -187,9 +191,24 @@ class TestIntelDashboardEndpoint:
     ):
         """Test dashboard correctly counts high-value IOCs."""
         high_value_iocs = [
-            {"id": "1", "type": "btc", "value": "bc1test1", "created_at": "2026-01-06T14:00:00Z"},
-            {"id": "2", "type": "iban", "value": "DE89370400440532013000", "created_at": "2026-01-06T14:01:00Z"},
-            {"id": "3", "type": "phone", "value": "+1-555-1234", "created_at": "2026-01-06T14:02:00Z"},
+            {
+                "id": "1",
+                "type": "btc",
+                "value": "bc1test1",
+                "created_at": "2026-01-06T14:00:00Z",
+            },
+            {
+                "id": "2",
+                "type": "iban",
+                "value": "DE89370400440532013000",
+                "created_at": "2026-01-06T14:01:00Z",
+            },
+            {
+                "id": "3",
+                "type": "phone",
+                "value": "+1-555-1234",
+                "created_at": "2026-01-06T14:02:00Z",
+            },
         ]
 
         mock_get_user_id.return_value = mock_user_id

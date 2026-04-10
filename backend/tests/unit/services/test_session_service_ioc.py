@@ -1,7 +1,8 @@
 """Unit tests for IOC-related session service functions."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 
 
 class TestSaveExtractedIOCs:

@@ -1,7 +1,7 @@
 """Unit tests for Classification models."""
 
-import pytest
 from phishguard.models.classification import AttackType, ClassificationResult
+
 
 class TestAttackType:
     """Tests for AttackType enum."""
@@ -12,6 +12,7 @@ class TestAttackType:
         assert AttackType.CEO_FRAUD.display_name == "CEO Fraud"
         assert AttackType.NOT_PHISHING.display_name == "Not Phishing"
 
+
 class TestClassificationResult:
     """Tests for ClassificationResult model."""
 
@@ -21,9 +22,9 @@ class TestClassificationResult:
             attack_type=AttackType.NIGERIAN_419,
             confidence=95.5555,
             reasoning="Test reasoning",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
-        
+
         assert result.attack_type == AttackType.NIGERIAN_419
         assert result.confidence == 95.56  # Rounded to 2 decimal places
         assert result.reasoning == "Test reasoning"
@@ -35,7 +36,7 @@ class TestClassificationResult:
             attack_type=AttackType.CEO_FRAUD,
             confidence=90.0,
             reasoning="Phishing",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert phishing_result.is_phishing is True
 
@@ -43,7 +44,7 @@ class TestClassificationResult:
             attack_type=AttackType.NOT_PHISHING,
             confidence=90.0,
             reasoning="Safe",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert safe_result.is_phishing is False
 
@@ -53,7 +54,7 @@ class TestClassificationResult:
             attack_type=AttackType.CEO_FRAUD,
             confidence=80.0,
             reasoning="High",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert high_conf.is_high_confidence is True
 
@@ -61,7 +62,7 @@ class TestClassificationResult:
             attack_type=AttackType.CEO_FRAUD,
             confidence=79.9,
             reasoning="Low",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert low_conf.is_high_confidence is False
 
@@ -71,7 +72,7 @@ class TestClassificationResult:
             attack_type=AttackType.NOT_PHISHING,
             confidence=29.9,
             reasoning="Uncertain",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert uncertain_safe.is_low_confidence_not_phishing is True
 
@@ -79,7 +80,7 @@ class TestClassificationResult:
             attack_type=AttackType.NOT_PHISHING,
             confidence=30.0,
             reasoning="Certain",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert certain_safe.is_low_confidence_not_phishing is False
 
@@ -87,6 +88,6 @@ class TestClassificationResult:
             attack_type=AttackType.CEO_FRAUD,
             confidence=20.0,
             reasoning="Uncertain Phish",
-            classification_time_ms=100
+            classification_time_ms=100,
         )
         assert uncertain_phish.is_low_confidence_not_phishing is False

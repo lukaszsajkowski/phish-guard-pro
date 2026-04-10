@@ -61,7 +61,9 @@ class LLMResponse(BaseModel):
     content: str = Field(..., description="The text content of the LLM response.")
     used_fallback: bool = Field(
         default=False,
-        description="Whether the fallback model was used due to primary unavailability.",
+        description=(
+            "Whether the fallback model was used due to primary unavailability."
+        ),
     )
     model_used: str = Field(..., description="The model that generated the response.")
 

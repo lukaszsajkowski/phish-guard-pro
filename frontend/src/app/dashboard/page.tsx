@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense, useRef } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef, type ComponentProps } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
-import { ClassificationResult } from "@/components/app/ClassificationResult";
+import { ClassificationResult, type AttackType } from "@/components/app/ClassificationResult";
 import { ApiError } from "@/components/app/ApiError";
 import { AppHeader } from "@/components/app/AppHeader";
 import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
@@ -16,7 +16,7 @@ import { SessionLimitDialog } from "@/components/dashboard/SessionLimitDialog";
 import { UnmaskingDialog } from "@/components/dashboard/UnmaskingDialog";
 import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
-import { Persona, ChatMessage, ExtractedIOC, TimelineEvent, RiskScoreBreakdown } from "@/types/schemas";
+import { Persona, ChatMessage, ExtractedIOC, TimelineEvent, RiskScoreBreakdown, AgentThinking } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -56,7 +56,7 @@ function DashboardContent() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [classificationResult, setClassificationResult] = useState<{
-        attackType: any;
+        attackType: AttackType;
         confidence: number;
         reasoning: string;
         persona?: Persona;
@@ -79,7 +79,7 @@ function DashboardContent() {
     const [isEndingSession, setIsEndingSession] = useState(false);
     // Session summary state (US-018)
     const [showSummary, setShowSummary] = useState(false);
-    const [sessionSummary, setSessionSummary] = useState<any>(null);
+    const [sessionSummary, setSessionSummary] = useState<ComponentProps<typeof SessionSummary>["summary"] | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     // API Error state (US-022)
     const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -227,7 +227,7 @@ function DashboardContent() {
 
             // Map API response to component props
             setClassificationResult({
-                attackType: data.attack_type,
+                attackType: data.attack_type as AttackType,
                 confidence: data.confidence,
                 reasoning: data.reasoning,
                 persona: data.persona
@@ -235,7 +235,7 @@ function DashboardContent() {
 
             // Extract IOCs from initial email classification
             if (data.extracted_iocs && data.extracted_iocs.length > 0) {
-                const iocs: ExtractedIOC[] = data.extracted_iocs.map((ioc: any, index: number) => ({
+                const iocs: ExtractedIOC[] = data.extracted_iocs.map((ioc: ExtractedIOC, index: number) => ({
                     id: `initial-${index}`,
                     type: ioc.type,
                     value: ioc.value,
@@ -801,7 +801,7 @@ function DashboardContent() {
             // Restore session state
             setSessionId(sessionIdToRestore);
             setClassificationResult({
-                attackType: data.attack_type,
+                attackType: data.attack_type as AttackType,
                 confidence: data.confidence,
                 reasoning: '', // Not stored, but not essential for restoration
                 persona: data.persona,
@@ -813,7 +813,13 @@ function DashboardContent() {
             }
 
             // Restore messages
-            const restoredMessages: ChatMessage[] = data.messages.map((msg: any) => ({
+            const restoredMessages: ChatMessage[] = data.messages.map((msg: {
+                id: string;
+                sender: string;
+                content: string;
+                timestamp: string;
+                thinking?: AgentThinking;
+            }) => ({
                 id: msg.id,
                 sender: msg.sender as "bot" | "scammer",
                 content: msg.content,
@@ -823,7 +829,7 @@ function DashboardContent() {
             setMessages(restoredMessages);
 
             // Restore IOCs
-            const restoredIOCs: ExtractedIOC[] = data.iocs.map((ioc: any) => ({
+            const restoredIOCs: ExtractedIOC[] = data.iocs.map((ioc: ExtractedIOC) => ({
                 id: ioc.id,
                 type: ioc.type,
                 value: ioc.value,
@@ -1094,7 +1100,7 @@ function DashboardContent() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Possible Safe Email Detected</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This email doesn't appear to be phishing (Confidence: {classificationResult?.confidence}%).
+                                This email doesn&apos;t appear to be phishing (Confidence: {classificationResult?.confidence}%).
                                 PhishGuard is designed to simulate conversations with scammers.
                                 Are you sure you want to continue with a legitimate email?
                             </AlertDialogDescription>

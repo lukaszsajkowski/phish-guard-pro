@@ -50,7 +50,7 @@ export function SessionLimitDialog({
                     </div>
                     <AlertDialogDescription className="text-left space-y-3">
                         <p>
-                            You've reached <strong>{turnCount} turns</strong> in this conversation
+                            You&apos;ve reached <strong>{turnCount} turns</strong> in this conversation
                             (limit: {turnLimit}).
                         </p>
                         <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
@@ -58,7 +58,7 @@ export function SessionLimitDialog({
                                 <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                 <p className="text-sm text-muted-foreground">
                                     Extending the session allows you to continue waste
-                                    the scammer's time and collect more intel.
+                                    the scammer&apos;s time and collect more intel.
                                 </p>
                             </div>
                         </div>

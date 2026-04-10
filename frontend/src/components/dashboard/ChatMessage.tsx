@@ -281,7 +281,7 @@ export function ChatMessage({
                                     Reasoning
                                 </span>
                                 <p className="text-foreground/90 leading-relaxed italic">
-                                    "{message.thinking.reasoning}"
+                                    &ldquo;{message.thinking.reasoning}&rdquo;
                                 </p>
                             </div>
                         </div>

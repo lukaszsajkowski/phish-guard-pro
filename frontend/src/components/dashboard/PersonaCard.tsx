@@ -47,7 +47,7 @@ export function PersonaCard({ persona }: PersonaCardProps) {
                         <span className="font-medium">Communication Style</span>
                     </div>
                     <p className="pl-6 text-muted-foreground italic">
-                        "{persona.style_description}"
+                        &ldquo;{persona.style_description}&rdquo;
                     </p>
                 </div>
             </CardContent>

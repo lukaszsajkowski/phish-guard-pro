@@ -1,15 +1,13 @@
-
 import pytest
-from supabase import create_client, Client
-from phishguard.core import get_settings
+
 
 @pytest.fixture(scope="session")
 def check_db_connection():
     """Verify DB connection before tests (optional)."""
-    settings = get_settings()
     # We don't necessarily want to fail if DB isn't reachable for unit tests
     # but for integration tests it's good to know.
     pass
+
 
 @pytest.fixture(autouse=True)
 def cleanup_test_user_data():
@@ -22,8 +20,10 @@ def cleanup_test_user_data():
     # In a real integration test suite hitting Supabase, we would:
     # 1. Inspect what data was created.
     # 2. Delete it via Supabase Admin client.
-    
+
     # settings = get_settings()
     # if settings.supabase_service_role_key:
-    #     supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
-    #     # Example: supabase.table("sessions").delete().eq("user_id", "test-user-id").execute()
+    #     supabase = create_client(
+    #         settings.supabase_url, settings.supabase_service_role_key
+    #     )
+    #     # supabase.table("sessions").delete().eq("user_id", "test-user-id").execute()

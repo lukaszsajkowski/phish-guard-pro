@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from phishguard.agents.profiler import ProfilerAgent, ClassificationError
-from phishguard.llm import LLMResponse, LLMRequestError
+from phishguard.agents.profiler import ClassificationError, ProfilerAgent
+from phishguard.llm import LLMRequestError, LLMResponse
 from phishguard.models.classification import AttackType, ClassificationResult
 
 
@@ -28,11 +28,13 @@ def profiler(mock_llm_client):
 async def test_classify_success(profiler, mock_llm_client):
     """Test successful classification."""
     # Mock LLM response
-    mock_response_content = json.dumps({
-        "attack_type": "nigerian_419",
-        "confidence": 95.0,
-        "reasoning": "Classic 419 scam"
-    })
+    mock_response_content = json.dumps(
+        {
+            "attack_type": "nigerian_419",
+            "confidence": 95.0,
+            "reasoning": "Classic 419 scam",
+        }
+    )
     mock_llm_client.chat_completion.return_value = LLMResponse(
         content=mock_response_content,
         used_fallback=False,
@@ -55,11 +57,13 @@ async def test_classify_malformed_json_retry(profiler, mock_llm_client):
     mock_llm_client.chat_completion.side_effect = [
         LLMResponse(content="Not JSON", used_fallback=False, model_used="gpt-4o"),
         LLMResponse(
-            content=json.dumps({
-                "attack_type": "ceo_fraud",
-                "confidence": 88.0,
-                "reasoning": "CEO fraud"
-            }),
+            content=json.dumps(
+                {
+                    "attack_type": "ceo_fraud",
+                    "confidence": 88.0,
+                    "reasoning": "CEO fraud",
+                }
+            ),
             used_fallback=False,
             model_used="gpt-4o",
         ),
@@ -91,11 +95,13 @@ async def test_classify_fallback_after_failures(profiler, mock_llm_client):
 @pytest.mark.asyncio
 async def test_classify_handles_markdown_wrapping(profiler, mock_llm_client):
     """Test handling of markdown code blocks in response."""
-    json_content = json.dumps({
-        "attack_type": "lottery_prize",
-        "confidence": 92.0,
-        "reasoning": "Lottery scam"
-    })
+    json_content = json.dumps(
+        {
+            "attack_type": "lottery_prize",
+            "confidence": 92.0,
+            "reasoning": "Lottery scam",
+        }
+    )
     wrapped_content = f"```json\n{json_content}\n```"
     mock_llm_client.chat_completion.return_value = LLMResponse(
         content=wrapped_content,
@@ -123,11 +129,13 @@ async def test_classify_raises_on_llm_error(profiler, mock_llm_client):
 async def test_classify_tracks_fallback_model(profiler, mock_llm_client):
     """Test that fallback model usage is tracked."""
     mock_llm_client.chat_completion.return_value = LLMResponse(
-        content=json.dumps({
-            "attack_type": "romance_scam",
-            "confidence": 85.0,
-            "reasoning": "Romance scam pattern"
-        }),
+        content=json.dumps(
+            {
+                "attack_type": "romance_scam",
+                "confidence": 85.0,
+                "reasoning": "Romance scam pattern",
+            }
+        ),
         used_fallback=True,
         model_used="gpt-4o-mini",
     )

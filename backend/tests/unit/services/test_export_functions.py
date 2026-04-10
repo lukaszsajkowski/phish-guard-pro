@@ -8,9 +8,7 @@ Tests for:
 
 import csv
 import io
-import json
-from datetime import datetime, UTC
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -56,7 +54,13 @@ class TestExportIocsCsv:
         rows = list(reader)
 
         # Verify header row
-        assert rows[0] == ["ioc_type", "value", "timestamp", "confidence", "is_high_value"]
+        assert rows[0] == [
+            "ioc_type",
+            "value",
+            "timestamp",
+            "confidence",
+            "is_high_value",
+        ]
 
         # Verify data rows
         assert len(rows) == 4  # Header + 3 IOCs
@@ -83,7 +87,13 @@ class TestExportIocsCsv:
 
         # Should have only header row
         assert len(rows) == 1
-        assert rows[0] == ["ioc_type", "value", "timestamp", "confidence", "is_high_value"]
+        assert rows[0] == [
+            "ioc_type",
+            "value",
+            "timestamp",
+            "confidence",
+            "is_high_value",
+        ]
 
     def test_export_csv_phone_ioc(self):
         """CSV export should correctly mark phone IOCs as not high value."""
@@ -196,7 +206,7 @@ class TestGenerateExportFilename:
 
 class TestExportSessionJson:
     """Tests for export_session_json function (US-019).
-    
+
     These tests use mocks since the function interacts with the database.
     """
 
@@ -217,13 +227,37 @@ class TestExportSessionJson:
         }
 
         mock_messages = [
-            {"id": "msg-1", "role": "user", "content": "Original email", "metadata": {"type": "original_email"}, "created_at": "2026-01-07T17:00:00Z"},
-            {"id": "msg-2", "role": "assistant", "content": "Bot response", "metadata": {}, "created_at": "2026-01-07T17:01:00Z"},
-            {"id": "msg-3", "role": "scammer", "content": "Scammer reply", "metadata": {}, "created_at": "2026-01-07T17:02:00Z"},
+            {
+                "id": "msg-1",
+                "role": "user",
+                "content": "Original email",
+                "metadata": {"type": "original_email"},
+                "created_at": "2026-01-07T17:00:00Z",
+            },
+            {
+                "id": "msg-2",
+                "role": "assistant",
+                "content": "Bot response",
+                "metadata": {},
+                "created_at": "2026-01-07T17:01:00Z",
+            },
+            {
+                "id": "msg-3",
+                "role": "scammer",
+                "content": "Scammer reply",
+                "metadata": {},
+                "created_at": "2026-01-07T17:02:00Z",
+            },
         ]
 
         mock_iocs = [
-            {"id": "ioc-1", "type": "btc", "value": "bc1qtest", "confidence": 1.0, "created_at": "2026-01-07T17:02:00Z"},
+            {
+                "id": "ioc-1",
+                "type": "btc",
+                "value": "bc1qtest",
+                "confidence": 1.0,
+                "created_at": "2026-01-07T17:02:00Z",
+            },
         ]
 
         mock_summary = {
@@ -231,11 +265,20 @@ class TestExportSessionJson:
             "exchange_count": 1,
         }
 
-        with patch.object(session_service, 'get_session', new_callable=AsyncMock) as mock_get_session, \
-             patch.object(session_service, 'get_session_messages', new_callable=AsyncMock) as mock_get_messages, \
-             patch.object(session_service, 'get_session_iocs', new_callable=AsyncMock) as mock_get_iocs, \
-             patch.object(session_service, 'get_session_summary', new_callable=AsyncMock) as mock_get_summary:
-
+        with (
+            patch.object(
+                session_service, "get_session", new_callable=AsyncMock
+            ) as mock_get_session,
+            patch.object(
+                session_service, "get_session_messages", new_callable=AsyncMock
+            ) as mock_get_messages,
+            patch.object(
+                session_service, "get_session_iocs", new_callable=AsyncMock
+            ) as mock_get_iocs,
+            patch.object(
+                session_service, "get_session_summary", new_callable=AsyncMock
+            ) as mock_get_summary,
+        ):
             mock_get_session.return_value = mock_session
             mock_get_messages.return_value = mock_messages
             mock_get_iocs.return_value = mock_iocs
@@ -270,11 +313,20 @@ class TestExportSessionJson:
 
         mock_summary = {"session_id": "session-123", "exchange_count": 5}
 
-        with patch.object(session_service, 'get_session', new_callable=AsyncMock) as mock_get_session, \
-             patch.object(session_service, 'get_session_messages', new_callable=AsyncMock) as mock_get_messages, \
-             patch.object(session_service, 'get_session_iocs', new_callable=AsyncMock) as mock_get_iocs, \
-             patch.object(session_service, 'get_session_summary', new_callable=AsyncMock) as mock_get_summary:
-
+        with (
+            patch.object(
+                session_service, "get_session", new_callable=AsyncMock
+            ) as mock_get_session,
+            patch.object(
+                session_service, "get_session_messages", new_callable=AsyncMock
+            ) as mock_get_messages,
+            patch.object(
+                session_service, "get_session_iocs", new_callable=AsyncMock
+            ) as mock_get_iocs,
+            patch.object(
+                session_service, "get_session_summary", new_callable=AsyncMock
+            ) as mock_get_summary,
+        ):
             mock_get_session.return_value = mock_session
             mock_get_messages.return_value = []
             mock_get_iocs.return_value = []
@@ -303,25 +355,49 @@ class TestExportSessionJson:
         }
 
         mock_messages = [
-            {"id": "msg-1", "role": "user", "content": "Original phishing email content", "metadata": {"type": "original_email"}, "created_at": "2026-01-07T17:00:00Z"},
-            {"id": "msg-2", "role": "assistant", "content": "Hello, received your message", "metadata": {}, "created_at": "2026-01-07T17:01:00Z"},
+            {
+                "id": "msg-1",
+                "role": "user",
+                "content": "Original phishing email content",
+                "metadata": {"type": "original_email"},
+                "created_at": "2026-01-07T17:00:00Z",
+            },
+            {
+                "id": "msg-2",
+                "role": "assistant",
+                "content": "Hello, received your message",
+                "metadata": {},
+                "created_at": "2026-01-07T17:01:00Z",
+            },
         ]
 
-        with patch.object(session_service, 'get_session', new_callable=AsyncMock) as mock_get_session, \
-             patch.object(session_service, 'get_session_messages', new_callable=AsyncMock) as mock_get_messages, \
-             patch.object(session_service, 'get_session_iocs', new_callable=AsyncMock) as mock_get_iocs, \
-             patch.object(session_service, 'get_session_summary', new_callable=AsyncMock) as mock_get_summary:
-
+        with (
+            patch.object(
+                session_service, "get_session", new_callable=AsyncMock
+            ) as mock_get_session,
+            patch.object(
+                session_service, "get_session_messages", new_callable=AsyncMock
+            ) as mock_get_messages,
+            patch.object(
+                session_service, "get_session_iocs", new_callable=AsyncMock
+            ) as mock_get_iocs,
+            patch.object(
+                session_service, "get_session_summary", new_callable=AsyncMock
+            ) as mock_get_summary,
+        ):
             mock_get_session.return_value = mock_session
             mock_get_messages.return_value = mock_messages
             mock_get_iocs.return_value = []
-            mock_get_summary.return_value = {"session_id": "session-123", "exchange_count": 1}
+            mock_get_summary.return_value = {
+                "session_id": "session-123",
+                "exchange_count": 1,
+            }
 
             result = await session_service.export_session_json("session-123")
 
             # Original email should be in dedicated field, not in conversation history
             assert result["original_email"] == "Original phishing email content"
-            
+
             # Conversation history should only have the bot response
             history = result["conversation_history"]
             assert len(history) == 1
@@ -342,28 +418,88 @@ class TestExportSessionJson:
         }
 
         mock_messages = [
-            {"id": "msg-1", "role": "user", "content": "Email", "metadata": {"type": "original_email"}, "created_at": "2026-01-07T17:00:00Z"},
-            {"id": "msg-2", "role": "assistant", "content": "Response 1", "metadata": {}, "created_at": "2026-01-07T17:01:00Z"},
-            {"id": "msg-3", "role": "scammer", "content": "Scammer 1", "metadata": {}, "created_at": "2026-01-07T17:02:00Z"},
-            {"id": "msg-4", "role": "assistant", "content": "Response 2", "metadata": {}, "created_at": "2026-01-07T17:03:00Z"},
-            {"id": "msg-5", "role": "scammer", "content": "Scammer 2", "metadata": {}, "created_at": "2026-01-07T17:04:00Z"},
+            {
+                "id": "msg-1",
+                "role": "user",
+                "content": "Email",
+                "metadata": {"type": "original_email"},
+                "created_at": "2026-01-07T17:00:00Z",
+            },
+            {
+                "id": "msg-2",
+                "role": "assistant",
+                "content": "Response 1",
+                "metadata": {},
+                "created_at": "2026-01-07T17:01:00Z",
+            },
+            {
+                "id": "msg-3",
+                "role": "scammer",
+                "content": "Scammer 1",
+                "metadata": {},
+                "created_at": "2026-01-07T17:02:00Z",
+            },
+            {
+                "id": "msg-4",
+                "role": "assistant",
+                "content": "Response 2",
+                "metadata": {},
+                "created_at": "2026-01-07T17:03:00Z",
+            },
+            {
+                "id": "msg-5",
+                "role": "scammer",
+                "content": "Scammer 2",
+                "metadata": {},
+                "created_at": "2026-01-07T17:04:00Z",
+            },
         ]
 
         mock_iocs = [
-            {"id": "ioc-1", "type": "btc", "value": "bc1q...", "confidence": 1.0, "created_at": "2026-01-07T17:02:00Z"},
-            {"id": "ioc-2", "type": "iban", "value": "DE89...", "confidence": 0.95, "created_at": "2026-01-07T17:04:00Z"},
-            {"id": "ioc-3", "type": "url", "value": "https://...", "confidence": 0.8, "created_at": "2026-01-07T17:04:00Z"},
+            {
+                "id": "ioc-1",
+                "type": "btc",
+                "value": "bc1q...",
+                "confidence": 1.0,
+                "created_at": "2026-01-07T17:02:00Z",
+            },
+            {
+                "id": "ioc-2",
+                "type": "iban",
+                "value": "DE89...",
+                "confidence": 0.95,
+                "created_at": "2026-01-07T17:04:00Z",
+            },
+            {
+                "id": "ioc-3",
+                "type": "url",
+                "value": "https://...",
+                "confidence": 0.8,
+                "created_at": "2026-01-07T17:04:00Z",
+            },
         ]
 
-        with patch.object(session_service, 'get_session', new_callable=AsyncMock) as mock_get_session, \
-             patch.object(session_service, 'get_session_messages', new_callable=AsyncMock) as mock_get_messages, \
-             patch.object(session_service, 'get_session_iocs', new_callable=AsyncMock) as mock_get_iocs, \
-             patch.object(session_service, 'get_session_summary', new_callable=AsyncMock) as mock_get_summary:
-
+        with (
+            patch.object(
+                session_service, "get_session", new_callable=AsyncMock
+            ) as mock_get_session,
+            patch.object(
+                session_service, "get_session_messages", new_callable=AsyncMock
+            ) as mock_get_messages,
+            patch.object(
+                session_service, "get_session_iocs", new_callable=AsyncMock
+            ) as mock_get_iocs,
+            patch.object(
+                session_service, "get_session_summary", new_callable=AsyncMock
+            ) as mock_get_summary,
+        ):
             mock_get_session.return_value = mock_session
             mock_get_messages.return_value = mock_messages
             mock_get_iocs.return_value = mock_iocs
-            mock_get_summary.return_value = {"session_id": "session-123", "exchange_count": 2}
+            mock_get_summary.return_value = {
+                "session_id": "session-123",
+                "exchange_count": 2,
+            }
 
             result = await session_service.export_session_json("session-123")
 
@@ -379,7 +515,9 @@ class TestExportSessionJson:
         """Should raise exception when session not found."""
         from phishguard.services import session_service
 
-        with patch.object(session_service, 'get_session', new_callable=AsyncMock) as mock_get_session:
+        with patch.object(
+            session_service, "get_session", new_callable=AsyncMock
+        ) as mock_get_session:
             mock_get_session.return_value = None
 
             with pytest.raises(Exception, match="not found"):

@@ -1,8 +1,8 @@
 """FastAPI application entry point."""
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +12,8 @@ from phishguard.api.auth import router as auth_router
 from phishguard.api.health import router as health_router
 from phishguard.api.routers.analysis import router as analysis_router
 from phishguard.api.routers.classification import router as classification_router
-from phishguard.api.routers.ioc import router as ioc_router
 from phishguard.api.routers.intel import router as intel_router
+from phishguard.api.routers.ioc import router as ioc_router
 from phishguard.api.routers.response import router as response_router
 from phishguard.api.routers.session import router as session_router
 from phishguard.core import get_settings
@@ -85,9 +85,7 @@ def create_app() -> FastAPI:
         )
 
     @app.exception_handler(RateLimitError)
-    async def rate_limit_handler(
-        request: Request, exc: RateLimitError
-    ) -> JSONResponse:
+    async def rate_limit_handler(request: Request, exc: RateLimitError) -> JSONResponse:
         """Handle RateLimitError with 429 Too Many Requests."""
         logger.warning(
             "Rate limit hit for %s %s: %s",
@@ -113,7 +111,7 @@ def create_app() -> FastAPI:
         request: Request, exc: Exception
     ) -> JSONResponse:
         """Handle unexpected exceptions with 500 Internal Server Error.
-        
+
         Prevents stack traces from reaching the client (US-022).
         """
         logger.error(

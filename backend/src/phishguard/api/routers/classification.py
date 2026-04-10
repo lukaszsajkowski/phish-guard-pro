@@ -29,7 +29,10 @@ class ClassificationRequest(BaseModel):
     response_model=ClassificationResult,
     status_code=status.HTTP_200_OK,
     summary="Classify phishing email attack type",
-    description="Analyzes email content and returns the detected attack type with confidence score. Requires authentication.",
+    description=(
+        "Analyzes email content and returns the detected attack type with confidence "
+        "score. Requires authentication."
+    ),
 )
 async def classify_email(
     request: ClassificationRequest,
@@ -57,14 +60,14 @@ async def classify_email(
 
         # Create and execute the LangGraph workflow
         graph = create_phishguard_graph()
-        
+
         # Initial state for the graph
         initial_state = {
             "email_content": request.email_content,
             "session_id": session_id,
             "user_id": user_id,
         }
-        
+
         # Execute graph with PostgreSQL checkpointer for persistence
         async with get_checkpointer() as checkpointer:
             result_state = await graph.ainvoke(
@@ -85,7 +88,7 @@ async def classify_email(
         # Build ClassificationResult from graph state
         classification = result_state.get("classification", {})
         persona_data = result_state.get("persona")
-        
+
         # Reconstruct persona if available
         persona = None
         if persona_data:

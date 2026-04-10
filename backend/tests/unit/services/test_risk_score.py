@@ -4,8 +4,6 @@ These tests verify the backward-compatible calculate_risk_score function
 which uses the enhanced multi-dimensional calculator (US-032).
 """
 
-import pytest
-
 from phishguard.services.session_service import calculate_risk_score
 
 

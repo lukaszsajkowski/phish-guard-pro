@@ -32,6 +32,7 @@ class ClassificationError(Exception):
     It should be caught and handled by the caller.
     """
 
+
 class ProfilerAgent:
     """Agent responsible for classifying phishing emails into attack categories.
 
@@ -108,9 +109,7 @@ class ProfilerAgent:
 
             except LLMRequestError as e:
                 logger.error("LLM request failed during classification: %s", e)
-                raise ClassificationError(
-                    f"Failed to classify email: {e}"
-                ) from e
+                raise ClassificationError(f"Failed to classify email: {e}") from e
             except Exception as e:
                 attempts += 1
                 last_error = str(e)

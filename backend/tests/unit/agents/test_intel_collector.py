@@ -2,7 +2,7 @@
 
 import pytest
 
-from phishguard.agents.intel_collector import IntelCollector, ExtractionResult
+from phishguard.agents.intel_collector import IntelCollector
 from phishguard.models.ioc import IOCType
 
 
@@ -94,7 +94,10 @@ class TestIntelCollector:
 
     def test_context_extraction(self, collector: IntelCollector) -> None:
         """Test that context is included with extracted IOCs."""
-        text = "Please send payment to bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh immediately"
+        text = (
+            "Please send payment to bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh "
+            "immediately"
+        )
         result = collector.extract(text, message_index=7)
 
         assert result.has_iocs

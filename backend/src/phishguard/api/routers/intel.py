@@ -192,8 +192,7 @@ async def get_intel_dashboard(
     ]
 
     logger.info(
-        "Retrieved Intel Dashboard for session %s (user %s): "
-        "%d IOCs, risk_score=%d",
+        "Retrieved Intel Dashboard for session %s (user %s): %d IOCs, risk_score=%d",
         session_id,
         user_id,
         len(iocs),

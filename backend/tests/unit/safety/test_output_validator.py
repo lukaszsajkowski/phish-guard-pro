@@ -4,10 +4,7 @@ import pytest
 
 from phishguard.safety.output_validator import (
     OutputValidator,
-    SafetyViolation,
-    ValidationResult,
     ViolationType,
-    validate_output,
 )
 
 
@@ -91,7 +88,9 @@ class TestOutputValidator:
         text = "My card number is 4532-1234-5678-9012"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CREDIT_CARD for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CREDIT_CARD for v in result.violations
+        )
 
     def test_repeated_digits_card_allowed(self, validator: OutputValidator) -> None:
         """Credit card with all same digits (test card) should be allowed."""
@@ -108,14 +107,19 @@ class TestOutputValidator:
         text = "Contact john@google.com for details"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.CORPORATE_DOMAIN for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.CORPORATE_DOMAIN
+            for v in result.violations
+        )
 
     def test_real_email_detected(self, validator: OutputValidator) -> None:
         """Real email addresses should be detected."""
         text = "My email is margaret.smith@randomdomain.com"
         result = validator.validate(text)
         assert result.is_safe is False
-        assert any(v.violation_type == ViolationType.EMAIL_REAL for v in result.violations)
+        assert any(
+            v.violation_type == ViolationType.EMAIL_REAL for v in result.violations
+        )
 
     # -------------------------------------------------------------------------
     # Address Detection Tests (Strict Mode)

@@ -1,8 +1,8 @@
 """Unit tests for response validation endpoint."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -215,7 +215,10 @@ class TestValidateResponseEndpoint:
 
         # Auth fails before request validation, so we get 401
         # In a properly mocked test, this would return 422
-        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
 
     def test_validate_rejects_missing_session_id(self, client: TestClient) -> None:
         """Rejects request without session_id (after auth fails)."""
@@ -232,4 +235,7 @@ class TestValidateResponseEndpoint:
 
         # Auth fails before request validation, so we get 401
         # In a properly mocked test, this would return 422
-        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )

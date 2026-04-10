@@ -80,7 +80,7 @@ export function ChatArea({
                 <h3 className="text-lg font-semibold mb-2">Ready to Engage</h3>
                 <p className="text-muted-foreground mb-6 max-w-md">
                     Generate your first response to the phishing email. The AI will craft a
-                    believable reply in the selected persona's style.
+                    believable reply in the selected persona&apos;s style.
                 </p>
                 <Button
                     onClick={onGenerateResponse}

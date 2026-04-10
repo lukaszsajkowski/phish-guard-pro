@@ -74,7 +74,7 @@ export function SessionSummary({
                 </div>
                 <h1 className="text-2xl font-bold">Session Complete</h1>
                 <p className="text-muted-foreground">
-                    Here's a summary of your phishing simulation session
+                    Here&apos;s a summary of your phishing simulation session
                 </p>
             </div>
 

@@ -136,9 +136,13 @@ class RiskScoreCalculator:
                 ioc_types.add(ioc_type)
 
         # Use highest quality IOC score (0-10 scale)
-        max_quality = max(IOC_QUALITY_SCORES.get(t, 0) for t in ioc_types) if ioc_types else 0
+        max_quality = (
+            max(IOC_QUALITY_SCORES.get(t, 0) for t in ioc_types) if ioc_types else 0
+        )
         # Bonus for multiple high-value IOC types (up to +2)
-        high_value_count = sum(1 for t in ioc_types if IOC_QUALITY_SCORES.get(t, 0) >= 8)
+        high_value_count = sum(
+            1 for t in ioc_types if IOC_QUALITY_SCORES.get(t, 0) >= 8
+        )
         bonus = min(high_value_count - 1, 2) if high_value_count > 1 else 0
         raw_score = min(float(max_quality + bonus), 10.0)
 
@@ -191,9 +195,7 @@ class RiskScoreCalculator:
             explanation=explanation,
         )
 
-    def _calculate_scammer_engagement(
-        self, messages: list[str]
-    ) -> RiskComponentScore:
+    def _calculate_scammer_engagement(self, messages: list[str]) -> RiskComponentScore:
         """Calculate scammer engagement component.
 
         Based on message count and average message length. Scale 0-10.
@@ -253,9 +255,7 @@ class RiskScoreCalculator:
             explanation=explanation,
         )
 
-    def _calculate_urgency_tactics(
-        self, messages: list[str]
-    ) -> RiskComponentScore:
+    def _calculate_urgency_tactics(self, messages: list[str]) -> RiskComponentScore:
         """Calculate urgency tactics component.
 
         Detection of pressure keywords like 'urgent', 'deadline', etc.

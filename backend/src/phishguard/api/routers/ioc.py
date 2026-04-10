@@ -87,14 +87,16 @@ async def get_session_iocs(
         if is_high_value:
             high_value_count += 1
 
-        iocs.append(IOCResponse(
-            id=ioc.get("id", ""),
-            type=ioc_type,
-            value=ioc.get("value", ""),
-            confidence=ioc.get("confidence", 0.0),
-            created_at=ioc.get("created_at", ""),
-            is_high_value=is_high_value,
-        ))
+        iocs.append(
+            IOCResponse(
+                id=ioc.get("id", ""),
+                type=ioc_type,
+                value=ioc.get("value", ""),
+                confidence=ioc.get("confidence", 0.0),
+                created_at=ioc.get("created_at", ""),
+                is_high_value=is_high_value,
+            )
+        )
 
     logger.info(
         "Retrieved %d IOCs for session %s (user %s)",

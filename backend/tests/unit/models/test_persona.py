@@ -422,7 +422,7 @@ class TestPersonaProfileFrozenModel:
         with pytest.raises(ValidationError) as exc_info:
             profile.persona_type = PersonaType.STRESSED_MANAGER
         errors = exc_info.value.errors()
-        # Pydantic v2 exact validation message check might vary, check mostly that it raises
+        # Pydantic v2 message check may vary; mostly verify it raises
         assert errors
 
     def test_cannot_modify_name(self) -> None:

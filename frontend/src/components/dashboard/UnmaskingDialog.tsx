@@ -51,7 +51,7 @@ export function UnmaskingDialog({
                     </div>
                     <AlertDialogDescription className="text-left space-y-3">
                         <p>
-                            It appears the scammer may have realized they're talking to a bot
+                            It appears the scammer may have realized they&apos;re talking to a bot
                             and ended the conversation.
                         </p>
                         {matchedPhrases.length > 0 && (
@@ -62,7 +62,7 @@ export function UnmaskingDialog({
                                 <ul className="list-disc list-inside text-sm text-muted-foreground">
                                     {matchedPhrases.slice(0, 3).map((phrase, index) => (
                                         <li key={index} className="italic">
-                                            "{phrase}"
+                                            &ldquo;{phrase}&rdquo;
                                         </li>
                                     ))}
                                 </ul>

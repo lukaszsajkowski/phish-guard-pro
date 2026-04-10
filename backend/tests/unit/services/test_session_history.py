@@ -1,7 +1,8 @@
 """Unit tests for session history list functionality (US-028)."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestGetUserSessions:
@@ -349,8 +350,9 @@ class TestSessionHistoryItemModel:
 
     def test_session_history_item_risk_score_validation(self):
         """Test that risk_score must be between 1 and 10."""
-        from phishguard.api.routers.session import SessionHistoryItem
         from pydantic import ValidationError
+
+        from phishguard.api.routers.session import SessionHistoryItem
 
         with pytest.raises(ValidationError):
             SessionHistoryItem(

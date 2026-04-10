@@ -13,31 +13,31 @@ from pydantic import BaseModel, Field
 
 class ErrorCode(str, Enum):
     """Machine-readable error codes for frontend handling."""
-    
+
     # Transient errors - should retry
     API_ERROR = "API_ERROR"
     RATE_LIMIT = "RATE_LIMIT"
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
     TIMEOUT = "TIMEOUT"
-    
+
     # Permanent errors - do not retry
     VALIDATION_ERROR = "VALIDATION_ERROR"
     UNAUTHORIZED = "UNAUTHORIZED"
     FORBIDDEN = "FORBIDDEN"
     NOT_FOUND = "NOT_FOUND"
     BAD_REQUEST = "BAD_REQUEST"
-    
+
     # Internal errors
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
 class ApiErrorResponse(BaseModel):
     """Standardized API error response model.
-    
+
     This model ensures consistent error response structure across all endpoints.
     Frontend can rely on this format for error handling and display.
     """
-    
+
     error: str = Field(
         ...,
         description="User-friendly error message suitable for display",
@@ -65,7 +65,10 @@ class ApiErrorResponse(BaseModel):
 
 # Pre-configured error responses for common scenarios
 SERVICE_UNAVAILABLE_ERROR = ApiErrorResponse(
-    error="Unable to connect to the AI service after multiple attempts. Please try again later.",
+    error=(
+        "Unable to connect to the AI service after multiple attempts. "
+        "Please try again later."
+    ),
     error_code=ErrorCode.SERVICE_UNAVAILABLE,
     should_retry=True,
 )

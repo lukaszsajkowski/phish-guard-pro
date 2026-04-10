@@ -9,7 +9,7 @@
  * - Session state not lost on error
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 export interface ApiError {
     message: string;
@@ -134,9 +134,12 @@ export function useApiWithRetry<T>(
     const [error, setError] = useState<ApiError | null>(null);
     const [retryCount, setRetryCount] = useState(0);
 
-    // Store the fetch function in a ref so we can retry
+    // Store the fetch function in a ref so we can retry.
+    // Update the ref in an effect to avoid writing during render (React rules).
     const fetchFnRef = useRef(fetchFn);
-    fetchFnRef.current = fetchFn;
+    useEffect(() => {
+        fetchFnRef.current = fetchFn;
+    });
 
     const reset = useCallback(() => {
         setError(null);

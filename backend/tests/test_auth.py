@@ -17,9 +17,7 @@ def client() -> TestClient:
 class TestRegisterEndpoint:
     """Tests for POST /api/auth/register."""
 
-    def test_register_password_too_short_returns_422(
-        self, client: TestClient
-    ) -> None:
+    def test_register_password_too_short_returns_422(self, client: TestClient) -> None:
         """Test that password shorter than 8 chars returns validation error."""
         response = client.post(
             "/api/auth/register",
