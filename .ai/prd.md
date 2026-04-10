@@ -786,31 +786,112 @@ Acceptance Criteria:
 - Breakdown updates in real-time as conversation progresses
 - Algorithm is transparent and explainable to user
 
-### US-033: IOC Enrichment ❌
+### US-033: Enrichment Service Foundation ❌
 
-Title: External threat intelligence for extracted IOCs
+Title: Backend foundation for IOC enrichment
 
-Description: As a security researcher, I want to see enriched IOC data from
-external threat intelligence sources to better assess the threat and gather
-additional context.
+Description: As a backend developer, I want a reusable enrichment service with
+caching, rate limiting and error handling so that individual enrichment sources
+can be added consistently.
 
 Acceptance Criteria:
 
-- "Enrich" button available for each extracted IOC in Intel Dashboard
-- Enrichment sources per IOC type:
-  - BTC wallet: Blockchain.com (balance, tx count, first seen, risk label)
-  - URL/Domain: VirusTotal (detection score, categories, domain age)
-  - IP address: AbuseIPDB (abuse score, reports count)
-  - Phone: Country, carrier, line type (mobile/voip)
-- Enriched IOC card displays:
-  - Threat score (0-100) with color indicator
-  - Reputation badge (malicious, suspicious, clean, unknown)
-  - Source-specific data in expandable section
-- Enrichment results cached for 24 hours (URLs) / 7 days (domains)
-- Rate limiting respects external API quotas (VirusTotal: 500/day free tier)
-- Loading state shown during enrichment
-- Graceful handling when enrichment unavailable or fails
-- Enriched data included in JSON/CSV export
+- Generic `EnrichmentService` interface with `enrich(ioc_type, value)` method
+- Result cache with per-type TTL (URLs: 24h, domains: 7d, others: configurable)
+- Rate limiter respects external API quotas (config per source)
+- Graceful fallback when source unavailable → returns `status: unavailable`
+- All calls logged with source, latency, cache hit/miss
+- Unit tests with mocked HTTP clients
+- New DB table `ioc_enrichment` (ioc_id, source, payload JSONB, fetched_at)
+
+### US-034: BTC Wallet Enrichment (Blockchain.com) ❌
+
+Title: Enrich Bitcoin wallets with on-chain data
+
+Description: As a security researcher, I want to see balance and transaction
+history for BTC wallets to assess attacker activity.
+
+Acceptance Criteria:
+
+- Calls Blockchain.com API for each BTC IOC
+- Returns: balance (BTC), tx count, first seen date, last activity
+- Optional risk label (from community lists, if available)
+- Data stored via Enrichment Service (US-033)
+- Error when wallet invalid → reputation: `unknown`
+
+### US-035: URL/Domain Enrichment (VirusTotal) ❌
+
+Title: Enrich URLs and domains with VirusTotal data
+
+Description: As a security researcher, I want VirusTotal reputation for
+URLs/domains to identify known malicious infrastructure.
+
+Acceptance Criteria:
+
+- Calls VirusTotal API v3 for URL and domain IOCs
+- Returns: detection score (malicious/total engines), categories, domain age
+- Rate limit enforced: max 500 requests/day (free tier), 4/min
+- VT quota counter exposed via `/api/enrichment/quota`
+- Cached: URLs 24h, domains 7d
+
+### US-036: IP Address Enrichment (AbuseIPDB) ❌
+
+Title: Enrich IP addresses with abuse reports
+
+Description: As a security researcher, I want AbuseIPDB data for IP IOCs to see
+abuse history.
+
+Acceptance Criteria:
+
+- New IOC extractor for IPv4/IPv6 (if not already present)
+- Calls AbuseIPDB API, returns abuse confidence score (0–100) and reports count
+- Country code + ISP included in payload
+- Respects AbuseIPDB daily quota
+
+### US-037: Phone Number Enrichment ❌
+
+Title: Enrich phone numbers with metadata
+
+Description: As an analyst, I want to know country, carrier and line type of
+collected phone numbers to prioritize investigation.
+
+Acceptance Criteria:
+
+- Uses `phonenumbers` (libphonenumber) locally + optional NumVerify API
+- Returns: country, carrier, line type (mobile/voip/landline)
+- No external call required for basic metadata (local parsing)
+- VoIP lines flagged as higher suspicion
+
+### US-038: Enrichment UI in Intel Dashboard ❌
+
+Title: Show "Enrich" action and enriched IOC card
+
+Description: As a user, I want to trigger enrichment per IOC and see results
+inline in Intel Dashboard.
+
+Acceptance Criteria:
+
+- "Enrich" button visible on every IOC card
+- Loading spinner while request in flight
+- Result renders threat score (0–100) with color indicator (green/yellow/red)
+- Reputation badge: `malicious` / `suspicious` / `clean` / `unknown`
+- Expandable section with source-specific raw data
+- Error state with retry option if call failed
+- Cached results load instantly with "cached" indicator
+
+### US-039: Enriched IOC Export ❌
+
+Title: Include enriched data in JSON/CSV export
+
+Description: As an analyst, I want enriched data in exports to use it in
+external tooling.
+
+Acceptance Criteria:
+
+- JSON export (US-019) includes `enrichment` field per IOC
+- CSV export (US-020) adds columns: `threat_score`, `reputation`, `source`
+- Unenriched IOCs export with empty enrichment fields (no errors)
+- Export E2E test covers both enriched and plain IOCs
 
 ---
 
