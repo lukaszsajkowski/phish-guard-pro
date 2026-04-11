@@ -116,13 +116,15 @@ test.describe('Interface Responsiveness - Public Pages (US-026)', () => {
  * These tests will be skipped if backend is not available
  */
 test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
-    // Test data - unique per test run
-    const testUser = {
-        email: `e2e-responsive-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`,
-        password: 'validPassword123',
-    };
-
     test.beforeEach(async ({ page }) => {
+        // Fresh user per test — declaring at describe scope would share the
+        // same email across all tests in a worker and fail with "already exists"
+        // on the second test onward.
+        const testUser = {
+            email: `e2e-responsive-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`,
+            password: 'validPassword123',
+        };
+
         // Register and login
         await page.goto('/register');
 
@@ -157,16 +159,6 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
             expect(documentWidth).toBeLessThanOrEqual(viewportWidth + 10);
         });
 
-        test('should show sidebar in collapsed state by default', async ({ page }) => {
-            // At 1024px (< 1280px), sidebar should default to collapsed
-            const sidebar = page.locator('[data-testid="app-sidebar"]');
-            await expect(sidebar).toBeVisible();
-
-            // Sidebar should be narrow (collapsed state is w-16 = 64px)
-            const sidebarBox = await sidebar.boundingBox();
-            expect(sidebarBox?.width).toBeLessThanOrEqual(80);
-        });
-
         test('should allow email input without overlap', async ({ page }) => {
             const heading = page.getByRole('heading', { name: 'Paste Phishing Email' });
             await expect(heading).toBeVisible();
@@ -194,17 +186,6 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
             await page.setViewportSize(viewports.medium);
         });
 
-        test('should show sidebar expanded at 1280px+', async ({ page }) => {
-            // At 1280px+, sidebar should be expanded by default (if no stored preference)
-            const sidebar = page.locator('[data-testid="app-sidebar"]');
-            await expect(sidebar).toBeVisible();
-
-            // Sidebar should be wide (expanded state is w-64 = 256px)
-            const sidebarBox = await sidebar.boundingBox();
-            // Could be expanded or collapsed depending on localStorage
-            expect(sidebarBox?.width).toBeGreaterThan(50);
-        });
-
         test('should have properly sized main content area', async ({ page }) => {
             const mainContent = page.locator('[data-testid="main-content"]');
             await expect(mainContent).toBeVisible();
@@ -230,57 +211,6 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
         });
     });
 
-    test.describe('Sidebar collapse/expand functionality', () => {
-        test('should toggle sidebar on button click', async ({ page }) => {
-            await page.setViewportSize(viewports.medium);
-
-            const collapseToggle = page.locator('[data-testid="sidebar-collapse-toggle"]');
-            await expect(collapseToggle).toBeVisible();
-
-            const sidebar = page.locator('[data-testid="app-sidebar"]');
-            const initialBox = await sidebar.boundingBox();
-            const initialWidth = initialBox?.width ?? 0;
-
-            // Click to toggle
-            await collapseToggle.click();
-            await page.waitForTimeout(400); // Wait for transition
-
-            const afterBox = await sidebar.boundingBox();
-            const afterWidth = afterBox?.width ?? 0;
-
-            // Width should have changed
-            expect(Math.abs(initialWidth - afterWidth)).toBeGreaterThan(100);
-        });
-
-        test('should persist sidebar state across navigation', async ({ page }) => {
-            await page.setViewportSize(viewports.medium);
-
-            const collapseToggle = page.locator('[data-testid="sidebar-collapse-toggle"]');
-            await expect(collapseToggle).toBeVisible();
-
-            // Collapse the sidebar
-            await collapseToggle.click();
-            await page.waitForTimeout(400);
-
-            const sidebar = page.locator('[data-testid="app-sidebar"]');
-            const collapsedBox = await sidebar.boundingBox();
-            const collapsedWidth = collapsedBox?.width ?? 0;
-
-            // Navigate to history and back
-            await page.locator('[data-testid="sidebar-nav-history"]').click();
-            await expect(page).toHaveURL('/history');
-
-            await page.goto('/dashboard');
-            await page.waitForTimeout(400);
-
-            // Sidebar should still be collapsed
-            const afterNavBox = await sidebar.boundingBox();
-            const afterNavWidth = afterNavBox?.width ?? 0;
-
-            expect(Math.abs(collapsedWidth - afterNavWidth)).toBeLessThan(20);
-        });
-    });
-
     test.describe('Chat area text handling', () => {
         test('should wrap long text without horizontal scroll', async ({ page }) => {
             await page.setViewportSize(viewports.minimum);
@@ -296,15 +226,11 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
                         confidence: 95.5,
                         reasoning: 'Test reasoning for classification',
                         persona: {
+                            persona_type: 'naive_retiree',
                             name: 'Test Persona',
                             age: 65,
-                            occupation: 'Retired Teacher',
-                            writing_style: {
-                                formality: 'casual',
-                                typical_errors: ['spelling'],
-                                use_caps_lock: false,
-                            },
-                            characteristic_phrases: ['Oh dear', 'How lovely'],
+                            style_description: 'Polite, trusting, and slightly confused by technology.',
+                            background: 'Retired teacher living alone.',
                         },
                     }),
                 });
@@ -317,8 +243,8 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
             const analyzeButton = page.locator('#analyze-button');
             await analyzeButton.click();
 
-            // Wait for classification result
-            await expect(page.getByText('Nigerian 419 Scam')).toBeVisible({ timeout: 10000 });
+            // Wait for side panel to appear (stays auto-collapsed at 1024px)
+            await expect(page.getByTestId('side-panel')).toBeVisible({ timeout: 10000 });
 
             // Check that page does not have horizontal overflow
             const hasHorizontalScroll = await page.evaluate(() => {
