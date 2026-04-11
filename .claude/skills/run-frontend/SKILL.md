@@ -27,9 +27,9 @@ Start the Next.js dev server correctly and report its URL. Warn the user if the 
 
 1. **Parse `$ARGUMENTS`.** If `stop` / `status` / `build`, jump to the corresponding section.
 
-2. **Check `.env.local` exists** — `frontend/.env.local` must be present. If missing, stop and tell the user:
+2. **Check `.env` exists** — the root `.env` at `/Users/lukasz/Workspace/phish-guard-pro/.env` must be present (shared by backend and frontend). If missing, stop and tell the user:
    ```
-   frontend/.env.local is missing. Copy from frontend/.env.example and fill in:
+   .env at project root is missing. Copy from .env.example and fill in:
      NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_API_URL
    ```
    Do NOT create it silently.
@@ -90,7 +90,7 @@ Report both ports because "frontend alone" is almost never useful.
 
 ## Hard rules
 
-- **Never** write or overwrite `frontend/.env.local`. Missing env = stop and tell the user.
+- **Never** write or overwrite the root `.env`. Missing env = stop and tell the user.
 - **Never** start on a port other than 3000 without explicit request — backend CORS, Supabase `site_url`, and tests all assume 3000.
 - **Never** auto-fix TypeScript errors to make `build` pass. Surface them and delegate to `nextjs-frontend-dev` if the user asks.
 - **Never** use blind `sleep` loops. Monitor the background shell log.

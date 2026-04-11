@@ -32,9 +32,9 @@ Start the backend correctly on the first try. **Never** spawn processes blind �
 
 1. **Parse `$ARGUMENTS`.** If `stop` or `status`, jump to the corresponding section below.
 
-2. **Check `.env` exists** — `backend/.env` must be present. If missing, stop and tell the user:
+2. **Check `.env` exists** — the root `.env` at `/Users/lukasz/Workspace/phish-guard-pro/.env` must be present (shared by backend and frontend). If missing, stop and tell the user:
    ```
-   backend/.env is missing. Copy from backend/.env.example and fill in:
+   .env at project root is missing. Copy from .env.example and fill in:
      SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY
    ```
    Do NOT create it from a template silently.
@@ -98,7 +98,7 @@ Use `lsof -ti :<port>` per port. No side effects.
 
 ## Hard rules
 
-- **Never** write or overwrite `backend/.env`. Missing env = stop and tell the user.
+- **Never** write or overwrite the root `.env`. Missing env = stop and tell the user.
 - **Never** run `supabase db reset` without explicit confirmation — it drops local data.
 - **Never** `kill -9` without first trying graceful `kill`.
 - **Never** start the backend on a port other than 8000 without explicit user request — the frontend hard-codes it as default.

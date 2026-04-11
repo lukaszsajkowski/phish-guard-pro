@@ -42,10 +42,9 @@ Supabase (54321)  →  Backend (8000)  →  Frontend (3000)
 
 1. **Parse `$ARGUMENTS`.** If `stop` / `status`, jump to the corresponding section.
 
-2. **Check env files exist:**
-   - `backend/.env`
-   - `frontend/.env.local`
-   If either is missing, stop and tell the user which one. Do not create them.
+2. **Check env file exists:**
+   - `.env` at the project root (`/Users/lukasz/Workspace/phish-guard-pro/.env`) — shared by backend and frontend
+   If missing, stop and tell the user. Do not create it.
 
 3. **Check ports are free** — `lsof -ti :3000 :8000 :54321` in one call. If any port is taken:
    - Identify whether it's already part of this stack (uvicorn / next / supabase) — if yes, treat as "partially up" and reuse; if not, stop and ask whether to kill the offending process.
@@ -120,7 +119,7 @@ Supabase    (:54321) ✓ running
   └ Studio  (:54323) ✓ running
   └ Inbucket(:54324) ✓ running
 ```
-If Supabase ports are down but backend is up, check whether backend is pointed at cloud (`backend/.env` SUPABASE_URL starts with `http://127.0.0.1` or not) and label accordingly: `Supabase (cloud) — not checked`.
+If Supabase ports are down but backend is up, check whether backend is pointed at cloud (root `.env` SUPABASE_URL starts with `http://127.0.0.1` or not) and label accordingly: `Supabase (cloud) — not checked`.
 
 ## Hard rules
 
