@@ -40,6 +40,17 @@ Drive the end-to-end implementation of the requested user story by delegating to
 
 6. **Cross-check acceptance criteria** from step 2 one by one and produce a final checklist (✓/✗) for the user.
 
+7. **Mark the US as done in `.ai/prd.md`** — only if every acceptance criterion in step 6 came back ✓. Flip the status marker in the heading from `❌` to `✅` using Edit with an `old_string` that includes the full heading line to guarantee uniqueness:
+   ```
+   old_string: "### US-XXX: <Title> ❌"
+   new_string: "### US-XXX: <Title> ✅"
+   ```
+   **Hard rules for the PRD edit:**
+   - **Only** change the status marker. Do NOT rewrite acceptance criteria, add implementation notes, paragraphs of prose, commit hashes, or dates. The PRD is the spec — git history is the changelog.
+   - **Do not** flip the marker if any AC failed, if the user asked you to stop early, or if work was deferred to a follow-up. Report the partial state and leave `❌` in place.
+   - **Do not** commit or stage the PRD edit yourself — the user runs `/commit` separately. Just mention in the final report that `.ai/prd.md` now has an uncommitted edit that will be picked up by the next commit.
+   - If step 2 found the US already marked `✅` and the user confirmed re-implementation, the marker stays `✅` — no edit needed.
+
 ## Communication
 
 - Respond in Polish if the user writes in Polish (this project's default).

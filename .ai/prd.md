@@ -786,7 +786,7 @@ Acceptance Criteria:
 - Breakdown updates in real-time as conversation progresses
 - Algorithm is transparent and explainable to user
 
-### US-033: Enrichment Service Foundation ❌
+### US-033: Enrichment Service Foundation ✅
 
 Title: Backend foundation for IOC enrichment
 
