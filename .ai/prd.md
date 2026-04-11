@@ -804,18 +804,22 @@ Acceptance Criteria:
 - Unit tests with mocked HTTP clients
 - New DB table `ioc_enrichment` (ioc_id, source, payload JSONB, fetched_at)
 
-### US-034: BTC Wallet Enrichment (Blockchain.com) ❌
+### US-034: BTC Wallet Enrichment (mempool.space + bitcoinabuse) ❌
 
-Title: Enrich Bitcoin wallets with on-chain data
+Title: Enrich Bitcoin wallets with on-chain data and community reputation
 
-Description: As a security researcher, I want to see balance and transaction
-history for BTC wallets to assess attacker activity.
+Description: As a security researcher, I want to see balance, transaction
+history, and community-reported abuse for BTC wallets to assess attacker
+activity.
 
 Acceptance Criteria:
 
-- Calls Blockchain.com API for each BTC IOC
+- Calls mempool.space API for on-chain data (no API key required)
 - Returns: balance (BTC), tx count, first seen date, last activity
-- Optional risk label (from community lists, if available)
+- Calls bitcoinabuse.com API for community abuse reports (free API key)
+- Returns: report count, most recent report category, reputation label
+  (`malicious` / `suspicious` / `unknown`)
+- Blockstream.info (same Esplora backend) configured as on-chain fallback
 - Data stored via Enrichment Service (US-033)
 - Error when wallet invalid → reputation: `unknown`
 
