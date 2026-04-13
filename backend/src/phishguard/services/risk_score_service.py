@@ -100,7 +100,7 @@ class RiskScoreCalculator:
             severity_label = "Moderate severity"
         else:
             severity_label = "Low severity"
-        attack_display = attack_type.replace("_", " ").title()
+        attack_display = attack_type.replace("_", " ").title() if attack_type else "Unknown"
 
         return RiskComponentScore(
             component=component,

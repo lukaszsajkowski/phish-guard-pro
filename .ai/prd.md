@@ -804,7 +804,7 @@ Acceptance Criteria:
 - Unit tests with mocked HTTP clients
 - New DB table `ioc_enrichment` (ioc_id, source, payload JSONB, fetched_at)
 
-### US-034: BTC Wallet Enrichment (mempool.space + bitcoinabuse) ❌
+### US-034: BTC Wallet Enrichment (mempool.space + bitcoinabuse) ✅
 
 Title: Enrich Bitcoin wallets with on-chain data and community reputation
 

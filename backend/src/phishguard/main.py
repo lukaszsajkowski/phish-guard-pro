@@ -12,6 +12,7 @@ from phishguard.api.auth import router as auth_router
 from phishguard.api.health import router as health_router
 from phishguard.api.routers.analysis import router as analysis_router
 from phishguard.api.routers.classification import router as classification_router
+from phishguard.api.routers.enrichment import router as enrichment_router
 from phishguard.api.routers.intel import router as intel_router
 from phishguard.api.routers.ioc import router as ioc_router
 from phishguard.api.routers.response import router as response_router
@@ -140,6 +141,7 @@ def create_app() -> FastAPI:
     app.include_router(response_router, prefix="/api/v1")
     app.include_router(session_router, prefix="/api/v1")
     app.include_router(ioc_router, prefix="/api/v1")
+    app.include_router(enrichment_router, prefix="/api/v1")
     app.include_router(intel_router, prefix="/api/v1")
 
     return app
