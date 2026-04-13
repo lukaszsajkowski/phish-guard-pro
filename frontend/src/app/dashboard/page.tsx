@@ -100,6 +100,16 @@ function DashboardContent() {
     // Responsive side panel collapse (US-026)
     const isLargeScreen = useMediaQuery("(min-width: 1280px)");
 
+    // Stable callback for enrichment hook to obtain a JWT (US-038)
+    const getAccessToken = useCallback(async (): Promise<string | null> => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) return null;
+        const sb = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: { session } } = await sb.auth.getSession();
+        return session?.access_token ?? null;
+    }, []);
+
     // Fetch intel dashboard data for risk score breakdown (US-032)
     const fetchIntelDashboard = useCallback(async (targetSessionId: string) => {
         try {
@@ -1042,6 +1052,7 @@ function DashboardContent() {
                                                             ))}
                                                             riskScoreBreakdown={riskScoreBreakdown}
                                                             timeline={timelineEvents}
+                                                            getAccessToken={getAccessToken}
                                                         />
                                                     </div>
                                                 </>

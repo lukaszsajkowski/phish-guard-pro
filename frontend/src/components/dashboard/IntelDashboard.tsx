@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -9,8 +10,14 @@ import {
     Clock,
     TrendingUp,
     Link,
+    Search,
+    Loader2,
+    ChevronDown,
+    ChevronUp,
+    RefreshCw,
+    BadgeCheck,
 } from "lucide-react";
-import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType } from "@/types/schemas";
+import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType, EnrichmentState, ReputationLabel } from "@/types/schemas";
 import {
     IOC_ICONS,
     IOC_LABELS,
@@ -21,6 +28,7 @@ import {
     getRiskScoreBarColor,
 } from "@/lib/constants/ioc";
 import { RiskScoreBreakdown } from "./RiskScoreBreakdown";
+import { useEnrichment, deriveThreatAssessment } from "@/hooks/useEnrichment";
 
 interface IntelDashboardProps {
     iocs: ExtractedIOC[];
@@ -30,7 +38,50 @@ interface IntelDashboardProps {
     riskScoreBreakdown?: RiskScoreBreakdownType;
     timeline?: TimelineEvent[];
     isLoading?: boolean;
+    /** When provided, enables the "Enrich" button on each IOC card. */
+    getAccessToken?: () => Promise<string | null>;
 }
+
+// ---------------------------------------------------------------------------
+// Threat-score colour helpers (0-100 scale)
+// ---------------------------------------------------------------------------
+
+function getThreatScoreColor(score: number): string {
+    if (score <= 33) return "text-green-500";
+    if (score <= 66) return "text-yellow-500";
+    return "text-red-500";
+}
+
+function getThreatScoreBg(score: number): string {
+    if (score <= 33) return "bg-green-500";
+    if (score <= 66) return "bg-yellow-500";
+    return "bg-red-500";
+}
+
+function getReputationBadge(reputation: ReputationLabel) {
+    const map: Record<ReputationLabel, { label: string; className: string }> = {
+        malicious: {
+            label: "Malicious",
+            className: "bg-red-500/10 text-red-500",
+        },
+        suspicious: {
+            label: "Suspicious",
+            className: "bg-yellow-500/10 text-yellow-500",
+        },
+        clean: {
+            label: "Clean",
+            className: "bg-green-500/10 text-green-500",
+        },
+        unknown: {
+            label: "Unknown",
+            className: "bg-muted text-muted-foreground",
+        },
+    };
+    return map[reputation] ?? map.unknown;
+}
+
+// Noop token getter used when enrichment is disabled
+const NOOP_TOKEN = async () => null;
 
 export function IntelDashboard({
     iocs,
@@ -40,8 +91,16 @@ export function IntelDashboard({
     riskScoreBreakdown,
     timeline = [],
     isLoading = false,
+    getAccessToken,
 }: IntelDashboardProps) {
     const highValueCount = iocs.filter((ioc) => ioc.is_high_value).length;
+    const { enrichmentStates, enrich, getKey } = useEnrichment(
+        getAccessToken ?? NOOP_TOKEN,
+    );
+    const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+
+    const toggleExpanded = (key: string) =>
+        setExpandedKeys((prev) => ({ ...prev, [key]: !prev[key] }));
 
     return (
         <div
@@ -119,47 +178,190 @@ export function IntelDashboard({
                         No IOCs extracted yet.
                     </p>
                 ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
                         {iocs.map((ioc, index) => {
                             const Icon = IOC_ICONS[ioc.type] || Link;
                             const label = IOC_LABELS[ioc.type] || ioc.type.toUpperCase();
                             const isHighValue = ioc.is_high_value;
+                            const key = getKey(ioc.type, ioc.value);
+                            const enrichState: EnrichmentState =
+                                enrichmentStates[key] ?? { status: "idle" };
+                            const isExpanded = expandedKeys[key] ?? false;
+
+                            // Derive threat assessment when enrichment succeeded
+                            const assessment =
+                                enrichState.status === "success"
+                                    ? deriveThreatAssessment(enrichState.data)
+                                    : null;
 
                             return (
                                 <div
                                     key={ioc.id || `ioc-${index}`}
                                     data-testid={`ioc-item-${ioc.type}`}
-                                    className={`flex items-start gap-2 rounded-md p-2 text-sm ${isHighValue
+                                    className={`rounded-md p-2 text-sm ${isHighValue
                                         ? "bg-red-500/5 border border-red-500/20"
                                         : "bg-muted/30"
                                         }`}
                                 >
-                                    <Icon
-                                        className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isHighValue
-                                            ? "text-red-500"
-                                            : "text-muted-foreground"
-                                            }`}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className={`text-xs font-medium ${isHighValue
-                                                    ? "text-red-500"
-                                                    : "text-muted-foreground"
+                                    {/* Row 1: icon + label + value + enrich button */}
+                                    <div className="flex items-start gap-2">
+                                        <Icon
+                                            className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isHighValue
+                                                ? "text-red-500"
+                                                : "text-muted-foreground"
+                                                }`}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`text-xs font-medium ${isHighValue
+                                                        ? "text-red-500"
+                                                        : "text-muted-foreground"
+                                                        }`}
+                                                >
+                                                    {label}
+                                                </span>
+                                            </div>
+                                            <p
+                                                className={`font-mono text-xs break-all ${isHighValue
+                                                    ? "text-red-400"
+                                                    : "text-foreground"
                                                     }`}
                                             >
-                                                {label}
-                                            </span>
+                                                {ioc.value}
+                                            </p>
                                         </div>
-                                        <p
-                                            className={`font-mono text-xs break-all ${isHighValue
-                                                ? "text-red-400"
-                                                : "text-foreground"
-                                                }`}
-                                        >
-                                            {ioc.value}
-                                        </p>
+
+                                        {/* Enrich button — only shown when getAccessToken is provided */}
+                                        {getAccessToken && enrichState.status === "idle" && (
+                                            <button
+                                                data-testid={`enrich-button-${ioc.type}`}
+                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                                                onClick={() => enrich(ioc.type, ioc.value)}
+                                            >
+                                                <Search className="h-3 w-3" />
+                                                Enrich
+                                            </button>
+                                        )}
+
+                                        {/* Loading spinner */}
+                                        {enrichState.status === "loading" && (
+                                            <div
+                                                data-testid={`enrich-loading-${ioc.type}`}
+                                                className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground"
+                                            >
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <span>Enriching...</span>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {/* Row 2: Enrichment results */}
+                                    {enrichState.status === "success" && assessment && (
+                                        <div
+                                            data-testid={`enrichment-result-${ioc.type}`}
+                                            className="mt-2 space-y-2 border-t border-border/30 pt-2"
+                                        >
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                {/* Threat score */}
+                                                <div
+                                                    data-testid={`threat-score-${ioc.type}`}
+                                                    className="flex items-center gap-1.5"
+                                                >
+                                                    <span className={`text-lg font-bold ${getThreatScoreColor(assessment.threat_score)}`}>
+                                                        {assessment.threat_score}
+                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-muted-foreground leading-tight">
+                                                            /100
+                                                        </span>
+                                                        <div className="h-1 w-10 rounded-full bg-muted/40 overflow-hidden">
+                                                            <div
+                                                                className={`h-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
+                                                                style={{ width: `${assessment.threat_score}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Reputation badge */}
+                                                {(() => {
+                                                    const badge = getReputationBadge(assessment.reputation);
+                                                    return (
+                                                        <span
+                                                            data-testid={`reputation-badge-${ioc.type}`}
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+                                                        >
+                                                            {badge.label}
+                                                        </span>
+                                                    );
+                                                })()}
+
+                                                {/* Cached indicator */}
+                                                {enrichState.data.cached && (
+                                                    <span
+                                                        data-testid={`cached-badge-${ioc.type}`}
+                                                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-500"
+                                                    >
+                                                        <BadgeCheck className="h-3 w-3" />
+                                                        Cached
+                                                    </span>
+                                                )}
+
+                                                {/* Source + latency */}
+                                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                                    {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
+                                                </span>
+                                            </div>
+
+                                            {/* Expandable raw data */}
+                                            {enrichState.data.payload && (
+                                                <div>
+                                                    <button
+                                                        data-testid={`expand-raw-${ioc.type}`}
+                                                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                                        onClick={() => toggleExpanded(key)}
+                                                    >
+                                                        {isExpanded ? (
+                                                            <ChevronUp className="h-3 w-3" />
+                                                        ) : (
+                                                            <ChevronDown className="h-3 w-3" />
+                                                        )}
+                                                        {isExpanded ? "Hide" : "Show"} raw data
+                                                    </button>
+                                                    {isExpanded && (
+                                                        <pre
+                                                            data-testid={`raw-data-${ioc.type}`}
+                                                            className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-[10px] font-mono text-muted-foreground"
+                                                        >
+                                                            {JSON.stringify(enrichState.data.payload, null, 2)}
+                                                        </pre>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Row 2 (error): Error state with retry */}
+                                    {enrichState.status === "error" && (
+                                        <div
+                                            data-testid={`enrichment-error-${ioc.type}`}
+                                            className="mt-2 flex items-center gap-2 border-t border-border/30 pt-2"
+                                        >
+                                            <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                                            <span className="text-xs text-red-500 flex-1 truncate">
+                                                {enrichState.error}
+                                            </span>
+                                            <button
+                                                data-testid={`retry-button-${ioc.type}`}
+                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                                onClick={() => enrich(ioc.type, ioc.value)}
+                                            >
+                                                <RefreshCw className="h-3 w-3" />
+                                                Retry
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

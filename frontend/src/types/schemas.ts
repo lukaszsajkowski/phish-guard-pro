@@ -92,6 +92,37 @@ export interface RiskScoreBreakdown {
     components: RiskComponentScore[];
 }
 
+/**
+ * Enrichment API response (US-038)
+ */
+export interface EnrichmentResponse {
+    status: "ok" | "unavailable" | "rate_limited" | "error";
+    source: string;
+    ioc_type: string;
+    payload: Record<string, unknown> | null;
+    cached: boolean;
+    latency_ms: number;
+}
+
+/**
+ * Per-IOC enrichment state tracked by the useEnrichment hook (US-038)
+ */
+export type EnrichmentState =
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "success"; data: EnrichmentResponse }
+    | { status: "error"; error: string };
+
+/**
+ * Derived threat assessment from enrichment payload (US-038)
+ */
+export type ReputationLabel = "malicious" | "suspicious" | "clean" | "unknown";
+
+export interface ThreatAssessment {
+    threat_score: number; // 0-100
+    reputation: ReputationLabel;
+}
+
 export interface IntelDashboardData {
     session_id: string;
     attack_type: string;

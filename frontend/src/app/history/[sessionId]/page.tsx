@@ -60,6 +60,16 @@ export default function SessionDetailPage() {
     // Export state (US-030)
     const [isExporting, setIsExporting] = useState(false);
 
+    // Stable callback for enrichment hook to obtain a JWT (US-038)
+    const getAccessToken = useCallback(async (): Promise<string | null> => {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) return null;
+        const sb = createClient(supabaseUrl, supabaseAnonKey);
+        const { data: { session } } = await sb.auth.getSession();
+        return session?.access_token ?? null;
+    }, []);
+
     // Fetch session data from API
     const fetchSessionData = useCallback(async () => {
         setError(null);
@@ -390,6 +400,7 @@ export default function SessionDetailPage() {
                                                 riskScore={calculateFallbackRiskScore()}
                                                 riskScoreBreakdown={riskScoreBreakdown}
                                                 timeline={timeline}
+                                                getAccessToken={getAccessToken}
                                             />
                                         </div>
                                     </div>

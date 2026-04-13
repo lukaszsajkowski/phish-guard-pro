@@ -866,7 +866,7 @@ Acceptance Criteria:
 - No external call required for basic metadata (local parsing)
 - VoIP lines flagged as higher suspicion
 
-### US-038: Enrichment UI in Intel Dashboard ❌
+### US-038: Enrichment UI in Intel Dashboard ✅
 
 Title: Show "Enrich" action and enriched IOC card
 
