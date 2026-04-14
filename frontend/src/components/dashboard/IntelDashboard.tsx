@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
     AlertTriangle,
+    BarChart2,
     Shield,
     Target,
     Clock,
@@ -16,6 +17,8 @@ import {
     ChevronUp,
     RefreshCw,
     BadgeCheck,
+    Copy,
+    Check,
 } from "lucide-react";
 import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType, EnrichmentState, ReputationLabel } from "@/types/schemas";
 import {
@@ -23,7 +26,6 @@ import {
     IOC_LABELS,
     ATTACK_TYPE_LABELS,
     getRiskScoreColor,
-    getRiskScoreBg,
     getRiskLabel,
     getRiskScoreBarColor,
 } from "@/lib/constants/ioc";
@@ -104,6 +106,17 @@ export function IntelDashboard({
         getAccessToken ?? NOOP_TOKEN,
     );
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    const copyToClipboard = async (value: string, copyKey: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopiedKey(copyKey);
+            setTimeout(() => setCopiedKey(null), 2000);
+        } catch {
+            // clipboard not available
+        }
+    };
 
     // Track which IOCs we've already tried to auto-enrich to avoid loops
     const autoEnrichedRef = useRef<Set<string>>(new Set());
@@ -207,7 +220,8 @@ export function IntelDashboard({
                         No IOCs extracted yet.
                     </p>
                 ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="relative">
+                    <div className="space-y-2 max-h-64 overflow-y-auto pb-2">
                         {iocs.map((ioc, index) => {
                             const Icon = IOC_ICONS[ioc.type] || Link;
                             const label = IOC_LABELS[ioc.type] || ioc.type.toUpperCase();
@@ -251,14 +265,27 @@ export function IntelDashboard({
                                                     {label}
                                                 </span>
                                             </div>
-                                            <p
-                                                className={`font-mono text-xs break-all ${isHighValue
-                                                    ? "text-red-400"
-                                                    : "text-foreground"
-                                                    }`}
-                                            >
-                                                {ioc.value}
-                                            </p>
+                                            <div className="flex items-start gap-1">
+                                                <p
+                                                    className={`font-mono text-xs break-all flex-1 ${isHighValue
+                                                        ? "text-red-400"
+                                                        : "text-foreground"
+                                                        }`}
+                                                >
+                                                    {ioc.value}
+                                                </p>
+                                                <button
+                                                    title="Copy to clipboard"
+                                                    className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                                                    onClick={() => copyToClipboard(ioc.value, key)}
+                                                >
+                                                    {copiedKey === key ? (
+                                                        <Check className="h-3 w-3 text-green-500" />
+                                                    ) : (
+                                                        <Copy className="h-3 w-3" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
 
                                         {/* Enrich button — only shown when getAccessToken is provided and
@@ -290,22 +317,21 @@ export function IntelDashboard({
                                     {enrichState.status === "success" && assessment && (
                                         <div
                                             data-testid={`enrichment-result-${ioc.type}`}
-                                            className="mt-2 space-y-2 border-t border-border/30 pt-2"
+                                            className="mt-2 space-y-1.5 border-t border-border/30 pt-2"
                                         >
-                                            <div className="flex items-center gap-3 flex-wrap">
+                                            {/* Sub-row A: score + reputation + cached + refresh */}
+                                            <div className="flex items-center gap-2">
                                                 {/* Threat score */}
                                                 <div
                                                     data-testid={`threat-score-${ioc.type}`}
                                                     className="flex items-center gap-1.5"
                                                 >
-                                                    <span className={`text-lg font-bold ${getThreatScoreColor(assessment.threat_score)}`}>
+                                                    <span className={`text-xl font-bold leading-none ${getThreatScoreColor(assessment.threat_score)}`}>
                                                         {assessment.threat_score}
                                                     </span>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-muted-foreground leading-tight">
-                                                            /100
-                                                        </span>
-                                                        <div className="h-1 w-10 rounded-full bg-muted/40 overflow-hidden">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs text-muted-foreground leading-none">/100</span>
+                                                        <div className="h-1 w-8 rounded-full bg-muted/40 overflow-hidden">
                                                             <div
                                                                 className={`h-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
                                                                 style={{ width: `${assessment.threat_score}%` }}
@@ -320,7 +346,7 @@ export function IntelDashboard({
                                                     return (
                                                         <span
                                                             data-testid={`reputation-badge-${ioc.type}`}
-                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${badge.className}`}
                                                         >
                                                             {badge.label}
                                                         </span>
@@ -331,7 +357,7 @@ export function IntelDashboard({
                                                 {enrichState.data.cached && (
                                                     <span
                                                         data-testid={`cached-badge-${ioc.type}`}
-                                                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-500"
+                                                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500"
                                                     >
                                                         <BadgeCheck className="h-3 w-3" />
                                                         Cached
@@ -342,16 +368,16 @@ export function IntelDashboard({
                                                 <button
                                                     data-testid={`refresh-button-${ioc.type}`}
                                                     title="Force refresh (bypass cache)"
-                                                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                                                    className="ml-auto inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                                                     onClick={() => enrich(ioc.type, ioc.value, true)}
                                                 >
                                                     <RefreshCw className="h-3 w-3" />
                                                 </button>
+                                            </div>
 
-                                                {/* Source + latency */}
-                                                <span className="text-[10px] text-muted-foreground ml-auto">
-                                                    {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
-                                                </span>
+                                            {/* Sub-row B: source + latency */}
+                                            <div className="text-xs text-muted-foreground">
+                                                {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                             </div>
 
                                             {/* Expandable raw data */}
@@ -359,7 +385,7 @@ export function IntelDashboard({
                                                 <div>
                                                     <button
                                                         data-testid={`expand-raw-${ioc.type}`}
-                                                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                                         onClick={() => toggleExpanded(key)}
                                                     >
                                                         {isExpanded ? (
@@ -372,7 +398,7 @@ export function IntelDashboard({
                                                     {isExpanded && (
                                                         <pre
                                                             data-testid={`raw-data-${ioc.type}`}
-                                                            className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-[10px] font-mono text-muted-foreground"
+                                                            className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-xs font-mono text-muted-foreground"
                                                         >
                                                             {JSON.stringify(enrichState.data.payload, null, 2)}
                                                         </pre>
@@ -397,7 +423,7 @@ export function IntelDashboard({
                                             </span>
                                             <button
                                                 data-testid={`retry-button-${ioc.type}`}
-                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                                                 onClick={() => enrich(ioc.type, ioc.value)}
                                             >
                                                 <RefreshCw className="h-3 w-3" />
@@ -409,13 +435,17 @@ export function IntelDashboard({
                             );
                         })}
                     </div>
+                    {iocs.length > 5 && (
+                        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent" />
+                    )}
+                    </div>
                 )}
             </div>
 
             {/* Section 3: Risk Score (US-032 Enhanced with breakdown) */}
             <div data-testid="risk-score-section">
                 <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Risk Score
                     </span>
@@ -468,7 +498,7 @@ export function IntelDashboard({
                         No events yet.
                     </p>
                 ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                         {timeline.map((event, index) => {
                             const eventTime = new Date(event.timestamp);
                             const timeAgo = formatDistanceToNow(eventTime, { addSuffix: true });
@@ -488,6 +518,10 @@ export function IntelDashboard({
                                         </p>
                                         <p className="text-muted-foreground mt-0.5">
                                             {timeAgo}
+                                            <span className="mx-1">&middot;</span>
+                                            <span title={eventTime.toLocaleString()}>
+                                                {eventTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                            </span>
                                         </p>
                                     </div>
                                 </div>

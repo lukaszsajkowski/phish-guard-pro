@@ -101,8 +101,16 @@ describe("RiskScoreBreakdown Component", () => {
             expect(score).toHaveClass("text-green-500");
         });
 
-        it("shows yellow color for medium risk (score 4-6)", () => {
+        it("shows orange color for medium risk (score 5-7)", () => {
             const breakdown = createMockBreakdown(5.0, "medium");
+            render(<RiskScoreBreakdown breakdown={breakdown} />);
+
+            const score = screen.getByTestId("total-score");
+            expect(score).toHaveClass("text-orange-500");
+        });
+
+        it("shows yellow color for mid-low risk (score 3-4)", () => {
+            const breakdown = createMockBreakdown(4.0, "medium");
             render(<RiskScoreBreakdown breakdown={breakdown} />);
 
             const score = screen.getByTestId("total-score");
@@ -202,10 +210,11 @@ describe("RiskScoreBreakdown Component", () => {
 
             await userEvent.click(screen.getByTestId("breakdown-toggle"));
 
-            // Check weight percentages are displayed
-            expect(screen.getAllByText("(25%)")).toHaveLength(2); // attack_severity and ioc_quality
-            expect(screen.getAllByText("(15%)")).toHaveLength(2); // ioc_quantity and scammer_engagement
-            expect(screen.getAllByText("(10%)")).toHaveLength(2); // urgency and personalization
+            // Check weight percentages are displayed (per RISK_COMPONENT_WEIGHTS constant)
+            expect(screen.getAllByText("(25%)")).toHaveLength(1); // attack_severity
+            expect(screen.getAllByText("(20%)")).toHaveLength(1); // ioc_quality
+            expect(screen.getAllByText("(15%)")).toHaveLength(3); // ioc_quantity, scammer_engagement, urgency_tactics
+            expect(screen.getAllByText("(10%)")).toHaveLength(1); // personalization
         });
 
         it("shows component labels", async () => {
