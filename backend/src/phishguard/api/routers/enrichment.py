@@ -70,6 +70,7 @@ async def enrich_ioc(
     ioc_type: str,
     value: str,
     user_id: Annotated[str, Depends(get_current_user_id)],
+    refresh: bool = False,
 ) -> EnrichmentResponse:
     """Enrich a single IOC value.
 
@@ -77,6 +78,7 @@ async def enrich_ioc(
         ioc_type: The IOC type (e.g. ``btc``, ``url``, ``phone``).
         value: The raw IOC value to enrich.
         user_id: Authenticated user (from JWT).
+        refresh: Whether to bypass cache and fetch fresh data.
 
     Returns:
         EnrichmentResponse with source-specific payload.
@@ -92,14 +94,15 @@ async def enrich_ioc(
         )
 
     svc = _get_enrichment_service()
-    result: EnrichmentResult = await svc.enrich(ioc_type, value)
+    result: EnrichmentResult = await svc.enrich(ioc_type, value, force_refresh=refresh)
 
     logger.info(
-        "Enrichment request by user %s for %s (status=%s, cached=%s)",
+        "Enrichment request by user %s for %s (status=%s, cached=%s, refresh=%s)",
         user_id,
         ioc_type,
         result.status,
         result.cached,
+        refresh,
     )
 
     return EnrichmentResponse(

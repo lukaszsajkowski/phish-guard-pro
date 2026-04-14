@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -40,6 +40,11 @@ interface IntelDashboardProps {
     isLoading?: boolean;
     /** When provided, enables the "Enrich" button on each IOC card. */
     getAccessToken?: () => Promise<string | null>;
+    /**
+     * When true, auto-enrich ALL IOC types on load (not just BTC).
+     * Use in history view where cached enrichment data should be restored.
+     */
+    autoEnrichAll?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +97,7 @@ export function IntelDashboard({
     timeline = [],
     isLoading = false,
     getAccessToken,
+    autoEnrichAll = false,
 }: IntelDashboardProps) {
     const highValueCount = iocs.filter((ioc) => ioc.is_high_value).length;
     const { enrichmentStates, enrich, getKey } = useEnrichment(
@@ -99,8 +105,31 @@ export function IntelDashboard({
     );
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
 
+    // Track which IOCs we've already tried to auto-enrich to avoid loops
+    const autoEnrichedRef = useRef<Set<string>>(new Set());
+
     const toggleExpanded = (key: string) =>
         setExpandedKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+
+    // US-038: Auto-enrich IOCs when they first appear.
+    // In live mode: only BTC wallets. In history mode (autoEnrichAll): all types,
+    // so that previously cached enrichment results are restored immediately.
+    useEffect(() => {
+        if (!getAccessToken) return;
+
+        iocs.forEach((ioc) => {
+            const key = getKey(ioc.type, ioc.value);
+            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet";
+            if (
+                shouldAutoEnrich &&
+                !autoEnrichedRef.current.has(key) &&
+                !enrichmentStates[key]
+            ) {
+                autoEnrichedRef.current.add(key);
+                enrich(ioc.type, ioc.value);
+            }
+        });
+    }, [iocs, getAccessToken, enrich, getKey, enrichmentStates, autoEnrichAll]);
 
     return (
         <div
@@ -232,8 +261,9 @@ export function IntelDashboard({
                                             </p>
                                         </div>
 
-                                        {/* Enrich button — only shown when getAccessToken is provided */}
-                                        {getAccessToken && enrichState.status === "idle" && (
+                                        {/* Enrich button — only shown when getAccessToken is provided and
+                                            not in autoEnrichAll mode where unsupported types silently skip */}
+                                        {getAccessToken && enrichState.status === "idle" && !autoEnrichAll && (
                                             <button
                                                 data-testid={`enrich-button-${ioc.type}`}
                                                 className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -308,6 +338,16 @@ export function IntelDashboard({
                                                     </span>
                                                 )}
 
+                                                {/* Refresh button */}
+                                                <button
+                                                    data-testid={`refresh-button-${ioc.type}`}
+                                                    title="Force refresh (bypass cache)"
+                                                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                                                    onClick={() => enrich(ioc.type, ioc.value, true)}
+                                                >
+                                                    <RefreshCw className="h-3 w-3" />
+                                                </button>
+
                                                 {/* Source + latency */}
                                                 <span className="text-[10px] text-muted-foreground ml-auto">
                                                     {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
@@ -342,8 +382,11 @@ export function IntelDashboard({
                                         </div>
                                     )}
 
-                                    {/* Row 2 (error): Error state with retry */}
-                                    {enrichState.status === "error" && (
+                                    {/* Row 2 (error): Error state with retry.
+                                        In autoEnrichAll mode, "Unsupported IOC type" is expected for
+                                        non-BTC IOCs — suppress the error to keep the view clean. */}
+                                    {enrichState.status === "error" &&
+                                        !(autoEnrichAll && enrichState.error === "Unsupported IOC type") && (
                                         <div
                                             data-testid={`enrichment-error-${ioc.type}`}
                                             className="mt-2 flex items-center gap-2 border-t border-border/30 pt-2"

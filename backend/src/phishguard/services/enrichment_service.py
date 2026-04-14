@@ -169,6 +169,7 @@ class EnrichmentService:
         value: str,
         *,
         ioc_id: str | None = None,
+        force_refresh: bool = False,
     ) -> EnrichmentResult:
         """Enrich a single IOC.
 
@@ -179,6 +180,8 @@ class EnrichmentService:
                 write links the enrichment row to the session's IOC; when not,
                 the row is stored as a server-internal cache entry (RLS keeps
                 it invisible to end users).
+            force_refresh: If True, bypass the cache and fetch fresh data from
+                the source.
 
         Returns:
             ``EnrichmentResult`` with ``status`` in ``{ok, unavailable,
@@ -203,24 +206,25 @@ class EnrichmentService:
             return result
 
         # Cache read-through
-        cached_row = self._read_cache(source.name, ioc_type, value_hash)
-        if cached_row is not None:
-            fetched_at = _parse_timestamp(cached_row.get("fetched_at"))
-            if fetched_at is not None and self._clock() - fetched_at <= self._ttl_for(
-                ioc_type
-            ):
-                result = EnrichmentResult(
-                    status=cached_row.get("status", "ok"),
-                    source=source.name,
-                    ioc_type=ioc_type,
-                    value=value,
-                    payload=cached_row.get("payload"),
-                    fetched_at=fetched_at,
-                    cached=True,
-                    latency_ms=int((time.monotonic() - start) * 1000),
-                )
-                self._log(result, value_hash, cache_hit=True)
-                return result
+        if not force_refresh:
+            cached_row = self._read_cache(source.name, ioc_type, value_hash)
+            if cached_row is not None:
+                fetched_at = _parse_timestamp(cached_row.get("fetched_at"))
+                if fetched_at is not None and self._clock() - fetched_at <= self._ttl_for(
+                    ioc_type
+                ):
+                    result = EnrichmentResult(
+                        status=cached_row.get("status", "ok"),
+                        source=source.name,
+                        ioc_type=ioc_type,
+                        value=value,
+                        payload=cached_row.get("payload"),
+                        fetched_at=fetched_at,
+                        cached=True,
+                        latency_ms=int((time.monotonic() - start) * 1000),
+                    )
+                    self._log(result, value_hash, cache_hit=True)
+                    return result
 
         # Rate limit check
         if not self._rate_limiter.check(source.name, source.rate_limit):

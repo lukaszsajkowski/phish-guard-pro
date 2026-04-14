@@ -401,6 +401,7 @@ export default function SessionDetailPage() {
                                                 riskScoreBreakdown={riskScoreBreakdown}
                                                 timeline={timeline}
                                                 getAccessToken={getAccessToken}
+                                                autoEnrichAll
                                             />
                                         </div>
                                     </div>
