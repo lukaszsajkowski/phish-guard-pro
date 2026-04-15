@@ -1,0 +1,3 @@
+## 2024-05-15 - Add ARIA Labels and Focus States to Action Buttons
+**Learning:** Found raw `<button>` elements in interactive components (like ChatMessage.tsx) being used instead of standard UI library `<Button>`s. These raw elements lacked proper keyboard navigation visibility (focus rings) and descriptive ARIA labels, hurting accessibility for screen readers and keyboard users.
+**Action:** Always verify focus-visible styles and aria-labels on bare `<button>` tags when exploring interactive components. Adding `focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none` improves keyboard a11y dramatically.

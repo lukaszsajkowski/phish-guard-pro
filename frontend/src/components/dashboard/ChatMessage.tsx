@@ -295,8 +295,9 @@ export function ChatMessage({
                         {canEdit && (
                             <button
                                 onClick={handleEdit}
-                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                                 data-testid="edit-response-button"
+                                aria-label="Edit message"
                             >
                                 <Pencil className="w-3.5 h-3.5" />
                                 <span>Edit</span>
@@ -306,8 +307,9 @@ export function ChatMessage({
                         {/* Copy button */}
                         <button
                             onClick={handleCopy}
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                             data-testid="copy-response-button"
+                            aria-label="Copy message to clipboard"
                         >
                             {copied ? (
                                 <>
