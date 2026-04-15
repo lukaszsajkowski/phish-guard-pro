@@ -484,3 +484,122 @@ class TestIOCQualityScores:
     def test_url_score(self) -> None:
         """URL has quality score 3."""
         assert IOC_QUALITY_SCORES["url"] == 3
+
+
+class TestIOCQualityWithEnrichment:
+    """Tests for US-040: enrichment reputation multiplier on IOC Quality."""
+
+    @pytest.fixture
+    def calculator(self) -> RiskScoreCalculator:
+        return RiskScoreCalculator()
+
+    def test_malicious_multiplier_raises_score(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Malicious reputation (×1.5) raises IOC Quality above unenriched baseline."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q"}]
+        enriched = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"bc1q": "malicious"}
+        )
+        plain = calculator.calculate("ceo_fraud", iocs)
+        assert (
+            enriched.get_component(RiskComponent.IOC_QUALITY).raw_score
+            >= plain.get_component(RiskComponent.IOC_QUALITY).raw_score
+        )
+
+    def test_clean_multiplier_lowers_score(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Clean reputation (×0.8) lowers IOC Quality below unenriched baseline."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q"}]
+        enriched = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"bc1q": "clean"}
+        )
+        plain = calculator.calculate("ceo_fraud", iocs)
+        assert (
+            enriched.get_component(RiskComponent.IOC_QUALITY).raw_score
+            < plain.get_component(RiskComponent.IOC_QUALITY).raw_score
+        )
+
+    def test_score_ordering_malicious_gt_plain_gt_clean(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Score ordering: malicious > no enrichment > clean."""
+        iocs = [{"type": "url", "value": "http://evil.example"}]
+        s_malicious = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "malicious"}
+        ).get_component(RiskComponent.IOC_QUALITY).raw_score
+        s_plain = calculator.calculate("ceo_fraud", iocs).get_component(
+            RiskComponent.IOC_QUALITY
+        ).raw_score
+        s_clean = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "clean"}
+        ).get_component(RiskComponent.IOC_QUALITY).raw_score
+        assert s_malicious > s_plain > s_clean
+
+    def test_missing_key_falls_back_to_1x(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """IOC value absent from enrichment map uses ×1.0 — no exception."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q_unknown"}]
+        enriched = calculator.calculate(
+            "ceo_fraud",
+            iocs,
+            ioc_enrichment={"some_other_value": "malicious"},
+        )
+        plain = calculator.calculate("ceo_fraud", iocs)
+        assert (
+            enriched.get_component(RiskComponent.IOC_QUALITY).raw_score
+            == plain.get_component(RiskComponent.IOC_QUALITY).raw_score
+        )
+
+    def test_cap_at_ten_with_malicious(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """IOC Quality score never exceeds 10.0 even with ×1.5 multiplier."""
+        iocs = [
+            {"type": "btc_wallet", "value": "bc1q"},
+            {"type": "iban", "value": "DE89"},
+        ]
+        result = calculator.calculate(
+            "ceo_fraud",
+            iocs,
+            ioc_enrichment={"bc1q": "malicious", "DE89": "malicious"},
+        )
+        assert result.get_component(RiskComponent.IOC_QUALITY).raw_score <= 10.0
+
+    def test_none_enrichment_backward_compatible(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Passing ioc_enrichment=None gives identical result to omitting param."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q"}, {"type": "iban", "value": "DE89"}]
+        result_none = calculator.calculate("ceo_fraud", iocs, ioc_enrichment=None)
+        result_omit = calculator.calculate("ceo_fraud", iocs)
+        assert result_none.get_component(RiskComponent.IOC_QUALITY).raw_score == pytest.approx(
+            result_omit.get_component(RiskComponent.IOC_QUALITY).raw_score
+        )
+
+    def test_enrichment_shown_in_explanation(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Explanation includes enrichment annotation when multiplier != 1.0."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q"}]
+        result = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"bc1q": "malicious"}
+        )
+        explanation = result.get_component(RiskComponent.IOC_QUALITY).explanation
+        assert "enrichment" in explanation.lower()
+        assert "malicious" in explanation.lower()
+
+    def test_unknown_reputation_is_neutral(
+        self, calculator: RiskScoreCalculator
+    ) -> None:
+        """Explicit 'unknown' reputation uses ×1.0 — same as unenriched."""
+        iocs = [{"type": "btc_wallet", "value": "bc1q"}]
+        enriched = calculator.calculate(
+            "ceo_fraud", iocs, ioc_enrichment={"bc1q": "unknown"}
+        )
+        plain = calculator.calculate("ceo_fraud", iocs)
+        assert enriched.get_component(RiskComponent.IOC_QUALITY).raw_score == pytest.approx(
+            plain.get_component(RiskComponent.IOC_QUALITY).raw_score
+        )

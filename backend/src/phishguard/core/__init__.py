@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     openai_primary_model: str = "gpt-4o"
     openai_fallback_model: str = "gpt-4o-mini"
 
+    # IOC Enrichment API keys (optional — enrichment degrades gracefully when absent)
+    bitcoinabuse_api_key: str = ""
+    virustotal_api_key: str = ""
+
     # Application
     debug: bool = False
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

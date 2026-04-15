@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, Zap } from "lucide-react";
 import type { RiskScoreBreakdown as RiskScoreBreakdownType } from "@/types/schemas";
 import {
     RISK_COMPONENT_LABELS,
@@ -25,10 +25,13 @@ import { cn } from "@/lib/utils";
 interface RiskScoreBreakdownProps {
     breakdown: RiskScoreBreakdownType;
     isLoading?: boolean;
+    /** US-040: When true, shows CTA to enrich IOCs for a more accurate score. */
+    hasUnenrichedIOCs?: boolean;
 }
 
 export function RiskScoreBreakdown({
     breakdown,
+    hasUnenrichedIOCs = false,
 }: RiskScoreBreakdownProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -45,13 +48,8 @@ export function RiskScoreBreakdown({
     return (
         <Card
             className={cn(
-                "overflow-hidden transition-all duration-300 border-l-4",
+                "overflow-hidden transition-all duration-300 border-l-4 bg-card",
                 getRiskLevelBorder(riskLevel),
-                riskLevel === "high"
-                    ? "bg-red-50/10 dark:bg-red-950/10"
-                    : riskLevel === "medium"
-                        ? "bg-yellow-50/10 dark:bg-yellow-950/10"
-                        : "bg-card"
             )}
         >
             <div className="w-full flex flex-col">
@@ -116,10 +114,10 @@ export function RiskScoreBreakdown({
 
                         {/* Total score progress bar */}
                         <div className="space-y-1.5 mt-2">
-                            <div className="h-2.5 bg-secondary/50 rounded-full overflow-hidden shadow-inner">
+                            <div className="h-2.5 bg-secondary/50 rounded-full overflow-hidden">
                                 <div
                                     data-testid="total-score-bar"
-                                    className={`h-full transition-all duration-700 ease-out rounded-full shadow-sm ${getRiskScoreBarColor(totalScore)}`}
+                                    className={`h-full transition-all duration-700 ease-out rounded-full ${getRiskScoreBarColor(totalScore)}`}
                                     style={{ width: `${(totalScore / 10) * 100}%` }}
                                 />
                             </div>
@@ -177,6 +175,16 @@ export function RiskScoreBreakdown({
                                 );
                             })}
                         </div>
+
+                        {/* US-040: CTA when unenriched IOCs could improve score accuracy */}
+                        {hasUnenrichedIOCs && (
+                            <div className="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/20 p-3 text-xs text-primary/80">
+                                <Zap className="h-4 w-4 shrink-0 text-primary/60" />
+                                <p>
+                                    Enrich IOCs to refine score accuracy — reputation data affects the IOC Quality component.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Info footer */}
                         <div className="flex items-center gap-2 rounded-md bg-muted/30 p-3 text-xs text-muted-foreground">

@@ -116,6 +116,26 @@ class InMemoryRateLimiter:
         day_window.append(now)
         return True
 
+    def get_usage(self, source_name: str) -> tuple[int, int]:
+        """Return ``(minute_count, day_count)`` for *source_name*.
+
+        Prunes expired entries before counting so the numbers reflect the
+        current sliding window — same semantics as ``check`` but read-only.
+        """
+        now = time.monotonic()
+        minute_cutoff = now - 60
+        day_cutoff = now - 86400
+
+        minute_window = self._minute_windows.get(source_name, deque())
+        day_window = self._day_windows.get(source_name, deque())
+
+        while minute_window and minute_window[0] < minute_cutoff:
+            minute_window.popleft()
+        while day_window and day_window[0] < day_cutoff:
+            day_window.popleft()
+
+        return len(minute_window), len(day_window)
+
 
 def _hash_value(value: str) -> str:
     """Stable short hash for cache keys and log lines.

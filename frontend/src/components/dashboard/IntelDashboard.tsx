@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -47,6 +47,11 @@ interface IntelDashboardProps {
      * Use in history view where cached enrichment data should be restored.
      */
     autoEnrichAll?: boolean;
+    /**
+     * US-040: Called after any IOC enrichment succeeds, so the parent can
+     * re-fetch the risk score breakdown (which now incorporates reputation data).
+     */
+    onEnrichmentComplete?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +105,7 @@ export function IntelDashboard({
     isLoading = false,
     getAccessToken,
     autoEnrichAll = false,
+    onEnrichmentComplete,
 }: IntelDashboardProps) {
     const highValueCount = iocs.filter((ioc) => ioc.is_high_value).length;
     const { enrichmentStates, enrich, getKey } = useEnrichment(
@@ -121,18 +127,36 @@ export function IntelDashboard({
     // Track which IOCs we've already tried to auto-enrich to avoid loops
     const autoEnrichedRef = useRef<Set<string>>(new Set());
 
+    // US-040: Re-fetch risk score after any enrichment succeeds, so the
+    // breakdown reflects updated IOC reputation multipliers.
+    const prevEnrichStatesRef = useRef<Record<string, EnrichmentState>>({});
+    const stableOnEnrichmentComplete = useCallback(() => {
+        onEnrichmentComplete?.();
+    }, [onEnrichmentComplete]);
+    useEffect(() => {
+        const newSuccesses = Object.entries(enrichmentStates).filter(
+            ([key, state]) =>
+                state.status === "success" &&
+                prevEnrichStatesRef.current[key]?.status !== "success",
+        );
+        if (newSuccesses.length > 0) {
+            stableOnEnrichmentComplete();
+        }
+        prevEnrichStatesRef.current = enrichmentStates;
+    }, [enrichmentStates, stableOnEnrichmentComplete]);
+
     const toggleExpanded = (key: string) =>
         setExpandedKeys((prev) => ({ ...prev, [key]: !prev[key] }));
 
-    // US-038: Auto-enrich IOCs when they first appear.
-    // In live mode: only BTC wallets. In history mode (autoEnrichAll): all types,
+    // US-038/US-035: Auto-enrich IOCs when they first appear.
+    // In live mode: BTC wallets and URLs (VirusTotal). In history mode (autoEnrichAll): all types,
     // so that previously cached enrichment results are restored immediately.
     useEffect(() => {
         if (!getAccessToken) return;
 
         iocs.forEach((ioc) => {
             const key = getKey(ioc.type, ioc.value);
-            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet";
+            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet" || ioc.type === "url";
             if (
                 shouldAutoEnrich &&
                 !autoEnrichedRef.current.has(key) &&
@@ -243,7 +267,7 @@ export function IntelDashboard({
                                     data-testid={`ioc-item-${ioc.type}`}
                                     className={`rounded-md p-2 text-sm ${isHighValue
                                         ? "bg-red-500/5 border border-red-500/20"
-                                        : "bg-muted/30"
+                                        : "bg-muted/30 border border-border/40"
                                         }`}
                                 >
                                     {/* Row 1: icon + label + value + enrich button */}
@@ -456,6 +480,12 @@ export function IntelDashboard({
                     <RiskScoreBreakdown
                         breakdown={riskScoreBreakdown}
                         isLoading={isLoading}
+                        hasUnenrichedIOCs={getAccessToken != null && iocs.some(
+                            (ioc) => {
+                                const state = enrichmentStates[getKey(ioc.type, ioc.value)];
+                                return !state || state.status === "error";
+                            }
+                        )}
                     />
                 ) : (
                     <div className="flex items-center gap-3">

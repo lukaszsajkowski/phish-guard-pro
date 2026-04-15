@@ -520,6 +520,46 @@ async def get_session_enhanced_risk_score(
     # Get IOCs
     iocs = await get_session_iocs(session_id)
 
+    # US-040: Build enrichment map (ioc_value → best reputation label).
+    # Queries ioc_enrichment for all IOC IDs in this session, picks the most
+    # severe reputation across all sources per IOC.
+    ioc_enrichment_map: dict[str, str] | None = None
+    ioc_ids = [ioc["id"] for ioc in iocs if ioc.get("id")]
+    if ioc_ids:
+        try:
+            supabase = _get_supabase_client()
+            enrich_resp = (
+                supabase.table("ioc_enrichment")
+                .select("ioc_id, payload")
+                .in_("ioc_id", ioc_ids)
+                .eq("status", "ok")
+                .execute()
+            )
+            enrich_rows = enrich_resp.data or []
+
+            # Severity ranking — higher number wins when multiple sources disagree
+            _SEVERITY: dict[str, int] = {
+                "malicious": 3,
+                "suspicious": 2,
+                "clean": 1,
+                "unknown": 0,
+            }
+            id_to_rep: dict[str, str] = {}
+            for row in enrich_rows:
+                iid = row.get("ioc_id")
+                rep = (row.get("payload") or {}).get("reputation", "unknown")
+                if _SEVERITY.get(rep, 0) > _SEVERITY.get(id_to_rep.get(iid, ""), 0):
+                    id_to_rep[iid] = rep
+
+            if id_to_rep:
+                ioc_enrichment_map = {
+                    ioc["value"]: id_to_rep[ioc["id"]]
+                    for ioc in iocs
+                    if ioc.get("id") in id_to_rep and ioc.get("value")
+                }
+        except Exception:  # noqa: BLE001 - enrichment failures must not block risk score
+            pass
+
     # Get scammer messages
     messages = await get_session_messages(session_id)
     scammer_messages = [
@@ -532,6 +572,7 @@ async def get_session_enhanced_risk_score(
         scammer_messages=scammer_messages,
         victim_name=victim_name,
         victim_first_name=victim_first_name,
+        ioc_enrichment=ioc_enrichment_map,
     )
 
 

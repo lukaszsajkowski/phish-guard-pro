@@ -823,7 +823,7 @@ Acceptance Criteria:
 - Data stored via Enrichment Service (US-033)
 - Error when wallet invalid → reputation: `unknown`
 
-### US-035: URL/Domain Enrichment (VirusTotal) ❌
+### US-035: URL/Domain Enrichment (VirusTotal) ✅
 
 Title: Enrich URLs and domains with VirusTotal data
 
@@ -896,6 +896,58 @@ Acceptance Criteria:
 - CSV export (US-020) adds columns: `threat_score`, `reputation`, `source`
 - Unenriched IOCs export with empty enrichment fields (no errors)
 - Export E2E test covers both enriched and plain IOCs
+
+### US-040: Enrichment-Boosted IOC Quality Score ✅
+
+Title: Incorporate threat reputation into IOC Quality risk component
+
+Description: As a security researcher, I want the IOC Quality component of
+the risk score to reflect actual threat intelligence reputation from enrichment
+data, so that a confirmed-malicious BTC wallet or VT-flagged URL raises the
+threat score proportionally — making the risk score more accurate and
+actionable.
+
+Acceptance Criteria:
+
+- IOC Quality calculation gains a **reputation multiplier** applied per-IOC
+  when enrichment data is available:
+
+  | Reputation label  | Multiplier | Example trigger                         |
+  | ----------------- | ---------- | --------------------------------------- |
+  | `malicious`       | ×1.5       | BTC abuse reports > 5, VT ratio ≥ 50%  |
+  | `suspicious`      | ×1.25      | BTC abuse reports 1–5, VT ratio 10–49% |
+  | `clean`           | ×0.8       | VT 0 detections, 0 abuse reports       |
+  | `unknown` / none  | ×1.0       | No enrichment data available            |
+
+- Multiplier is applied to the per-IOC base score before summing IOC Quality
+  total; final IOC Quality score still capped at 10
+- If no IOCs are enriched, score is 100% backward compatible with US-032
+  (multiplier = 1.0 for all → identical result)
+- Risk Score Breakdown panel reflects the change:
+  - IOC Quality row expandable → each IOC shows base score + enrichment
+    modifier + resulting contribution
+  - Enriched IOCs display reputation badge inline (matching US-038 badges)
+  - Total contribution labelled "IOC Quality (enrichment applied)" when at
+    least one IOC has enrichment data
+- Risk Score recalculates automatically in the frontend after enrichment
+  completes (Intel Dashboard re-fetches `/api/intel/{session_id}` score on
+  enrichment success callback)
+- "Enrich IOCs to refine score accuracy" CTA shown inside breakdown panel
+  when at least one IOC has no enrichment data yet
+- Backend changes:
+  - `RiskScoreInput` model gains optional `ioc_enrichment: dict[str, str]`
+    mapping `ioc_value → reputation_label`
+  - `calculate_ioc_quality_score()` accepts enrichment map; falls back to
+    ×1.0 when key absent
+  - `session_service.get_session_enhanced_risk_score()` queries
+    `ioc_enrichment` table and passes labels into calculator
+- Unit tests:
+  - Score with all IOCs `malicious` > score with no enrichment > score with
+    all IOCs `clean`
+  - Missing enrichment entry → ×1.0 fallback (no exception)
+  - IOC Quality cap at 10 respected even with high multipliers
+- Integration test: enrich a BTC IOC → trigger risk score recalculation →
+  assert higher score returned
 
 ---
 

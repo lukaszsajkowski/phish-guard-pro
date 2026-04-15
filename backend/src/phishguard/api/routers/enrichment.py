@@ -3,6 +3,8 @@
 Exposes IOC enrichment results via the ``EnrichmentService``.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated, Any
 
@@ -12,6 +14,7 @@ from pydantic import BaseModel, Field
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.services.enrichment_service import EnrichmentResult, EnrichmentService
 from phishguard.services.sources.btc_source import BtcEnrichmentSource
+from phishguard.services.sources.vt_source import VirusTotalSource
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,8 @@ def _get_enrichment_service() -> EnrichmentService:
     global _enrichment_service  # noqa: PLW0603
     if _enrichment_service is None:
         btc_source = BtcEnrichmentSource()
-        _enrichment_service = EnrichmentService(sources=[btc_source])
+        vt_source = VirusTotalSource()
+        _enrichment_service = EnrichmentService(sources=[btc_source, vt_source])
     return _enrichment_service
 
 
@@ -51,19 +55,65 @@ class EnrichmentResponse(BaseModel):
     latency_ms: int = Field(0, description="Round-trip time in milliseconds")
 
 
+class QuotaResponse(BaseModel):
+    """Rate-limit quota status for an enrichment source."""
+
+    source: str
+    requests_used_minute: int
+    requests_used_day: int
+    limit_per_minute: int
+    limit_per_day: int
+    available_day: int
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
 
 @router.get(
-    "/{ioc_type}/{value}",
+    "/quota",
+    response_model=list[QuotaResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get enrichment source rate-limit quota",
+    description=(
+        "Returns current rate-limit usage for all registered enrichment sources."
+    ),
+)
+async def get_enrichment_quota(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> list[QuotaResponse]:
+    svc = _get_enrichment_service()
+    limiter = svc._rate_limiter
+
+    seen: set[str] = set()
+    results: list[QuotaResponse] = []
+    for source in svc._sources_by_type.values():
+        if source.name in seen:
+            continue
+        seen.add(source.name)
+        minute_used, day_used = limiter.get_usage(source.name)
+        results.append(
+            QuotaResponse(
+                source=source.name,
+                requests_used_minute=minute_used,
+                requests_used_day=day_used,
+                limit_per_minute=source.rate_limit.requests_per_minute,
+                limit_per_day=source.rate_limit.requests_per_day,
+                available_day=max(0, source.rate_limit.requests_per_day - day_used),
+            )
+        )
+    return results
+
+
+@router.get(
+    "/{ioc_type}/{value:path}",
     response_model=EnrichmentResponse,
     status_code=status.HTTP_200_OK,
     summary="Enrich an IOC value",
     description=(
-        "Look up enrichment data for an IOC. Currently supports ioc_type='btc' "
-        "(Bitcoin wallet enrichment via mempool.space + bitcoinabuse)."
+        "Look up enrichment data for an IOC. Supports ioc_type='btc' "
+        "(Bitcoin wallet), 'url' and 'domain' (VirusTotal)."
     ),
 )
 async def enrich_ioc(
@@ -75,7 +125,7 @@ async def enrich_ioc(
     """Enrich a single IOC value.
 
     Args:
-        ioc_type: The IOC type (e.g. ``btc``, ``url``, ``phone``).
+        ioc_type: The IOC type (e.g. ``btc``, ``url``, ``domain``).
         value: The raw IOC value to enrich.
         user_id: Authenticated user (from JWT).
         refresh: Whether to bypass cache and fetch fresh data.
@@ -83,7 +133,7 @@ async def enrich_ioc(
     Returns:
         EnrichmentResponse with source-specific payload.
     """
-    allowed_types = {"btc"}  # Expand as US-035..US-037 land
+    allowed_types = {"btc", "url", "domain"}
     if ioc_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

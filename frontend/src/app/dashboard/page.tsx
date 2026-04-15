@@ -1053,6 +1053,7 @@ function DashboardContent() {
                                                             riskScoreBreakdown={riskScoreBreakdown}
                                                             timeline={timelineEvents}
                                                             getAccessToken={getAccessToken}
+                                                            onEnrichmentComplete={() => { if (sessionId) fetchIntelDashboard(sessionId); }}
                                                         />
                                                     </div>
                                                 </>

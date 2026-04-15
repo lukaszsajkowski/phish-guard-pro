@@ -37,6 +37,7 @@ class RiskScoreCalculator:
         scammer_messages: list[str] | None = None,
         victim_name: str | None = None,
         victim_first_name: str | None = None,
+        ioc_enrichment: dict[str, str] | None = None,
     ) -> EnhancedRiskScore:
         """Calculate the enhanced risk score with full breakdown.
 
@@ -46,6 +47,9 @@ class RiskScoreCalculator:
             scammer_messages: List of scammer message texts (optional).
             victim_name: Full name of victim persona (optional).
             victim_first_name: First name of victim persona (optional).
+            ioc_enrichment: Optional mapping of IOC value to reputation label
+                (e.g., ``{"bc1q...": "malicious", "DE89...": "clean"}``).
+                Supported labels: malicious, suspicious, clean, unknown.
 
         Returns:
             EnhancedRiskScore with total score and component breakdown.
@@ -55,7 +59,7 @@ class RiskScoreCalculator:
         # Calculate each component
         components = [
             self._calculate_attack_severity(attack_type),
-            self._calculate_ioc_quality(iocs),
+            self._calculate_ioc_quality(iocs, ioc_enrichment=ioc_enrichment),
             self._calculate_ioc_quantity(iocs),
             self._calculate_scammer_engagement(scammer_messages),
             self._calculate_urgency_tactics(scammer_messages),
@@ -110,11 +114,28 @@ class RiskScoreCalculator:
             explanation=f"{severity_label} attack: {attack_display}",
         )
 
-    def _calculate_ioc_quality(self, iocs: list[dict[str, Any]]) -> RiskComponentScore:
+    # Reputation multipliers applied to per-IOC base scores when enrichment
+    # data is available (US-040).
+    REPUTATION_MULTIPLIERS: dict[str, float] = {
+        "malicious": 1.5,
+        "suspicious": 1.25,
+        "clean": 0.8,
+    }
+
+    def _calculate_ioc_quality(
+        self,
+        iocs: list[dict[str, Any]],
+        ioc_enrichment: dict[str, str] | None = None,
+    ) -> RiskComponentScore:
         """Calculate IOC quality component.
 
         BTC wallet = 8, IBAN = 8, phone = 5, URL = 3.
-        Score is based on the highest-quality IOC found.
+        Score is based on the highest-quality IOC found, optionally
+        boosted by enrichment reputation multipliers (US-040).
+
+        Args:
+            iocs: List of extracted IOCs with 'type' and optionally 'value'.
+            ioc_enrichment: Optional mapping of IOC value to reputation label.
         """
         component = RiskComponent.IOC_QUALITY
         weight = RISK_WEIGHTS[component]
@@ -128,37 +149,71 @@ class RiskScoreCalculator:
                 explanation="No IOCs extracted yet.",
             )
 
-        # Get unique IOC types and their quality scores
-        ioc_types = set()
+        enrichment_map = ioc_enrichment or {}
+
+        # Calculate per-IOC boosted scores and track enrichment annotations
+        max_boosted: float = 0.0
+        ioc_types: set[str] = set()
+        enrichment_annotations: list[str] = []
+
         for ioc in iocs:
             ioc_type = ioc.get("type", "")
-            if ioc_type:
-                ioc_types.add(ioc_type)
+            ioc_value = ioc.get("value", "")
+            if not ioc_type:
+                continue
+            ioc_types.add(ioc_type)
 
-        # Use highest quality IOC score (0-10 scale)
-        max_quality = (
-            max(IOC_QUALITY_SCORES.get(t, 0) for t in ioc_types) if ioc_types else 0
-        )
+            base = float(IOC_QUALITY_SCORES.get(ioc_type, 0))
+            reputation = enrichment_map.get(ioc_value, "unknown")
+            multiplier = self.REPUTATION_MULTIPLIERS.get(reputation, 1.0)
+            boosted = base * multiplier
+
+            if boosted > max_boosted:
+                max_boosted = boosted
+
+            # Track enrichment annotation for explanation
+            if multiplier != 1.0:
+                enrichment_annotations.append(
+                    f"{ioc_type.upper()} [x{multiplier} {reputation}]"
+                )
+
         # Bonus for multiple high-value IOC types (up to +2)
         high_value_count = sum(
             1 for t in ioc_types if IOC_QUALITY_SCORES.get(t, 0) >= 8
         )
         bonus = min(high_value_count - 1, 2) if high_value_count > 1 else 0
-        raw_score = min(float(max_quality + bonus), 10.0)
+        raw_score = min(max_boosted + bonus, 10.0)
 
         # Generate explanation
         high_value = [t for t in ioc_types if IOC_QUALITY_SCORES.get(t, 0) >= 8]
         if high_value:
             high_value_str = ", ".join(t.upper() for t in high_value)
-            explanation = f"High-value IOCs: {high_value_str}"
+            if enrichment_annotations:
+                # Deduplicate annotations (same type may appear multiple times)
+                unique_annotations = list(dict.fromkeys(enrichment_annotations))
+                annotation_str = ", ".join(unique_annotations)
+                explanation = (
+                    f"High-value IOCs: {high_value_str} (enrichment applied: "
+                    f"{annotation_str})"
+                )
+            else:
+                explanation = f"High-value IOCs: {high_value_str}"
         elif ioc_types:
-            explanation = f"{len(ioc_types)} IOC type(s) detected."
+            if enrichment_annotations:
+                unique_annotations = list(dict.fromkeys(enrichment_annotations))
+                annotation_str = ", ".join(unique_annotations)
+                explanation = (
+                    f"{len(ioc_types)} IOC type(s) detected "
+                    f"(enrichment applied: {annotation_str})"
+                )
+            else:
+                explanation = f"{len(ioc_types)} IOC type(s) detected."
         else:
             explanation = "No valuable IOCs detected."
 
         return RiskComponentScore(
             component=component,
-            raw_score=raw_score,
+            raw_score=round(raw_score, 2),
             weight=weight,
             weighted_score=round(raw_score * weight, 3),
             explanation=explanation,
@@ -317,6 +372,7 @@ def calculate_enhanced_risk_score(
     scammer_messages: list[str] | None = None,
     victim_name: str | None = None,
     victim_first_name: str | None = None,
+    ioc_enrichment: dict[str, str] | None = None,
 ) -> EnhancedRiskScore:
     """Convenience function to calculate enhanced risk score.
 
@@ -326,6 +382,8 @@ def calculate_enhanced_risk_score(
         scammer_messages: List of scammer message texts.
         victim_name: Full name of victim persona.
         victim_first_name: First name of victim persona.
+        ioc_enrichment: Optional mapping of IOC value to reputation label
+            (US-040). Supported labels: malicious, suspicious, clean, unknown.
 
     Returns:
         EnhancedRiskScore with total score and breakdown.
@@ -337,6 +395,7 @@ def calculate_enhanced_risk_score(
         scammer_messages=scammer_messages,
         victim_name=victim_name,
         victim_first_name=victim_first_name,
+        ioc_enrichment=ioc_enrichment,
     )
 
 

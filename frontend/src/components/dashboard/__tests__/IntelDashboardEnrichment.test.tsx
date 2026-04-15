@@ -219,16 +219,16 @@ describe("IntelDashboard – Enrichment UI", () => {
                 }),
             );
 
-            // Render with a url IOC so deriveThreatAssessment uses generic path
+            // URL IOCs are auto-enriched on mount (US-038/US-035), so we
+            // wait for the reputation badge to appear rather than clicking.
             render(
                 <IntelDashboard
                     iocs={[{ id: "u1", type: "url", value: "https://evil.com", is_high_value: false }]}
                     getAccessToken={mockGetAccessToken}
                 />,
             );
-            await userEvent.click(screen.getByTestId("enrich-button-url"));
 
-            const badge = screen.getByTestId("reputation-badge-url");
+            const badge = await screen.findByTestId("reputation-badge-url");
             expect(badge).toHaveTextContent("Clean");
             expect(badge).toHaveClass("text-green-500");
         });
