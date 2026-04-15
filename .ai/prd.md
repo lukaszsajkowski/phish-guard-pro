@@ -852,7 +852,7 @@ Acceptance Criteria:
 - Country code + ISP included in payload
 - Respects AbuseIPDB daily quota
 
-### US-037: Phone Number Enrichment ❌
+### US-037: Phone Number Enrichment ✅
 
 Title: Enrich phone numbers with metadata
 

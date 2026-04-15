@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     bitcoinabuse_api_key: str = ""
     virustotal_api_key: str = ""
     abuseipdb_api_key: str = ""
+    numverify_api_key: str = ""
 
     # Application
     debug: bool = False

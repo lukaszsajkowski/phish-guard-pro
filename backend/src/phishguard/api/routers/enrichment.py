@@ -15,6 +15,7 @@ from phishguard.api.dependencies import get_current_user_id
 from phishguard.services.enrichment_service import EnrichmentResult, EnrichmentService
 from phishguard.services.sources.abuseipdb_source import AbuseIPDBSource
 from phishguard.services.sources.btc_source import BtcEnrichmentSource
+from phishguard.services.sources.phone_source import PhoneNumberSource
 from phishguard.services.sources.vt_source import VirusTotalSource
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,9 @@ def _get_enrichment_service() -> EnrichmentService:
         btc_source = BtcEnrichmentSource()
         vt_source = VirusTotalSource()
         abuseipdb_source = AbuseIPDBSource()
+        phone_source = PhoneNumberSource()
         _enrichment_service = EnrichmentService(
-            sources=[btc_source, vt_source, abuseipdb_source],
+            sources=[btc_source, vt_source, abuseipdb_source, phone_source],
         )
     return _enrichment_service
 
@@ -137,7 +139,7 @@ async def enrich_ioc(
     Returns:
         EnrichmentResponse with source-specific payload.
     """
-    allowed_types = {"btc", "url", "domain", "ip"}
+    allowed_types = {"btc", "url", "domain", "ip", "phone"}
     if ioc_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
