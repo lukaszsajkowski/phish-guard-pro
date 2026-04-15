@@ -838,7 +838,7 @@ Acceptance Criteria:
 - VT quota counter exposed via `/api/enrichment/quota`
 - Cached: URLs 24h, domains 7d
 
-### US-036: IP Address Enrichment (AbuseIPDB) ❌
+### US-036: IP Address Enrichment (AbuseIPDB) ✅
 
 Title: Enrich IP addresses with abuse reports
 

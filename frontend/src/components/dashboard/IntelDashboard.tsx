@@ -156,7 +156,7 @@ export function IntelDashboard({
 
         iocs.forEach((ioc) => {
             const key = getKey(ioc.type, ioc.value);
-            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet" || ioc.type === "url";
+            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet" || ioc.type === "url" || ioc.type === "ip";
             if (
                 shouldAutoEnrich &&
                 !autoEnrichedRef.current.has(key) &&

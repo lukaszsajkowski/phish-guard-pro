@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     # IOC Enrichment API keys (optional — enrichment degrades gracefully when absent)
     bitcoinabuse_api_key: str = ""
     virustotal_api_key: str = ""
+    abuseipdb_api_key: str = ""
 
     # Application
     debug: bool = False

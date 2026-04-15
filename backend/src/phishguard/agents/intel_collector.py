@@ -115,6 +115,22 @@ class IntelCollector:
         re.VERBOSE | re.IGNORECASE,
     )
 
+    # IPv4: standard dotted-quad, not inside larger numbers
+    IPV4_PATTERN: Final[re.Pattern[str]] = re.compile(
+        r"(?<!\d)(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}"
+        r"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?!\d)",
+    )
+
+    # IPv6: compact heuristic covering full and compressed forms
+    IPV6_PATTERN: Final[re.Pattern[str]] = re.compile(
+        r"(?<![:\w])(?:[0-9a-fA-F]{1,4}:){2,7}[0-9a-fA-F]{0,4}(?![:\w])",
+    )
+
+    # Private/loopback/link-local IPv4 ranges to exclude (not useful as IOCs)
+    PRIVATE_IPV4_PATTERN: Final[re.Pattern[str]] = re.compile(
+        r"^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|169\.254\.)",
+    )
+
     # Context extraction: characters before/after IOC
     CONTEXT_CHARS: Final[int] = 30
 
@@ -281,9 +297,42 @@ class IntelCollector:
 
         # Extract URLs
         for match in self.URL_PATTERN.finditer(text):
+            excluded_ranges.append((match.start(), match.end()))
             iocs.append(
                 self._create_ioc(
                     IOCType.URL,
+                    match.group(0),
+                    text,
+                    match.start(),
+                    match.end(),
+                    message_index,
+                )
+            )
+
+        # Extract IPv4 addresses (skip private/loopback and ranges inside URLs)
+        for match in self.IPV4_PATTERN.finditer(text):
+            if self._overlaps_excluded(match.start(), match.end(), excluded_ranges):
+                continue
+            value = match.group(0)
+            if not self.PRIVATE_IPV4_PATTERN.match(value):
+                iocs.append(
+                    self._create_ioc(
+                        IOCType.IP,
+                        value,
+                        text,
+                        match.start(),
+                        match.end(),
+                        message_index,
+                    )
+                )
+
+        # Extract IPv6 addresses (skip ranges inside URLs)
+        for match in self.IPV6_PATTERN.finditer(text):
+            if self._overlaps_excluded(match.start(), match.end(), excluded_ranges):
+                continue
+            iocs.append(
+                self._create_ioc(
+                    IOCType.IP,
                     match.group(0),
                     text,
                     match.start(),

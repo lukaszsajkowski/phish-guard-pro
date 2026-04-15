@@ -41,7 +41,7 @@ export interface ChatMessage {
 
 export interface ExtractedIOC {
     id?: string;
-    type: "btc" | "btc_wallet" | "iban" | "phone" | "url";
+    type: "btc" | "btc_wallet" | "iban" | "phone" | "url" | "ip";
     value: string;
     context?: string;
     is_high_value: boolean;

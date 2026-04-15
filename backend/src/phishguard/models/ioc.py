@@ -32,6 +32,9 @@ class IOCType(str, Enum):
     URL = "url"
     """Web URL (http/https)."""
 
+    IP = "ip"
+    """IP address (IPv4/IPv6)."""
+
     @property
     def display_name(self) -> str:
         """Get human-readable name for the IOC type."""
@@ -40,6 +43,7 @@ class IOCType(str, Enum):
             IOCType.IBAN: "IBAN",
             IOCType.PHONE: "Phone Number",
             IOCType.URL: "URL",
+            IOCType.IP: "IP Address",
         }
         return names.get(self, self.value)
 

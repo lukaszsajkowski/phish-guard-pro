@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.services.enrichment_service import EnrichmentResult, EnrichmentService
+from phishguard.services.sources.abuseipdb_source import AbuseIPDBSource
 from phishguard.services.sources.btc_source import BtcEnrichmentSource
 from phishguard.services.sources.vt_source import VirusTotalSource
 
@@ -33,7 +34,10 @@ def _get_enrichment_service() -> EnrichmentService:
     if _enrichment_service is None:
         btc_source = BtcEnrichmentSource()
         vt_source = VirusTotalSource()
-        _enrichment_service = EnrichmentService(sources=[btc_source, vt_source])
+        abuseipdb_source = AbuseIPDBSource()
+        _enrichment_service = EnrichmentService(
+            sources=[btc_source, vt_source, abuseipdb_source],
+        )
     return _enrichment_service
 
 
@@ -113,7 +117,7 @@ async def get_enrichment_quota(
     summary="Enrich an IOC value",
     description=(
         "Look up enrichment data for an IOC. Supports ioc_type='btc' "
-        "(Bitcoin wallet), 'url' and 'domain' (VirusTotal)."
+        "(Bitcoin wallet), 'url' and 'domain' (VirusTotal), 'ip' (AbuseIPDB)."
     ),
 )
 async def enrich_ioc(
@@ -133,7 +137,7 @@ async def enrich_ioc(
     Returns:
         EnrichmentResponse with source-specific payload.
     """
-    allowed_types = {"btc", "url", "domain"}
+    allowed_types = {"btc", "url", "domain", "ip"}
     if ioc_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

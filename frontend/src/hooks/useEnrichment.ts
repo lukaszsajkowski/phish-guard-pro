@@ -55,6 +55,17 @@ export function deriveThreatAssessment(
         return { threat_score: score, reputation };
     }
 
+    // Source-specific: IP enrichment (AbuseIPDB source)
+    if (res.ioc_type === "ip" && res.status === "ok") {
+        const reputation = (payload.reputation as ReputationLabel) ?? "unknown";
+        const abuseScore =
+            typeof payload.abuse_confidence_score === "number"
+                ? payload.abuse_confidence_score
+                : 0;
+
+        return { threat_score: abuseScore, reputation };
+    }
+
     // Generic fallback for any IOC type
     if (res.status !== "ok") {
         return { threat_score: 0, reputation: "unknown" };
