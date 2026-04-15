@@ -659,9 +659,11 @@ async def export_iocs_csv(
             detail="Not authorized to export this session",
         )
 
-    # Get IOCs and export to CSV
+    # Get IOCs and export to CSV with enrichment data (US-039)
     iocs = await session_service.get_session_iocs(session_id)
-    csv_content = session_service.export_iocs_csv(iocs)
+    ioc_ids = [ioc["id"] for ioc in iocs if ioc.get("id")]
+    enrichment_by_id = session_service._fetch_iocs_enrichment(ioc_ids)
+    csv_content = session_service.export_iocs_csv(iocs, enrichment_by_id)
     filename = session_service.generate_export_filename("phishguard_iocs", "csv")
 
     return Response(

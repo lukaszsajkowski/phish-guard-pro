@@ -883,7 +883,7 @@ Acceptance Criteria:
 - Error state with retry option if call failed
 - Cached results load instantly with "cached" indicator
 
-### US-039: Enriched IOC Export ❌
+### US-039: Enriched IOC Export ✅
 
 Title: Include enriched data in JSON/CSV export
 
