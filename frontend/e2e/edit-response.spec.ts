@@ -292,8 +292,12 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
     });
 
     test('should show copied confirmation when clicking copy button', async ({ page, context }) => {
-        // Grant clipboard permissions
-        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+        // Grant clipboard permissions (clipboard-write not supported in WebKit/mobile-safari)
+        try {
+            await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+        } catch {
+            await context.grantPermissions(['clipboard-read']);
+        }
 
         // Mock APIs
         await page.route('**/api/v1/classification/analyze', async route => {

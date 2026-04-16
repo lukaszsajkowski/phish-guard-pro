@@ -84,9 +84,9 @@ export function AuthenticatedLayout({
 
     return (
         <div className="flex min-h-screen bg-background">
-            {/* Fixed sidebar */}
+            {/* Fixed sidebar — hidden on mobile, visible on lg+ */}
             <div
-                className="fixed left-0 top-0 h-full w-64 z-40"
+                className="fixed left-0 top-0 h-full w-64 z-40 hidden lg:block"
                 data-testid="sidebar-container"
             >
                 <AppSidebar
@@ -97,8 +97,8 @@ export function AuthenticatedLayout({
                 />
             </div>
 
-            {/* Main content area */}
-            <main className="flex-1 ml-64" data-testid="main-content">
+            {/* Main content area — no left margin on mobile, lg:ml-64 on desktop */}
+            <main className="flex-1 lg:ml-64" data-testid="main-content">
                 {children}
             </main>
         </div>
