@@ -343,28 +343,9 @@ export function IntelDashboard({
                                             data-testid={`enrichment-result-${ioc.type}`}
                                             className="mt-2 space-y-1.5 border-t border-border/30 pt-2"
                                         >
-                                            {/* Sub-row A: score + reputation + cached + refresh */}
+                                            {/* Sub-row A: reputation (primary) + threat bar + score (secondary) */}
                                             <div className="flex items-center gap-2">
-                                                {/* Threat score */}
-                                                <div
-                                                    data-testid={`threat-score-${ioc.type}`}
-                                                    className="flex items-center gap-1.5"
-                                                >
-                                                    <span className={`text-xl font-bold leading-none ${getThreatScoreColor(assessment.threat_score)}`}>
-                                                        {assessment.threat_score}
-                                                    </span>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs text-muted-foreground leading-none">/100</span>
-                                                        <div className="h-1 w-8 rounded-full bg-muted/40 overflow-hidden">
-                                                            <div
-                                                                className={`h-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
-                                                                style={{ width: `${assessment.threat_score}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Reputation badge */}
+                                                {/* Reputation badge — primary visual element */}
                                                 {(() => {
                                                     const badge = getReputationBadge(assessment.reputation);
                                                     return (
@@ -377,14 +358,31 @@ export function IntelDashboard({
                                                     );
                                                 })()}
 
-                                                {/* Cached indicator */}
+                                                {/* Threat bar — visual fill showing severity */}
+                                                <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
+                                                        style={{ width: `${assessment.threat_score}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* Threat score — compact secondary indicator */}
+                                                <span
+                                                    data-testid={`threat-score-${ioc.type}`}
+                                                    className={`text-xs font-medium tabular-nums ${getThreatScoreColor(assessment.threat_score)}`}
+                                                >
+                                                    {assessment.threat_score}
+                                                    <span className="text-muted-foreground/60">/100</span>
+                                                </span>
+
+                                                {/* Cached indicator — subtle dot only */}
                                                 {enrichState.data.cached && (
                                                     <span
                                                         data-testid={`cached-badge-${ioc.type}`}
-                                                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500"
+                                                        title="Result from cache"
+                                                        className="inline-flex items-center justify-center"
                                                     >
-                                                        <BadgeCheck className="h-3 w-3" />
-                                                        Cached
+                                                        <BadgeCheck className="h-3 w-3 text-muted-foreground/50" />
                                                     </span>
                                                 )}
 
@@ -392,19 +390,14 @@ export function IntelDashboard({
                                                 <button
                                                     data-testid={`refresh-button-${ioc.type}`}
                                                     title="Force refresh (bypass cache)"
-                                                    className="ml-auto inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                                                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                                                     onClick={() => enrich(ioc.type, ioc.value, true)}
                                                 >
                                                     <RefreshCw className="h-3 w-3" />
                                                 </button>
                                             </div>
 
-                                            {/* Sub-row B: source + latency */}
-                                            <div className="text-xs text-muted-foreground">
-                                                {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
-                                            </div>
-
-                                            {/* Expandable raw data */}
+                                            {/* Expandable raw data (source/latency shown here, not in main view) */}
                                             {enrichState.data.payload && (
                                                 <div>
                                                     <button
@@ -420,12 +413,17 @@ export function IntelDashboard({
                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                     </button>
                                                     {isExpanded && (
-                                                        <pre
-                                                            data-testid={`raw-data-${ioc.type}`}
-                                                            className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-xs font-mono text-muted-foreground"
-                                                        >
-                                                            {JSON.stringify(enrichState.data.payload, null, 2)}
-                                                        </pre>
+                                                        <>
+                                                            <div className="mt-1 text-[10px] text-muted-foreground/50">
+                                                                via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
+                                                            </div>
+                                                            <pre
+                                                                data-testid={`raw-data-${ioc.type}`}
+                                                                className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-xs font-mono text-muted-foreground"
+                                                            >
+                                                                {JSON.stringify(enrichState.data.payload, null, 2)}
+                                                            </pre>
+                                                        </>
                                                     )}
                                                 </div>
                                             )}

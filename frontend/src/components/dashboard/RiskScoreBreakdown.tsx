@@ -61,42 +61,36 @@ export function RiskScoreBreakdown({
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
                 >
-                    <div className="flex items-center gap-6">
-                        {/* Score display */}
-                        <div className="flex flex-col items-start gap-0.5">
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Risk Score</span>
-                            <div className="flex items-baseline gap-1.5">
-                                <span
-                                    data-testid="total-score"
-                                    className={`text-3xl font-bold tracking-tight ${getRiskScoreColor(totalScore)}`}
-                                >
-                                    {totalScore.toFixed(1)}
-                                </span>
-                                <span className="text-sm font-medium text-muted-foreground/60">/ 10</span>
-                            </div>
+                    <div className="flex items-center gap-4">
+                        {/* Score display — no redundant "Risk Score" label (section header above provides it) */}
+                        <div className="flex items-baseline gap-1.5">
+                            <span
+                                data-testid="total-score"
+                                className={`text-2xl font-bold tracking-tight ${getRiskScoreColor(totalScore)}`}
+                            >
+                                {totalScore.toFixed(1)}
+                            </span>
+                            <span className="text-sm font-medium text-muted-foreground/50">/10</span>
                         </div>
 
-                        <div className="h-10 w-px bg-border/50 mx-2" />
+                        <div className="h-8 w-px bg-border/40" />
 
                         {/* Risk level badge */}
-                        <div className="flex flex-col items-start gap-1">
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Level</span>
-                            <span
-                                data-testid="risk-level-badge"
-                                className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-sm font-semibold ring-1 ring-inset ${getRiskLevelColor(riskLevel)} ${getRiskLevelBg(riskLevel)} ring-opacity-20`}
-                            >
-                                {getRiskLevelLabel(riskLevel)}
-                            </span>
-                        </div>
+                        <span
+                            data-testid="risk-level-badge"
+                            className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${getRiskLevelColor(riskLevel)} ${getRiskLevelBg(riskLevel)}`}
+                        >
+                            {getRiskLevelLabel(riskLevel)}
+                        </span>
                     </div>
 
-                    {/* Expand/collapse indicator */}
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                        <span>{isExpanded ? "Hide breakdown" : "Show breakdown"}</span>
+                    {/* Expand/collapse indicator — styled as a subtle pill to look clickable */}
+                    <div className="flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors">
+                        <span>{isExpanded ? "Hide" : "Details"}</span>
                         {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
+                            <ChevronUp className="h-3.5 w-3.5" />
                         ) : (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-3.5 w-3.5" />
                         )}
                     </div>
                 </button>

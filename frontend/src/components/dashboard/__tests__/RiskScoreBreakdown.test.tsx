@@ -75,11 +75,11 @@ describe("RiskScoreBreakdown Component", () => {
             );
         });
 
-        it("shows 'Show breakdown' text when collapsed", () => {
+        it("shows 'Details' text when collapsed", () => {
             const breakdown = createMockBreakdown(6.5, "medium");
             render(<RiskScoreBreakdown breakdown={breakdown} />);
 
-            expect(screen.getByText("Show breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Details")).toBeInTheDocument();
         });
 
         it("hides component details when collapsed", () => {
@@ -134,8 +134,8 @@ describe("RiskScoreBreakdown Component", () => {
             const toggle = screen.getByTestId("breakdown-toggle");
             await userEvent.click(toggle);
 
-            // Should show "Hide breakdown" text
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            // Should show "Hide" text
+            expect(screen.getByText("Hide")).toBeInTheDocument();
 
             // Content should be visible (max-h expanded)
             const content = screen.getByTestId("breakdown-content");
@@ -150,11 +150,11 @@ describe("RiskScoreBreakdown Component", () => {
 
             // Expand
             await userEvent.click(toggle);
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Hide")).toBeInTheDocument();
 
             // Collapse
             await userEvent.click(toggle);
-            expect(screen.getByText("Show breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Details")).toBeInTheDocument();
 
             const content = screen.getByTestId("breakdown-content");
             expect(content).toHaveClass("max-h-0");
@@ -323,7 +323,7 @@ describe("RiskScoreBreakdown Component", () => {
             fireEvent.keyDown(toggle, { key: "Enter" });
             await userEvent.click(toggle); // Simulate the click that would happen on Enter
 
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Hide")).toBeInTheDocument();
         });
     });
 });
