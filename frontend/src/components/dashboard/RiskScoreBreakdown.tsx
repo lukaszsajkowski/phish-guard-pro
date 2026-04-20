@@ -108,7 +108,7 @@ export function RiskScoreBreakdown({
 
                         {/* Total score progress bar */}
                         <div className="space-y-1.5 mt-2">
-                            <div className="h-2.5 bg-secondary/50 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-secondary/50 rounded-full overflow-hidden" role="progressbar" aria-valuenow={totalScore} aria-valuemin={0} aria-valuemax={10} aria-label="Total risk score">
                                 <div
                                     data-testid="total-score-bar"
                                     className={`h-full transition-all duration-700 ease-out rounded-full ${getRiskScoreBarColor(totalScore)}`}
@@ -157,7 +157,7 @@ export function RiskScoreBreakdown({
                                                 </div>
 
                                                 {/* Mini Progress Bar */}
-                                                <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                                <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden" role="progressbar" aria-valuenow={component.raw_score} aria-valuemin={0} aria-valuemax={10} aria-label={`${label} score`}>
                                                     <div
                                                         className={cn("h-full rounded-full transition-all duration-500", getComponentScoreBg(component.raw_score))}
                                                         style={{ width: `${progressPercent}%` }}

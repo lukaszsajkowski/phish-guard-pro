@@ -4,6 +4,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, MessageSquare, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ATTACK_TYPE_COLORS } from "@/lib/constants/ioc";
 
 interface SessionDetailHeaderProps {
     attackType: string;
@@ -12,19 +13,6 @@ interface SessionDetailHeaderProps {
     status: string;
     turnCount: number;
 }
-
-// Attack type badge colors (matching SessionHistoryList)
-const ATTACK_TYPE_COLORS: Record<string, string> = {
-    nigerian_419: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    ceo_fraud: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    fake_invoice: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    romance_scam: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
-    tech_support: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    lottery_prize: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    crypto_investment: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    delivery_scam: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
-    not_phishing: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
-};
 
 // Status badge colors
 const STATUS_COLORS: Record<string, string> = {

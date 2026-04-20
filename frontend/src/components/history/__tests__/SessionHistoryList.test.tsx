@@ -160,8 +160,8 @@ describe('SessionHistoryList Component', () => {
     });
 
     describe('Risk Score Indicators', () => {
-        it('renders low risk score (1-3) with green color', () => {
-            const lowRiskScores = [1, 2, 3];
+        it('renders low risk score (1-2) with green color', () => {
+            const lowRiskScores = [1, 2];
 
             lowRiskScores.forEach((risk_score) => {
                 const sessions: SessionHistoryItem[] = [
@@ -173,15 +173,15 @@ describe('SessionHistoryList Component', () => {
                 );
 
                 const riskElement = screen.getByTestId('risk-score');
-                expect(riskElement.className).toContain('text-green-600');
+                expect(riskElement.className).toContain('text-green-500');
                 expect(riskElement).toHaveTextContent(`Low (${risk_score}/10)`);
 
                 unmount();
             });
         });
 
-        it('renders medium risk score (4-6) with yellow color', () => {
-            const mediumRiskScores = [4, 5, 6];
+        it('renders medium risk score (5-7) with orange color', () => {
+            const mediumRiskScores = [5, 6, 7];
 
             mediumRiskScores.forEach((risk_score) => {
                 const sessions: SessionHistoryItem[] = [
@@ -193,15 +193,15 @@ describe('SessionHistoryList Component', () => {
                 );
 
                 const riskElement = screen.getByTestId('risk-score');
-                expect(riskElement.className).toContain('text-yellow-600');
+                expect(riskElement.className).toContain('text-orange-500');
                 expect(riskElement).toHaveTextContent(`Medium (${risk_score}/10)`);
 
                 unmount();
             });
         });
 
-        it('renders high risk score (7-10) with red color', () => {
-            const highRiskScores = [7, 8, 9, 10];
+        it('renders high risk score (8-10) with red color', () => {
+            const highRiskScores = [8, 9, 10];
 
             highRiskScores.forEach((risk_score) => {
                 const sessions: SessionHistoryItem[] = [
@@ -213,7 +213,7 @@ describe('SessionHistoryList Component', () => {
                 );
 
                 const riskElement = screen.getByTestId('risk-score');
-                expect(riskElement.className).toContain('text-red-600');
+                expect(riskElement.className).toContain('text-red-500');
                 expect(riskElement).toHaveTextContent(`High (${risk_score}/10)`);
 
                 unmount();

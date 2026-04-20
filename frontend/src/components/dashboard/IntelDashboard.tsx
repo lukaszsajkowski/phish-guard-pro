@@ -31,6 +31,7 @@ import {
 } from "@/lib/constants/ioc";
 import { RiskScoreBreakdown } from "./RiskScoreBreakdown";
 import { useEnrichment, deriveThreatAssessment } from "@/hooks/useEnrichment";
+import { defangUrl } from "@/lib/utils";
 
 interface IntelDashboardProps {
     iocs: ExtractedIOC[];
@@ -245,8 +246,35 @@ export function IntelDashboard({
                     </p>
                 ) : (
                     <div className="relative">
+                    {(() => {
+                        const groupedIocs = iocs.reduce<Record<string, ExtractedIOC[]>>((acc, ioc) => {
+                            const grpKey = ioc.type;
+                            if (!acc[grpKey]) acc[grpKey] = [];
+                            acc[grpKey].push(ioc);
+                            return acc;
+                        }, {});
+                        return (
+                            <>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                {Object.entries(groupedIocs).map(([type, items]) => {
+                                    const GrpIcon = IOC_ICONS[type] || Link;
+                                    return (
+                                        <span key={type} className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                                            <GrpIcon className="h-3 w-3" />
+                                            {items.length}
+                                        </span>
+                                    );
+                                })}
+                            </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto pb-2">
-                        {iocs.map((ioc, index) => {
+                        {Object.entries(groupedIocs).map(([type, items]) => {
+                            const groupLabel = IOC_LABELS[type] || type.toUpperCase();
+                            return (
+                                <div key={type} className="space-y-1.5">
+                                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        {groupLabel} ({items.length})
+                                    </h4>
+                        {items.map((ioc, index) => {
                             const Icon = IOC_ICONS[ioc.type] || Link;
                             const label = IOC_LABELS[ioc.type] || ioc.type.toUpperCase();
                             const isHighValue = ioc.is_high_value;
@@ -296,10 +324,11 @@ export function IntelDashboard({
                                                         : "text-foreground"
                                                         }`}
                                                 >
-                                                    {ioc.value}
+                                                    {ioc.type === "url" ? defangUrl(ioc.value) : ioc.value}
                                                 </p>
                                                 <button
                                                     title="Copy to clipboard"
+                                                    aria-label="Copy IOC value"
                                                     className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
                                                     onClick={() => copyToClipboard(ioc.value, key)}
                                                 >
@@ -359,7 +388,7 @@ export function IntelDashboard({
                                                 })()}
 
                                                 {/* Threat bar — visual fill showing severity */}
-                                                <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                                <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden" role="progressbar" aria-valuenow={assessment.threat_score} aria-valuemin={0} aria-valuemax={100} aria-label="Threat score">
                                                     <div
                                                         className={`h-full rounded-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
                                                         style={{ width: `${assessment.threat_score}%` }}
@@ -390,6 +419,7 @@ export function IntelDashboard({
                                                 <button
                                                     data-testid={`refresh-button-${ioc.type}`}
                                                     title="Force refresh (bypass cache)"
+                                                    aria-label="Refresh enrichment"
                                                     className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                                                     onClick={() => enrich(ioc.type, ioc.value, true)}
                                                 >
@@ -402,6 +432,7 @@ export function IntelDashboard({
                                                 <div>
                                                     <button
                                                         data-testid={`expand-raw-${ioc.type}`}
+                                                        aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
                                                         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                                         onClick={() => toggleExpanded(key)}
                                                     >
@@ -456,7 +487,13 @@ export function IntelDashboard({
                                 </div>
                             );
                         })}
+                                </div>
+                            );
+                        })}
                     </div>
+                            </>
+                        );
+                    })()}
                     {iocs.length > 5 && (
                         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent" />
                     )}
@@ -500,7 +537,7 @@ export function IntelDashboard({
                                 </span>
                                 <span className="text-muted-foreground">/10</span>
                             </div>
-                            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+                            <div className="h-2 bg-muted/30 rounded-full overflow-hidden" role="progressbar" aria-valuenow={riskScore} aria-valuemin={0} aria-valuemax={10} aria-label="Risk score">
                                 <div
                                     data-testid="risk-score-bar"
                                     className={`h-full transition-all duration-500 ${getRiskScoreBarColor(riskScore)}`}

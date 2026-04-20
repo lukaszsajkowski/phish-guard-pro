@@ -1002,6 +1002,7 @@ function DashboardContent() {
                                                         onClick={() => setIsSidePanelCollapsed(false)}
                                                         data-testid="expand-side-panel-button"
                                                         title="Expand panel"
+                                                        aria-label="Expand intel panel"
                                                         className="mb-2"
                                                     >
                                                         <PanelRightOpen className="h-4 w-4" />
@@ -1027,6 +1028,7 @@ function DashboardContent() {
                                                             onClick={() => setIsSidePanelCollapsed(true)}
                                                             data-testid="collapse-side-panel-button"
                                                             title="Collapse panel"
+                                                            aria-label="Collapse intel panel"
                                                         >
                                                             <PanelRightClose className="h-4 w-4" />
                                                         </Button>

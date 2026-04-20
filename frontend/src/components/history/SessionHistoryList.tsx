@@ -5,43 +5,11 @@ import { MessageSquare, Calendar, AlertTriangle, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SessionHistoryItem } from "@/types/schemas";
 import { cn } from "@/lib/utils";
+import { ATTACK_TYPE_COLORS, getRiskScoreColor, getRiskLabel } from "@/lib/constants/ioc";
 
 interface SessionHistoryListProps {
     sessions: SessionHistoryItem[];
     onSessionClick: (sessionId: string) => void;
-}
-
-// Attack type badge colors
-const ATTACK_TYPE_COLORS: Record<string, string> = {
-    nigerian_419: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    ceo_fraud: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    fake_invoice: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    romance_scam: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
-    tech_support: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    lottery_prize: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    crypto_investment: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    delivery_scam: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
-    not_phishing: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
-};
-
-function getRiskScoreColor(riskScore: number): string {
-    if (riskScore <= 3) {
-        return "text-green-600 dark:text-green-400";
-    }
-    if (riskScore <= 6) {
-        return "text-yellow-600 dark:text-yellow-400";
-    }
-    return "text-red-600 dark:text-red-400";
-}
-
-function getRiskScoreLabel(riskScore: number): string {
-    if (riskScore <= 3) {
-        return "Low";
-    }
-    if (riskScore <= 6) {
-        return "Medium";
-    }
-    return "High";
 }
 
 function formatCreatedAt(dateString: string): string {
@@ -60,7 +28,10 @@ export function SessionHistoryList({ sessions, onSessionClick }: SessionHistoryL
                 <Card
                     key={session.session_id}
                     className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSessionClick(session.session_id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSessionClick(session.session_id); } }}
                     data-testid={`session-row-${session.session_id}`}
                 >
                     <CardContent className="py-4">
@@ -116,7 +87,7 @@ export function SessionHistoryList({ sessions, onSessionClick }: SessionHistoryL
                             >
                                 <AlertTriangle className="h-4 w-4" />
                                 <span>
-                                    {getRiskScoreLabel(session.risk_score)} ({session.risk_score}/10)
+                                    {getRiskLabel(session.risk_score)} ({session.risk_score}/10)
                                 </span>
                             </div>
                         </div>
