@@ -949,6 +949,153 @@ Acceptance Criteria:
 - Integration test: enrich a BTC IOC → trigger risk score recalculation →
   assert higher score returned
 
+### US-041: Light/Dark Theme Toggle ✅
+
+Title: Switch between light and dark color modes
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a user, I want to toggle between light and dark mode so that
+I can use the application comfortably in different lighting conditions.
+
+Acceptance Criteria:
+
+- Theme toggle button visible in session detail top bar (sun icon in dark mode,
+  moon icon in light mode)
+- Clicking toggles between light and dark color schemes
+- Theme preference persisted to localStorage (key: `pg_theme`)
+- On mount, saved preference is restored; defaults to light mode
+- Light/dark mode implemented via CSS custom properties (design tokens) — no
+  component-level conditional styling
+- Transition between modes is smooth (no flash of wrong theme)
+- All existing components render correctly in both modes without visual bugs
+
+### US-042: Design Token System Overhaul
+
+Title: Implement new design token palette and typography
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a developer, I want the application to use a unified design
+token system based on the design handoff so that colors, typography, and
+spacing are consistent and theme-switching works via token overrides only.
+
+Acceptance Criteria:
+
+- CSS custom properties defined for both themes:
+  - Neutrals: `--bg`, `--surface`, `--surface2`, `--border`, `--border2`,
+    `--text`, `--text-secondary`, `--text-muted`
+  - Accents (same both modes): `--accent`, `--accent-dim`, `--green`,
+    `--green-dim`, `--red`, `--red-dim`, `--amber`, `--amber-dim`, `--blue`,
+    `--blue-dim`
+- Dark mode values: `--bg: #0a0b0f`, `--surface: #111318`,
+  `--surface2: #181b23`, `--border: #1f2333`, `--border2: #272d3f`,
+  `--text: #dde2ef`, `--text-secondary: #7a849a`, `--text-muted: #4a5268`
+- Light mode values: `--bg: #f2f3f6`, `--surface: #ffffff`,
+  `--surface2: #eef0f5`, `--border: #dde0ea`, `--border2: #cdd2df`,
+  `--text: #0f1117`, `--text-secondary: #4a5268`, `--text-muted: #8892a4`
+- Font stack: IBM Plex Sans (300, 400, 500, 600) as primary sans; IBM Plex
+  Mono (400, 500) for monospace elements
+- IBM Plex Mono applied specifically to: IOC values, email subject/from lines,
+  confidence badges, score numbers
+- Existing shadcn/ui variables mapped to new tokens for backward compatibility
+- Custom thin scrollbar styling (4px, transparent track, `--border2` thumb)
+
+### US-043: Session Detail View Redesign
+
+Title: Redesign session detail page to match hi-fi mockup
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a user, I want the session detail view to follow the new
+three-column layout with polished cards and sections so that the interface
+feels professional and information-dense.
+
+Acceptance Criteria:
+
+- Three-column layout: Sidebar (224px) | Center (flex:1, scrollable) |
+  Right Panel (320px)
+- **Top bar:** "← Back to history" link, session metadata badges (attack type
+  pill, active/completed status with dot indicator), date, turn count, action
+  buttons (theme toggle, export session, export data dropdown)
+- **Persona Card:** full-width card with header (avatar icon, name 17px bold,
+  role label) + age badge. 2-column body grid: Background section (left) and
+  Communication Style section (right) with separator border. Section labels
+  uppercase 11px. Quote text italicized with left border.
+- **Phishing Email Card:** subject (IBM Plex Mono, 14px bold), from/to line
+  (monospace 11.5px), body text (13px, pre-wrap), expand/collapse toggle at
+  bottom
+- **Conversation History:** section title with horizontal rule. Alternating
+  message bubbles — persona left-aligned (amber avatar, radius 0 6px 6px 6px),
+  scammer right-aligned (red avatar, radius 6px 0 6px 6px). Message count badge.
+- All elements use design tokens from US-042
+
+### US-044: Threat Intel Panel Redesign
+
+Title: Redesign right-side Threat Intel panel per mockup
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a security researcher, I want the Threat Intel sidebar panel
+to display information in a polished, scannable format with enrichment status
+and risk gauge visualization.
+
+Acceptance Criteria:
+
+- **Sticky header** with shield icon in accent color
+- **Attack Type section:** name (14px bold) + confidence badge (monospace,
+  amber background with border, rounded 4px)
+- **Collected IOCs section:** summary row of priority pills (High=red,
+  Med=amber, Low=neutral). Each IOC as card: type icon (26px colored square) +
+  label/value (monospace) + copy button. Footer with status dot (colored glow) +
+  reputation label (CLEAN/UNKNOWN/MALICIOUS) + threat score + refresh icon.
+  Raw data toggle expanding to `<pre>` JSON block.
+- **Risk Score section:** SVG radial gauge (64px, stroke-width 5, r=24).
+  Stroke color by threshold: ≥7 red, 4-6.9 amber, <4 green. Center shows
+  score value (17px bold mono) + "/10". Right side: risk level label + description +
+  "Details →" link.
+- **Extraction Timeline:** vertical timeline with 15px dots (active=green with
+  inner dot), connector lines, event text (13px medium) + timestamp (11.5px muted)
+
+### US-045: Sidebar Visual Polish
+
+Title: Update sidebar styling to match design handoff
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a user, I want the sidebar to follow the refined design with
+proper logo, nav states, and user footer so that navigation feels cohesive.
+
+Acceptance Criteria:
+
+- **Logo row:** 28×28px icon (accent-dim bg, accent border, shield SVG) +
+  "PhishGuard" wordmark (15px, weight 600)
+- **Nav items:** 13.5px, padding 9px 12px, gap 2px. Default: text-secondary.
+  Hover: surface2 bg, text color. Active: accent-dim bg, accent color,
+  weight 500.
+- **User footer:** 28px circular avatar with initials + email truncated with
+  ellipsis. "Sign out" on hover becomes red text on red-dim background.
+- Sidebar width fixed 224px, full viewport height
+- Border-right 1px solid border token
+- Icons: 15px inline SVG, stroke-width 1.5
+
+### US-046: Default to Light Mode
+
+Title: Application defaults to light mode
+
+Wireframe: `redesign/PhishGuard.html`
+
+Description: As a user visiting the application for the first time, I want
+to see light mode by default since it is the primary presentation theme.
+
+Acceptance Criteria:
+
+- If no `pg_theme` localStorage entry exists, application renders in light mode
+- The `dark` class on `<html>` is only applied when user explicitly selects
+  dark mode
+- First-time visitors see light mode without flash of dark mode
+- Theme initialization happens before first paint (inline script or SSR)
+
 ---
 
 ## 6. Success Metrics

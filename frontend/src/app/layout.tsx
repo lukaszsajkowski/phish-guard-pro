@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,17 +27,37 @@ export const metadata: Metadata = {
   ],
 };
 
+/**
+ * Inline script to prevent flash of wrong theme on load.
+ * Reads localStorage before React hydrates and applies .dark class immediately.
+ */
+const themeScript = `
+(function() {
+  try {
+    var theme = localStorage.getItem('pg_theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={`${inter.variable} ${jetBrainsMono.variable} font-sans antialiased min-w-[1024px]`}
       >
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
