@@ -58,6 +58,8 @@ htmlcov/
 .nox/
 .pytest_cache/
 .hypothesis/
+test-results/
+playwright-report/
 
 # =============================================================================
 # Build
