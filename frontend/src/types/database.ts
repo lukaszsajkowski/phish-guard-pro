@@ -18,7 +18,7 @@ export type SessionStatus = "active" | "archived";
 
 export type MessageRole = "user" | "assistant" | "scammer";
 
-export type IocType = "iban" | "btc" | "url" | "phone";
+export type IocType = "iban" | "btc" | "url" | "phone" | "ip";
 
 export interface Persona {
     name: string;

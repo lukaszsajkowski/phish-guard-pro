@@ -75,11 +75,11 @@ describe("RiskScoreBreakdown Component", () => {
             );
         });
 
-        it("shows 'Show breakdown' text when collapsed", () => {
+        it("shows 'Details' text when collapsed", () => {
             const breakdown = createMockBreakdown(6.5, "medium");
             render(<RiskScoreBreakdown breakdown={breakdown} />);
 
-            expect(screen.getByText("Show breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Details")).toBeInTheDocument();
         });
 
         it("hides component details when collapsed", () => {
@@ -101,8 +101,16 @@ describe("RiskScoreBreakdown Component", () => {
             expect(score).toHaveClass("text-green-500");
         });
 
-        it("shows yellow color for medium risk (score 4-6)", () => {
+        it("shows orange color for medium risk (score 5-7)", () => {
             const breakdown = createMockBreakdown(5.0, "medium");
+            render(<RiskScoreBreakdown breakdown={breakdown} />);
+
+            const score = screen.getByTestId("total-score");
+            expect(score).toHaveClass("text-orange-500");
+        });
+
+        it("shows yellow color for mid-low risk (score 3-4)", () => {
+            const breakdown = createMockBreakdown(4.0, "medium");
             render(<RiskScoreBreakdown breakdown={breakdown} />);
 
             const score = screen.getByTestId("total-score");
@@ -126,8 +134,8 @@ describe("RiskScoreBreakdown Component", () => {
             const toggle = screen.getByTestId("breakdown-toggle");
             await userEvent.click(toggle);
 
-            // Should show "Hide breakdown" text
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            // Should show "Hide" text
+            expect(screen.getByText("Hide")).toBeInTheDocument();
 
             // Content should be visible (max-h expanded)
             const content = screen.getByTestId("breakdown-content");
@@ -142,11 +150,11 @@ describe("RiskScoreBreakdown Component", () => {
 
             // Expand
             await userEvent.click(toggle);
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Hide")).toBeInTheDocument();
 
             // Collapse
             await userEvent.click(toggle);
-            expect(screen.getByText("Show breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Details")).toBeInTheDocument();
 
             const content = screen.getByTestId("breakdown-content");
             expect(content).toHaveClass("max-h-0");
@@ -202,10 +210,11 @@ describe("RiskScoreBreakdown Component", () => {
 
             await userEvent.click(screen.getByTestId("breakdown-toggle"));
 
-            // Check weight percentages are displayed
-            expect(screen.getAllByText("(25%)")).toHaveLength(2); // attack_severity and ioc_quality
-            expect(screen.getAllByText("(15%)")).toHaveLength(2); // ioc_quantity and scammer_engagement
-            expect(screen.getAllByText("(10%)")).toHaveLength(2); // urgency and personalization
+            // Check weight percentages are displayed (per RISK_COMPONENT_WEIGHTS constant)
+            expect(screen.getAllByText("(25%)")).toHaveLength(1); // attack_severity
+            expect(screen.getAllByText("(20%)")).toHaveLength(1); // ioc_quality
+            expect(screen.getAllByText("(15%)")).toHaveLength(3); // ioc_quantity, scammer_engagement, urgency_tactics
+            expect(screen.getAllByText("(10%)")).toHaveLength(1); // personalization
         });
 
         it("shows component labels", async () => {
@@ -314,7 +323,7 @@ describe("RiskScoreBreakdown Component", () => {
             fireEvent.keyDown(toggle, { key: "Enter" });
             await userEvent.click(toggle); // Simulate the click that would happen on Enter
 
-            expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+            expect(screen.getByText("Hide")).toBeInTheDocument();
         });
     });
 });

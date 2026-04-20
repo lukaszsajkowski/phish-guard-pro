@@ -223,7 +223,7 @@ function DashboardContent() {
                 }
                 // Parse standardized error response (US-022)
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Analysis failed. Please try again.');
+                throw new Error(errorData.detail || errorData.error || 'Analysis failed. Please try again.');
             }
 
             const data = await response.json();
@@ -1053,6 +1053,7 @@ function DashboardContent() {
                                                             riskScoreBreakdown={riskScoreBreakdown}
                                                             timeline={timelineEvents}
                                                             getAccessToken={getAccessToken}
+                                                            onEnrichmentComplete={() => { if (sessionId) fetchIntelDashboard(sessionId); }}
                                                         />
                                                     </div>
                                                 </>

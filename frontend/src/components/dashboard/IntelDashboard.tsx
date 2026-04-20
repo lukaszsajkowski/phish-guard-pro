@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
     AlertTriangle,
+    BarChart2,
     Shield,
     Target,
     Clock,
@@ -16,6 +17,8 @@ import {
     ChevronUp,
     RefreshCw,
     BadgeCheck,
+    Copy,
+    Check,
 } from "lucide-react";
 import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType, EnrichmentState, ReputationLabel } from "@/types/schemas";
 import {
@@ -23,7 +26,6 @@ import {
     IOC_LABELS,
     ATTACK_TYPE_LABELS,
     getRiskScoreColor,
-    getRiskScoreBg,
     getRiskLabel,
     getRiskScoreBarColor,
 } from "@/lib/constants/ioc";
@@ -40,6 +42,16 @@ interface IntelDashboardProps {
     isLoading?: boolean;
     /** When provided, enables the "Enrich" button on each IOC card. */
     getAccessToken?: () => Promise<string | null>;
+    /**
+     * When true, auto-enrich ALL IOC types on load (not just BTC).
+     * Use in history view where cached enrichment data should be restored.
+     */
+    autoEnrichAll?: boolean;
+    /**
+     * US-040: Called after any IOC enrichment succeeds, so the parent can
+     * re-fetch the risk score breakdown (which now incorporates reputation data).
+     */
+    onEnrichmentComplete?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,15 +104,69 @@ export function IntelDashboard({
     timeline = [],
     isLoading = false,
     getAccessToken,
+    autoEnrichAll = false,
+    onEnrichmentComplete,
 }: IntelDashboardProps) {
     const highValueCount = iocs.filter((ioc) => ioc.is_high_value).length;
     const { enrichmentStates, enrich, getKey } = useEnrichment(
         getAccessToken ?? NOOP_TOKEN,
     );
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    const copyToClipboard = async (value: string, copyKey: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopiedKey(copyKey);
+            setTimeout(() => setCopiedKey(null), 2000);
+        } catch {
+            // clipboard not available
+        }
+    };
+
+    // Track which IOCs we've already tried to auto-enrich to avoid loops
+    const autoEnrichedRef = useRef<Set<string>>(new Set());
+
+    // US-040: Re-fetch risk score after any enrichment succeeds, so the
+    // breakdown reflects updated IOC reputation multipliers.
+    const prevEnrichStatesRef = useRef<Record<string, EnrichmentState>>({});
+    const stableOnEnrichmentComplete = useCallback(() => {
+        onEnrichmentComplete?.();
+    }, [onEnrichmentComplete]);
+    useEffect(() => {
+        const newSuccesses = Object.entries(enrichmentStates).filter(
+            ([key, state]) =>
+                state.status === "success" &&
+                prevEnrichStatesRef.current[key]?.status !== "success",
+        );
+        if (newSuccesses.length > 0) {
+            stableOnEnrichmentComplete();
+        }
+        prevEnrichStatesRef.current = enrichmentStates;
+    }, [enrichmentStates, stableOnEnrichmentComplete]);
 
     const toggleExpanded = (key: string) =>
         setExpandedKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+
+    // US-038/US-035: Auto-enrich IOCs when they first appear.
+    // In live mode: BTC wallets and URLs (VirusTotal). In history mode (autoEnrichAll): all types,
+    // so that previously cached enrichment results are restored immediately.
+    useEffect(() => {
+        if (!getAccessToken) return;
+
+        iocs.forEach((ioc) => {
+            const key = getKey(ioc.type, ioc.value);
+            const shouldAutoEnrich = autoEnrichAll || ioc.type === "btc_wallet" || ioc.type === "url" || ioc.type === "ip";
+            if (
+                shouldAutoEnrich &&
+                !autoEnrichedRef.current.has(key) &&
+                !enrichmentStates[key]
+            ) {
+                autoEnrichedRef.current.add(key);
+                enrich(ioc.type, ioc.value);
+            }
+        });
+    }, [iocs, getAccessToken, enrich, getKey, enrichmentStates, autoEnrichAll]);
 
     return (
         <div
@@ -178,7 +244,8 @@ export function IntelDashboard({
                         No IOCs extracted yet.
                     </p>
                 ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="relative">
+                    <div className="space-y-2 max-h-64 overflow-y-auto pb-2">
                         {iocs.map((ioc, index) => {
                             const Icon = IOC_ICONS[ioc.type] || Link;
                             const label = IOC_LABELS[ioc.type] || ioc.type.toUpperCase();
@@ -200,7 +267,7 @@ export function IntelDashboard({
                                     data-testid={`ioc-item-${ioc.type}`}
                                     className={`rounded-md p-2 text-sm ${isHighValue
                                         ? "bg-red-500/5 border border-red-500/20"
-                                        : "bg-muted/30"
+                                        : "bg-muted/30 border border-border/40"
                                         }`}
                                 >
                                     {/* Row 1: icon + label + value + enrich button */}
@@ -222,18 +289,32 @@ export function IntelDashboard({
                                                     {label}
                                                 </span>
                                             </div>
-                                            <p
-                                                className={`font-mono text-xs break-all ${isHighValue
-                                                    ? "text-red-400"
-                                                    : "text-foreground"
-                                                    }`}
-                                            >
-                                                {ioc.value}
-                                            </p>
+                                            <div className="flex items-start gap-1">
+                                                <p
+                                                    className={`font-mono text-xs break-all flex-1 ${isHighValue
+                                                        ? "text-red-400"
+                                                        : "text-foreground"
+                                                        }`}
+                                                >
+                                                    {ioc.value}
+                                                </p>
+                                                <button
+                                                    title="Copy to clipboard"
+                                                    className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                                                    onClick={() => copyToClipboard(ioc.value, key)}
+                                                >
+                                                    {copiedKey === key ? (
+                                                        <Check className="h-3 w-3 text-green-500" />
+                                                    ) : (
+                                                        <Copy className="h-3 w-3" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        {/* Enrich button — only shown when getAccessToken is provided */}
-                                        {getAccessToken && enrichState.status === "idle" && (
+                                        {/* Enrich button — only shown when getAccessToken is provided and
+                                            not in autoEnrichAll mode where unsupported types silently skip */}
+                                        {getAccessToken && enrichState.status === "idle" && !autoEnrichAll && (
                                             <button
                                                 data-testid={`enrich-button-${ioc.type}`}
                                                 className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -260,66 +341,68 @@ export function IntelDashboard({
                                     {enrichState.status === "success" && assessment && (
                                         <div
                                             data-testid={`enrichment-result-${ioc.type}`}
-                                            className="mt-2 space-y-2 border-t border-border/30 pt-2"
+                                            className="mt-2 space-y-1.5 border-t border-border/30 pt-2"
                                         >
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                {/* Threat score */}
-                                                <div
-                                                    data-testid={`threat-score-${ioc.type}`}
-                                                    className="flex items-center gap-1.5"
-                                                >
-                                                    <span className={`text-lg font-bold ${getThreatScoreColor(assessment.threat_score)}`}>
-                                                        {assessment.threat_score}
-                                                    </span>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-muted-foreground leading-tight">
-                                                            /100
-                                                        </span>
-                                                        <div className="h-1 w-10 rounded-full bg-muted/40 overflow-hidden">
-                                                            <div
-                                                                className={`h-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
-                                                                style={{ width: `${assessment.threat_score}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Reputation badge */}
+                                            {/* Sub-row A: reputation (primary) + threat bar + score (secondary) */}
+                                            <div className="flex items-center gap-2">
+                                                {/* Reputation badge — primary visual element */}
                                                 {(() => {
                                                     const badge = getReputationBadge(assessment.reputation);
                                                     return (
                                                         <span
                                                             data-testid={`reputation-badge-${ioc.type}`}
-                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.className}`}
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${badge.className}`}
                                                         >
                                                             {badge.label}
                                                         </span>
                                                     );
                                                 })()}
 
-                                                {/* Cached indicator */}
+                                                {/* Threat bar — visual fill showing severity */}
+                                                <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${getThreatScoreBg(assessment.threat_score)}`}
+                                                        style={{ width: `${assessment.threat_score}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* Threat score — compact secondary indicator */}
+                                                <span
+                                                    data-testid={`threat-score-${ioc.type}`}
+                                                    className={`text-xs font-medium tabular-nums ${getThreatScoreColor(assessment.threat_score)}`}
+                                                >
+                                                    {assessment.threat_score}
+                                                    <span className="text-muted-foreground/60">/100</span>
+                                                </span>
+
+                                                {/* Cached indicator — subtle dot only */}
                                                 {enrichState.data.cached && (
                                                     <span
                                                         data-testid={`cached-badge-${ioc.type}`}
-                                                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-500"
+                                                        title="Result from cache"
+                                                        className="inline-flex items-center justify-center"
                                                     >
-                                                        <BadgeCheck className="h-3 w-3" />
-                                                        Cached
+                                                        <BadgeCheck className="h-3 w-3 text-muted-foreground/50" />
                                                     </span>
                                                 )}
 
-                                                {/* Source + latency */}
-                                                <span className="text-[10px] text-muted-foreground ml-auto">
-                                                    {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
-                                                </span>
+                                                {/* Refresh button */}
+                                                <button
+                                                    data-testid={`refresh-button-${ioc.type}`}
+                                                    title="Force refresh (bypass cache)"
+                                                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                                                    onClick={() => enrich(ioc.type, ioc.value, true)}
+                                                >
+                                                    <RefreshCw className="h-3 w-3" />
+                                                </button>
                                             </div>
 
-                                            {/* Expandable raw data */}
+                                            {/* Expandable raw data (source/latency shown here, not in main view) */}
                                             {enrichState.data.payload && (
                                                 <div>
                                                     <button
                                                         data-testid={`expand-raw-${ioc.type}`}
-                                                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                                         onClick={() => toggleExpanded(key)}
                                                     >
                                                         {isExpanded ? (
@@ -330,20 +413,28 @@ export function IntelDashboard({
                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                     </button>
                                                     {isExpanded && (
-                                                        <pre
-                                                            data-testid={`raw-data-${ioc.type}`}
-                                                            className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-[10px] font-mono text-muted-foreground"
-                                                        >
-                                                            {JSON.stringify(enrichState.data.payload, null, 2)}
-                                                        </pre>
+                                                        <>
+                                                            <div className="mt-1 text-[10px] text-muted-foreground/50">
+                                                                via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
+                                                            </div>
+                                                            <pre
+                                                                data-testid={`raw-data-${ioc.type}`}
+                                                                className="mt-1 max-h-32 overflow-auto rounded-md bg-muted/40 p-2 text-xs font-mono text-muted-foreground"
+                                                            >
+                                                                {JSON.stringify(enrichState.data.payload, null, 2)}
+                                                            </pre>
+                                                        </>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Row 2 (error): Error state with retry */}
-                                    {enrichState.status === "error" && (
+                                    {/* Row 2 (error): Error state with retry.
+                                        In autoEnrichAll mode, "Unsupported IOC type" is expected for
+                                        non-BTC IOCs — suppress the error to keep the view clean. */}
+                                    {enrichState.status === "error" &&
+                                        !(autoEnrichAll && enrichState.error === "Unsupported IOC type") && (
                                         <div
                                             data-testid={`enrichment-error-${ioc.type}`}
                                             className="mt-2 flex items-center gap-2 border-t border-border/30 pt-2"
@@ -354,7 +445,7 @@ export function IntelDashboard({
                                             </span>
                                             <button
                                                 data-testid={`retry-button-${ioc.type}`}
-                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                                className="flex items-center gap-1 rounded-md border border-border/50 bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                                                 onClick={() => enrich(ioc.type, ioc.value)}
                                             >
                                                 <RefreshCw className="h-3 w-3" />
@@ -366,13 +457,17 @@ export function IntelDashboard({
                             );
                         })}
                     </div>
+                    {iocs.length > 5 && (
+                        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent" />
+                    )}
+                    </div>
                 )}
             </div>
 
             {/* Section 3: Risk Score (US-032 Enhanced with breakdown) */}
             <div data-testid="risk-score-section">
                 <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Risk Score
                     </span>
@@ -383,6 +478,12 @@ export function IntelDashboard({
                     <RiskScoreBreakdown
                         breakdown={riskScoreBreakdown}
                         isLoading={isLoading}
+                        hasUnenrichedIOCs={getAccessToken != null && iocs.some(
+                            (ioc) => {
+                                const state = enrichmentStates[getKey(ioc.type, ioc.value)];
+                                return !state || state.status === "error";
+                            }
+                        )}
                     />
                 ) : (
                     <div className="flex items-center gap-3">
@@ -425,7 +526,7 @@ export function IntelDashboard({
                         No events yet.
                     </p>
                 ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                         {timeline.map((event, index) => {
                             const eventTime = new Date(event.timestamp);
                             const timeAgo = formatDistanceToNow(eventTime, { addSuffix: true });
@@ -445,6 +546,10 @@ export function IntelDashboard({
                                         </p>
                                         <p className="text-muted-foreground mt-0.5">
                                             {timeAgo}
+                                            <span className="mx-1">&middot;</span>
+                                            <span title={eventTime.toLocaleString()}>
+                                                {eventTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                            </span>
                                         </p>
                                     </div>
                                 </div>

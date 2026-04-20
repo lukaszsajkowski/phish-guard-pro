@@ -116,6 +116,26 @@ class InMemoryRateLimiter:
         day_window.append(now)
         return True
 
+    def get_usage(self, source_name: str) -> tuple[int, int]:
+        """Return ``(minute_count, day_count)`` for *source_name*.
+
+        Prunes expired entries before counting so the numbers reflect the
+        current sliding window — same semantics as ``check`` but read-only.
+        """
+        now = time.monotonic()
+        minute_cutoff = now - 60
+        day_cutoff = now - 86400
+
+        minute_window = self._minute_windows.get(source_name, deque())
+        day_window = self._day_windows.get(source_name, deque())
+
+        while minute_window and minute_window[0] < minute_cutoff:
+            minute_window.popleft()
+        while day_window and day_window[0] < day_cutoff:
+            day_window.popleft()
+
+        return len(minute_window), len(day_window)
+
 
 def _hash_value(value: str) -> str:
     """Stable short hash for cache keys and log lines.
@@ -169,6 +189,7 @@ class EnrichmentService:
         value: str,
         *,
         ioc_id: str | None = None,
+        force_refresh: bool = False,
     ) -> EnrichmentResult:
         """Enrich a single IOC.
 
@@ -179,6 +200,8 @@ class EnrichmentService:
                 write links the enrichment row to the session's IOC; when not,
                 the row is stored as a server-internal cache entry (RLS keeps
                 it invisible to end users).
+            force_refresh: If True, bypass the cache and fetch fresh data from
+                the source.
 
         Returns:
             ``EnrichmentResult`` with ``status`` in ``{ok, unavailable,
@@ -203,24 +226,25 @@ class EnrichmentService:
             return result
 
         # Cache read-through
-        cached_row = self._read_cache(source.name, ioc_type, value_hash)
-        if cached_row is not None:
-            fetched_at = _parse_timestamp(cached_row.get("fetched_at"))
-            if fetched_at is not None and self._clock() - fetched_at <= self._ttl_for(
-                ioc_type
-            ):
-                result = EnrichmentResult(
-                    status=cached_row.get("status", "ok"),
-                    source=source.name,
-                    ioc_type=ioc_type,
-                    value=value,
-                    payload=cached_row.get("payload"),
-                    fetched_at=fetched_at,
-                    cached=True,
-                    latency_ms=int((time.monotonic() - start) * 1000),
-                )
-                self._log(result, value_hash, cache_hit=True)
-                return result
+        if not force_refresh:
+            cached_row = self._read_cache(source.name, ioc_type, value_hash)
+            if cached_row is not None:
+                fetched_at = _parse_timestamp(cached_row.get("fetched_at"))
+                if fetched_at is not None and self._clock() - fetched_at <= self._ttl_for(
+                    ioc_type
+                ):
+                    result = EnrichmentResult(
+                        status=cached_row.get("status", "ok"),
+                        source=source.name,
+                        ioc_type=ioc_type,
+                        value=value,
+                        payload=cached_row.get("payload"),
+                        fetched_at=fetched_at,
+                        cached=True,
+                        latency_ms=int((time.monotonic() - start) * 1000),
+                    )
+                    self._log(result, value_hash, cache_hit=True)
+                    return result
 
         # Rate limit check
         if not self._rate_limiter.check(source.name, source.rate_limit):

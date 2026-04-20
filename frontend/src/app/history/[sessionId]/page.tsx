@@ -169,6 +169,29 @@ export default function SessionDetailPage() {
         }
     }, [sessionId, router]);
 
+    // US-040: Standalone intel re-fetch so enrichment can trigger a risk score refresh.
+    const fetchIntelDashboard = useCallback(async () => {
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (!supabaseUrl || !supabaseAnonKey) return;
+            const sb = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session?.access_token) return;
+            const resp = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/intel/dashboard/${sessionId}`,
+                { headers: { Authorization: `Bearer ${session.access_token}` } }
+            );
+            if (resp.ok) {
+                const intelData = await resp.json();
+                if (intelData.risk_score_breakdown) setRiskScoreBreakdown(intelData.risk_score_breakdown);
+                setRiskScore(intelData.risk_score || 1);
+            }
+        } catch {
+            // non-critical — enrichment re-fetch failures are silent
+        }
+    }, [sessionId]);
+
     // Initial fetch
     useEffect(() => {
         fetchSessionData();
@@ -401,6 +424,8 @@ export default function SessionDetailPage() {
                                                 riskScoreBreakdown={riskScoreBreakdown}
                                                 timeline={timeline}
                                                 getAccessToken={getAccessToken}
+                                                autoEnrichAll
+                                                onEnrichmentComplete={fetchIntelDashboard}
                                             />
                                         </div>
                                     </div>

@@ -27,12 +27,12 @@ Reputation labels
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any
 
 import httpx
 
+from phishguard.core import get_settings
 from phishguard.services.enrichment_service import RateLimitConfig
 
 logger = logging.getLogger(__name__)
@@ -209,8 +209,8 @@ class BtcEnrichmentSource:
         bitcoinabuse_api_key: str | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
-        self._bitcoinabuse_api_key = bitcoinabuse_api_key or os.environ.get(
-            "BITCOINABUSE_API_KEY", ""
+        self._bitcoinabuse_api_key = (
+            bitcoinabuse_api_key or get_settings().bitcoinabuse_api_key
         )
         # Allow injection for testing; otherwise create a shared client
         self._external_client = http_client

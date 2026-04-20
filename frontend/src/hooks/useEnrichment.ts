@@ -55,6 +55,17 @@ export function deriveThreatAssessment(
         return { threat_score: score, reputation };
     }
 
+    // Source-specific: IP enrichment (AbuseIPDB source)
+    if (res.ioc_type === "ip" && res.status === "ok") {
+        const reputation = (payload.reputation as ReputationLabel) ?? "unknown";
+        const abuseScore =
+            typeof payload.abuse_confidence_score === "number"
+                ? payload.abuse_confidence_score
+                : 0;
+
+        return { threat_score: abuseScore, reputation };
+    }
+
     // Generic fallback for any IOC type
     if (res.status !== "ok") {
         return { threat_score: 0, reputation: "unknown" };
@@ -77,7 +88,7 @@ export interface UseEnrichmentReturn {
     /** Map of IOC key -> enrichment state */
     enrichmentStates: Record<string, EnrichmentState>;
     /** Trigger enrichment for one IOC */
-    enrich: (iocType: string, iocValue: string) => Promise<void>;
+    enrich: (iocType: string, iocValue: string, refresh?: boolean) => Promise<void>;
     /** Get a stable map key for an IOC */
     getKey: (iocType: string, iocValue: string) => string;
 }
@@ -102,7 +113,7 @@ export function useEnrichment(
     );
 
     const enrich = useCallback(
-        async (iocType: string, iocValue: string) => {
+        async (iocType: string, iocValue: string, refresh: boolean = false) => {
             const key = getKey(iocType, iocValue);
 
             // Normalise IOC type for the backend (btc_wallet -> btc)
@@ -123,14 +134,18 @@ export function useEnrichment(
                     return;
                 }
 
-                const response = await fetch(
+                const url = new URL(
                     `${API_URL}/api/v1/enrichment/${encodeURIComponent(apiType)}/${encodeURIComponent(iocValue)}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    },
                 );
+                if (refresh) {
+                    url.searchParams.append("refresh", "true");
+                }
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
                 if (!response.ok) {
                     const errorText = await response.text().catch(() => "Unknown error");

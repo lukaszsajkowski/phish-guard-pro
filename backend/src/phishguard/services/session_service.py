@@ -520,6 +520,46 @@ async def get_session_enhanced_risk_score(
     # Get IOCs
     iocs = await get_session_iocs(session_id)
 
+    # US-040: Build enrichment map (ioc_value → best reputation label).
+    # Queries ioc_enrichment for all IOC IDs in this session, picks the most
+    # severe reputation across all sources per IOC.
+    ioc_enrichment_map: dict[str, str] | None = None
+    ioc_ids = [ioc["id"] for ioc in iocs if ioc.get("id")]
+    if ioc_ids:
+        try:
+            supabase = _get_supabase_client()
+            enrich_resp = (
+                supabase.table("ioc_enrichment")
+                .select("ioc_id, payload")
+                .in_("ioc_id", ioc_ids)
+                .eq("status", "ok")
+                .execute()
+            )
+            enrich_rows = enrich_resp.data or []
+
+            # Severity ranking — higher number wins when multiple sources disagree
+            _SEVERITY: dict[str, int] = {
+                "malicious": 3,
+                "suspicious": 2,
+                "clean": 1,
+                "unknown": 0,
+            }
+            id_to_rep: dict[str, str] = {}
+            for row in enrich_rows:
+                iid = row.get("ioc_id")
+                rep = (row.get("payload") or {}).get("reputation", "unknown")
+                if _SEVERITY.get(rep, 0) > _SEVERITY.get(id_to_rep.get(iid, ""), 0):
+                    id_to_rep[iid] = rep
+
+            if id_to_rep:
+                ioc_enrichment_map = {
+                    ioc["value"]: id_to_rep[ioc["id"]]
+                    for ioc in iocs
+                    if ioc.get("id") in id_to_rep and ioc.get("value")
+                }
+        except Exception:  # noqa: BLE001 - enrichment failures must not block risk score
+            pass
+
     # Get scammer messages
     messages = await get_session_messages(session_id)
     scammer_messages = [
@@ -532,6 +572,7 @@ async def get_session_enhanced_risk_score(
         scammer_messages=scammer_messages,
         victim_name=victim_name,
         victim_first_name=victim_first_name,
+        ioc_enrichment=ioc_enrichment_map,
     )
 
 
@@ -779,13 +820,83 @@ async def get_session_summary(session_id: str) -> dict[str, Any]:
     }
 
 
+def _derive_threat_score(ioc_type: str, payload: dict[str, Any]) -> int:
+    """Derive a 0-100 threat score from an enrichment payload.
+
+    Uses the same heuristics as the frontend ``deriveThreatAssessment`` so
+    exported values match what the user sees in the UI.
+    """
+    if ioc_type == "btc":
+        reputation = payload.get("reputation", "unknown")
+        report_count = int(payload.get("report_count") or 0)
+        if reputation == "malicious":
+            return min(100, 70 + round((report_count / 20) * 30))
+        if reputation == "suspicious":
+            return min(69, 40 + report_count * 10)
+        tx_count = int(payload.get("tx_count") or 0)
+        return 15 if tx_count > 0 else 5
+    if ioc_type == "ip":
+        return int(payload.get("abuse_confidence_score") or 0)
+    rep = payload.get("reputation", "unknown")
+    if rep == "malicious":
+        return 90
+    if rep == "suspicious":
+        return 50
+    if rep == "clean":
+        return 10
+    return 0
+
+
+def _fetch_iocs_enrichment(ioc_ids: list[str]) -> dict[str, dict[str, Any]]:
+    """Fetch enrichment summary for a list of IOC IDs (US-039).
+
+    Returns a map from ``ioc_id`` to ``{threat_score, reputation, source}``.
+    Only ``status="ok"`` rows are considered.  When multiple sources enriched
+    the same IOC the most severe reputation wins.
+    """
+    if not ioc_ids:
+        return {}
+    _SEVERITY: dict[str, int] = {
+        "malicious": 3, "suspicious": 2, "clean": 1, "unknown": 0
+    }
+    try:
+        supabase = _get_supabase_client()
+        rows: list[dict[str, Any]] = (
+            supabase.table("ioc_enrichment")
+            .select("ioc_id, source, ioc_type, status, payload")
+            .in_("ioc_id", ioc_ids)
+            .eq("status", "ok")
+            .execute()
+        ).data or []
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            iid: str | None = row.get("ioc_id")
+            if not iid:
+                continue
+            payload: dict[str, Any] = row.get("payload") or {}
+            reputation: str = payload.get("reputation", "unknown")
+            threat_score = _derive_threat_score(row.get("ioc_type", ""), payload)
+            existing = result.get(iid)
+            if existing is None or _SEVERITY.get(reputation, 0) > _SEVERITY.get(
+                existing["reputation"], 0
+            ):
+                result[iid] = {
+                    "threat_score": threat_score,
+                    "reputation": reputation,
+                    "source": row.get("source", ""),
+                }
+        return result
+    except Exception:  # noqa: BLE001 - enrichment failures must not block export
+        return {}
+
+
 async def export_session_json(session_id: str) -> dict[str, Any]:
-    """Export full session data to JSON format (US-019).
+    """Export full session data to JSON format (US-019, US-039).
 
     Creates a dict containing:
     - Session metadata
     - Full conversation history
-    - All extracted IOCs
+    - All extracted IOCs with optional enrichment data
 
     Args:
         session_id: The session's UUID.
@@ -802,6 +913,10 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
     messages = await get_session_messages(session_id)
     iocs = await get_session_iocs(session_id)
     summary = await get_session_summary(session_id)
+
+    # US-039: attach enrichment data to each IOC
+    ioc_ids = [ioc["id"] for ioc in iocs if ioc.get("id")]
+    enrichment_by_id = _fetch_iocs_enrichment(ioc_ids)
 
     # Build conversation history
     conversation_history = []
@@ -839,7 +954,13 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
         "persona": session.get("persona"),
         "original_email": original_email,
         "conversation_history": conversation_history,
-        "extracted_iocs": iocs,
+        "extracted_iocs": [
+            {
+                **ioc,
+                "enrichment": enrichment_by_id.get(ioc.get("id", "")),
+            }
+            for ioc in iocs
+        ],
         "summary_stats": {
             "total_iocs": len(iocs),
             "high_value_iocs": sum(
@@ -856,11 +977,17 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
     }
 
 
-def export_iocs_csv(iocs: list[dict[str, Any]]) -> str:
-    """Export IOCs to CSV format (US-020).
+def export_iocs_csv(
+    iocs: list[dict[str, Any]],
+    enrichment_by_id: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """Export IOCs to CSV format (US-020, US-039).
 
     Args:
         iocs: List of IOC dicts from get_session_iocs.
+        enrichment_by_id: Optional map from ioc_id to enrichment summary
+            ``{threat_score, reputation, source}``.  Unenriched IOCs get
+            empty strings in those columns.
 
     Returns:
         CSV string with headers and data.
@@ -879,13 +1006,19 @@ def export_iocs_csv(iocs: list[dict[str, Any]]) -> str:
             "timestamp",
             "confidence",
             "is_high_value",
+            "threat_score",
+            "reputation",
+            "source",
         ]
     )
+
+    enrichment_map: dict[str, dict[str, Any]] = enrichment_by_id or {}
 
     # Write IOC rows
     for ioc in iocs:
         ioc_type = ioc.get("type", "")
         is_high_value = ioc_type in ("btc", "iban", "btc_wallet")
+        enrich = enrichment_map.get(ioc.get("id", "")) or {}
         writer.writerow(
             [
                 ioc_type,
@@ -893,6 +1026,9 @@ def export_iocs_csv(iocs: list[dict[str, Any]]) -> str:
                 ioc.get("created_at", ""),
                 ioc.get("confidence", 0.0),
                 "true" if is_high_value else "false",
+                enrich.get("threat_score", ""),
+                enrich.get("reputation", ""),
+                enrich.get("source", ""),
             ]
         )
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { IntelDashboard } from "../IntelDashboard";
@@ -144,9 +144,7 @@ describe("IntelDashboard – Enrichment UI", () => {
             expect(scoreEl).toBeInTheDocument();
             // Score = 78 (malicious with 5 reports)
             expect(scoreEl).toHaveTextContent("78");
-            // The score value should have red color class
-            const boldSpan = within(scoreEl).getByText("78");
-            expect(boldSpan).toHaveClass("text-red-500");
+            expect(scoreEl).toHaveClass("text-red-500");
         });
 
         it("renders threat score with yellow color for suspicious (34-66)", async () => {
@@ -162,8 +160,7 @@ describe("IntelDashboard – Enrichment UI", () => {
             const scoreEl = screen.getByTestId("threat-score-btc");
             // 40 + 1*10 = 50
             expect(scoreEl).toHaveTextContent("50");
-            const boldSpan = within(scoreEl).getByText("50");
-            expect(boldSpan).toHaveClass("text-yellow-500");
+            expect(scoreEl).toHaveClass("text-yellow-500");
         });
 
         it("renders threat score with green color for clean (0-33)", async () => {
@@ -179,8 +176,7 @@ describe("IntelDashboard – Enrichment UI", () => {
             const scoreEl = screen.getByTestId("threat-score-btc");
             // unknown with tx_count > 0 => 15
             expect(scoreEl).toHaveTextContent("15");
-            const boldSpan = within(scoreEl).getByText("15");
-            expect(boldSpan).toHaveClass("text-green-500");
+            expect(scoreEl).toHaveClass("text-green-500");
         });
     });
 
@@ -219,16 +215,16 @@ describe("IntelDashboard – Enrichment UI", () => {
                 }),
             );
 
-            // Render with a url IOC so deriveThreatAssessment uses generic path
+            // URL IOCs are auto-enriched on mount (US-038/US-035), so we
+            // wait for the reputation badge to appear rather than clicking.
             render(
                 <IntelDashboard
                     iocs={[{ id: "u1", type: "url", value: "https://evil.com", is_high_value: false }]}
                     getAccessToken={mockGetAccessToken}
                 />,
             );
-            await userEvent.click(screen.getByTestId("enrich-button-url"));
 
-            const badge = screen.getByTestId("reputation-badge-url");
+            const badge = await screen.findByTestId("reputation-badge-url");
             expect(badge).toHaveTextContent("Clean");
             expect(badge).toHaveClass("text-green-500");
         });
@@ -241,8 +237,9 @@ describe("IntelDashboard – Enrichment UI", () => {
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
-            expect(screen.getByTestId("cached-badge-btc")).toBeInTheDocument();
-            expect(screen.getByText("Cached")).toBeInTheDocument();
+            const cachedBadge = screen.getByTestId("cached-badge-btc");
+            expect(cachedBadge).toBeInTheDocument();
+            expect(cachedBadge).toHaveAttribute("title", "Result from cache");
         });
 
         it("does NOT show Cached badge for fresh results", async () => {
@@ -304,13 +301,16 @@ describe("IntelDashboard – Enrichment UI", () => {
     });
 
     describe("Success – source and latency", () => {
-        it("displays source name and latency", async () => {
+        it("displays source name and latency inside expanded raw data", async () => {
             mockFetchSuccess(
                 createSuccessResponse({ source: "btc_mempool", latency_ms: 230 }),
             );
 
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
+
+            // Source/latency is now inside the expandable section
+            await userEvent.click(screen.getByTestId("expand-raw-btc"));
 
             const resultSection = screen.getByTestId("enrichment-result-btc");
             expect(resultSection).toHaveTextContent("btc_mempool");

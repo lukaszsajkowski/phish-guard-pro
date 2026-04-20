@@ -27,6 +27,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -51,6 +52,8 @@ out/
 # Testing
 # =============================================================================
 coverage/
+test-results/
+playwright-report/
 .coverage
 .coverage.*
 htmlcov/
