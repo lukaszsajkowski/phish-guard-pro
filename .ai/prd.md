@@ -970,7 +970,7 @@ Acceptance Criteria:
 - Transition between modes is smooth (no flash of wrong theme)
 - All existing components render correctly in both modes without visual bugs
 
-### US-042: Design Token System Overhaul
+### US-042: Design Token System Overhaul ✅
 
 Title: Implement new design token palette and typography
 

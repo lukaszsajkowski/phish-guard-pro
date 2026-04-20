@@ -114,7 +114,7 @@ export function SessionSummary({
                     {summary.attack_type_display}
                 </p>
                 {summary.attack_confidence > 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground font-mono">
                         Confidence: {Math.round(summary.attack_confidence)}%
                     </p>
                 )}

@@ -51,7 +51,7 @@ export function ClassificationResult({ attackType, confidence, reasoning }: Clas
                             )}
                             {ATTACK_TYPE_LABELS[attackType]}
                         </CardTitle>
-                        <span className={`text-sm font-medium px-2 py-1 rounded-full ${isHighConfidence ? "bg-green-100 text-green-700" :
+                        <span className={`text-sm font-medium font-mono px-2 py-1 rounded-full ${isHighConfidence ? "bg-green-100 text-green-700" :
                             confidence < 50 ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"
                             }`}>
                             {confidence.toFixed(1)}% Confidence

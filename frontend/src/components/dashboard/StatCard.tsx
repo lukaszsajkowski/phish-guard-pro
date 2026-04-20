@@ -34,7 +34,7 @@ export function StatCard({
                 <span className="text-sm text-muted-foreground">{label}</span>
             </div>
             <p
-                className={cn("text-2xl font-bold", valueClassName)}
+                className={cn("text-2xl font-bold font-mono", valueClassName)}
                 data-testid={testId}
             >
                 {children}

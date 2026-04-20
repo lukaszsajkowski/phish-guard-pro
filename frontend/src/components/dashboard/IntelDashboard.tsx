@@ -206,7 +206,7 @@ export function IntelDashboard({
                         {confidence !== undefined && confidence > 0 && (
                             <span
                                 data-testid="confidence-badge"
-                                className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                                className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium font-mono text-primary"
                             >
                                 {Math.round(confidence)}% confidence
                             </span>
@@ -398,7 +398,7 @@ export function IntelDashboard({
                                                 {/* Threat score — compact secondary indicator */}
                                                 <span
                                                     data-testid={`threat-score-${ioc.type}`}
-                                                    className={`text-xs font-medium tabular-nums ${getThreatScoreColor(assessment.threat_score)}`}
+                                                    className={`text-xs font-medium font-mono tabular-nums ${getThreatScoreColor(assessment.threat_score)}`}
                                                 >
                                                     {assessment.threat_score}
                                                     <span className="text-muted-foreground/60">/100</span>
@@ -526,7 +526,7 @@ export function IntelDashboard({
                     <div className="flex items-center gap-3">
                         <div
                             data-testid="risk-score-value"
-                            className={`text-3xl font-bold ${getRiskScoreColor(riskScore)}`}
+                            className={`text-3xl font-bold font-mono ${getRiskScoreColor(riskScore)}`}
                         >
                             {riskScore}
                         </div>
