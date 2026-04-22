@@ -12,7 +12,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, defangUrl } from "@/lib/utils";
 import { IOC_ICONS, IOC_LABELS, getRiskScoreColor } from "@/lib/constants/ioc";
 import { StatCard } from "./StatCard";
 
@@ -145,7 +145,7 @@ export function SessionSummary({
                                     />
                                     <div className="min-w-0 flex-1">
                                         <p className="text-xs text-muted-foreground">{label}</p>
-                                        <p className="font-mono text-sm truncate">{ioc.value}</p>
+                                        <p className="font-mono text-sm truncate">{ioc.ioc_type === "url" ? defangUrl(ioc.value) : ioc.value}</p>
                                     </div>
                                     {ioc.is_high_value && (
                                         <span className="text-xs font-medium text-red-500 px-2 py-0.5 bg-red-500/10 rounded">

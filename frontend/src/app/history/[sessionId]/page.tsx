@@ -4,14 +4,23 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { Loader2, Download, FileJson, FileSpreadsheet } from "lucide-react";
+import { Shield } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
-import { Button } from "@/components/ui/button";
-import { SessionDetailHeader, ReadOnlyChatArea } from "@/components/history";
+import { SessionDetailSkeleton } from "@/components/app/LoadingSkeletons";
+import { SessionDetailHeader, ReadOnlyChatArea, PhishingEmailCard } from "@/components/history";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { IntelDashboard } from "@/components/dashboard/IntelDashboard";
 import { ApiError } from "@/components/app/ApiError";
+import { Button } from "@/components/ui/button";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import { ChatMessage, ExtractedIOC, Persona, TimelineEvent, RiskScoreBreakdown } from "@/types/schemas";
+import { toast } from "sonner";
 
 // API response type for session restore
 interface SessionRestoreResponse {
@@ -226,15 +235,18 @@ export default function SessionDetailPage() {
                 throw new Error("Failed to export JSON");
             }
 
+            const filename = `phishguard_session_${new Date().toISOString().slice(0, 10)}.json`;
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `phishguard_session_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+            toast.success(`Exported ${filename}`);
         } catch (err) {
             console.error("Error exporting JSON:", err);
+            toast.error("JSON export failed", { description: err instanceof Error ? err.message : "Please try again." });
         } finally {
             setIsExporting(false);
         }
@@ -262,15 +274,18 @@ export default function SessionDetailPage() {
                 throw new Error("Failed to export CSV");
             }
 
+            const filename = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.csv`;
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+            toast.success(`Exported ${filename}`);
         } catch (err) {
             console.error("Error exporting CSV:", err);
+            toast.error("CSV export failed", { description: err instanceof Error ? err.message : "Please try again." });
         } finally {
             setIsExporting(false);
         }
@@ -289,7 +304,7 @@ export default function SessionDetailPage() {
         router.push("/dashboard");
     };
 
-    // Not found state - show outside layout since we may not be authenticated
+    // Not found state
     if (notFound && !isLoading) {
         return (
             <AuthenticatedLayout onNewSession={handleNewSession}>
@@ -317,123 +332,105 @@ export default function SessionDetailPage() {
     return (
         <AuthenticatedLayout onNewSession={handleNewSession}>
             {isLoading ? (
-                <div className="flex flex-1 items-center justify-center">
-                    <div className="flex items-center gap-3">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-muted-foreground">Loading session...</span>
-                    </div>
-                </div>
+                <SessionDetailSkeleton />
             ) : (
-                <main className="flex flex-1 flex-col p-6">
-                    <div className="max-w-6xl mx-auto w-full space-y-6">
-                        {/* Error state */}
-                        {error && (
+                <div className="flex flex-col h-screen overflow-hidden">
+                    {/* Error state */}
+                    {error && (
+                        <div className="p-4">
                             <ApiError
                                 title="Failed to Load Session"
                                 message={error}
                                 onRetry={handleRetry}
                                 isRetrying={isRetrying}
                             />
-                        )}
+                        </div>
+                    )}
 
-                        {/* Session content */}
-                        {sessionData && !error && (
-                            <>
-                                {/* Header */}
-                                <SessionDetailHeader
-                                    attackType={sessionData.attack_type}
-                                    attackTypeDisplay={sessionData.attack_type_display}
-                                    createdAt={sessionData.created_at || new Date().toISOString()}
-                                    status={sessionData.status}
-                                    turnCount={sessionData.turn_count}
-                                />
+                    {/* Session content */}
+                    {sessionData && !error && (
+                        <>
+                            {/* Top bar — full width */}
+                            <SessionDetailHeader
+                                attackType={sessionData.attack_type}
+                                attackTypeDisplay={sessionData.attack_type_display}
+                                createdAt={sessionData.created_at || new Date().toISOString()}
+                                status={sessionData.status}
+                                turnCount={sessionData.turn_count}
+                                onExportJson={handleExportJson}
+                                onExportCsv={handleExportCsv}
+                                isExporting={isExporting}
+                            />
 
-                                {/* Export buttons (US-030) */}
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border/50 bg-card">
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <Download className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm font-medium">Export Session Data</span>
+                            {/* Content area — center column + right panel */}
+                            <div className="flex flex-1 overflow-hidden">
+                                {/* Center column — scrollable */}
+                                <div className="flex-1 overflow-y-auto px-4 lg:px-7 py-6 flex flex-col gap-5 min-w-0">
+                                    {/* Mobile-only intel panel trigger */}
+                                    <div className="lg:hidden">
+                                        <Sheet>
+                                            <SheetTrigger asChild>
+                                                <Button variant="outline" className="w-full gap-2">
+                                                    <Shield className="h-4 w-4" />
+                                                    Threat Intel ({sessionData.iocs.length} IOCs)
+                                                </Button>
+                                            </SheetTrigger>
+                                            <SheetContent side="right" className="w-[340px] sm:w-[380px] p-0 overflow-y-auto">
+                                                <SheetHeader className="sr-only">
+                                                    <SheetTitle>Threat Intelligence</SheetTitle>
+                                                </SheetHeader>
+                                                <IntelDashboard
+                                                    iocs={sessionData.iocs}
+                                                    attackType={sessionData.attack_type}
+                                                    confidence={sessionData.confidence}
+                                                    riskScore={calculateFallbackRiskScore()}
+                                                    riskScoreBreakdown={riskScoreBreakdown}
+                                                    timeline={timeline}
+                                                    getAccessToken={getAccessToken}
+                                                    autoEnrichAll
+                                                    onEnrichmentComplete={fetchIntelDashboard}
+                                                />
+                                            </SheetContent>
+                                        </Sheet>
                                     </div>
-                                    <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleExportJson}
-                                        disabled={isExporting}
-                                        data-testid="export-json-button"
-                                    >
-                                        {isExporting ? (
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <FileJson className="h-4 w-4 mr-2" />
-                                        )}
-                                        Export JSON
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleExportCsv}
-                                        disabled={isExporting}
-                                        data-testid="export-csv-button"
-                                    >
-                                        {isExporting ? (
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                        )}
-                                        Export CSV
-                                    </Button>
-                                    </div>
+
+                                    {/* Persona card */}
+                                    {sessionData.persona && (
+                                        <PersonaCard persona={sessionData.persona} />
+                                    )}
+
+                                    {/* Phishing email card */}
+                                    {sessionData.original_email && (
+                                        <PhishingEmailCard
+                                            emailContent={sessionData.original_email}
+                                        />
+                                    )}
+
+                                    {/* Conversation history */}
+                                    <ReadOnlyChatArea
+                                        messages={messages}
+                                        personaName={sessionData.persona?.name}
+                                    />
                                 </div>
 
-                                {/* Main content grid - US-026 responsive */}
-                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                                    {/* Left column - Conversation */}
-                                    <div className="xl:col-span-2 space-y-6">
-                                        {/* Persona card */}
-                                        {sessionData.persona && (
-                                            <PersonaCard persona={sessionData.persona} />
-                                        )}
-
-                                        {/* Original email preview (if available) */}
-                                        {sessionData.original_email && (
-                                            <div className="rounded-lg border border-border/50 bg-card p-4">
-                                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                                                    Original Phishing Email
-                                                </h3>
-                                                <div className="bg-muted/30 rounded-md p-4 text-sm whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                                                    {sessionData.original_email}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Conversation history */}
-                                        <div className="rounded-lg border border-border/50 bg-card p-4 min-h-[400px]">
-                                            <ReadOnlyChatArea messages={messages} />
-                                        </div>
-                                    </div>
-
-                                    {/* Right column - Intel Dashboard */}
-                                    <div className="xl:col-span-1">
-                                        <div className="sticky top-6">
-                                            <IntelDashboard
-                                                iocs={sessionData.iocs}
-                                                attackType={sessionData.attack_type}
-                                                confidence={sessionData.confidence}
-                                                riskScore={calculateFallbackRiskScore()}
-                                                riskScoreBreakdown={riskScoreBreakdown}
-                                                timeline={timeline}
-                                                getAccessToken={getAccessToken}
-                                                autoEnrichAll
-                                                onEnrichmentComplete={fetchIntelDashboard}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </main>
+                                {/* Right panel — fixed width, scrollable, hidden on mobile */}
+                                <aside className="hidden lg:block w-[320px] shrink-0 border-l border-border bg-surface overflow-y-auto">
+                                    <IntelDashboard
+                                        iocs={sessionData.iocs}
+                                        attackType={sessionData.attack_type}
+                                        confidence={sessionData.confidence}
+                                        riskScore={calculateFallbackRiskScore()}
+                                        riskScoreBreakdown={riskScoreBreakdown}
+                                        timeline={timeline}
+                                        getAccessToken={getAccessToken}
+                                        autoEnrichAll
+                                        onEnrichmentComplete={fetchIntelDashboard}
+                                    />
+                                </aside>
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
         </AuthenticatedLayout>
     );

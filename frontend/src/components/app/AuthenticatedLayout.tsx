@@ -3,8 +3,15 @@
 import { useEffect, useState, useCallback, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, User } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu, Shield } from "lucide-react";
 import { AppSidebar } from "./AppSidebar";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface AuthenticatedLayoutProps {
     children: ReactNode;
@@ -84,6 +91,35 @@ export function AuthenticatedLayout({
 
     return (
         <div className="flex min-h-screen bg-background">
+            {/* Mobile header with hamburger menu — visible below lg */}
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 border-b border-border bg-background px-4 h-14 lg:hidden">
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <button
+                            className="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted"
+                            aria-label="Open navigation menu"
+                        >
+                            <Menu className="h-5 w-5" />
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-64 p-0">
+                        <SheetHeader className="sr-only">
+                            <SheetTitle>Navigation</SheetTitle>
+                        </SheetHeader>
+                        <AppSidebar
+                            user={user}
+                            onLogout={handleLogout}
+                            isLoggingOut={isLoggingOut}
+                            onNewSession={onNewSession}
+                        />
+                    </SheetContent>
+                </Sheet>
+                <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">PhishGuard Pro</span>
+                </div>
+            </div>
+
             {/* Fixed sidebar — hidden on mobile, visible on lg+ */}
             <div
                 className="fixed left-0 top-0 h-full w-64 z-40 hidden lg:block"
@@ -97,8 +133,8 @@ export function AuthenticatedLayout({
                 />
             </div>
 
-            {/* Main content area — no left margin on mobile, lg:ml-64 on desktop */}
-            <main className="flex-1 lg:ml-64" data-testid="main-content">
+            {/* Main content area — top padding for mobile header, left margin for desktop sidebar */}
+            <main className="flex-1 pt-14 lg:pt-0 lg:ml-64" data-testid="main-content">
                 {children}
             </main>
         </div>

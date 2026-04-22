@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback, Suspense, useRef, type ComponentProps } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { DashboardSkeleton } from "@/components/app/LoadingSkeletons";
+import { toast } from "sonner";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
 import { ClassificationResult, type AttackType } from "@/components/app/ClassificationResult";
@@ -34,14 +36,7 @@ import {
 // Wrapper component for Suspense boundary (required for useSearchParams in Next.js 16)
 export default function DashboardPage() {
     return (
-        <Suspense fallback={
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-muted-foreground">Loading...</span>
-                </div>
-            </div>
-        }>
+        <Suspense fallback={<DashboardSkeleton />}>
             <DashboardContent />
         </Suspense>
     );
@@ -721,13 +716,19 @@ function DashboardContent() {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
 
+            if (!response.ok) throw new Error("Export failed");
+
+            const filename = `phishguard_session_${new Date().toISOString().slice(0, 10)}.json`;
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `phishguard_session_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+            toast.success(`Exported ${filename}`);
+        } catch (err) {
+            toast.error("JSON export failed", { description: err instanceof Error ? err.message : "Please try again." });
         } finally {
             setIsExporting(false);
         }
@@ -751,13 +752,19 @@ function DashboardContent() {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
 
+            if (!response.ok) throw new Error("Export failed");
+
+            const filename = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.csv`;
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+            toast.success(`Exported ${filename}`);
+        } catch (err) {
+            toast.error("CSV export failed", { description: err instanceof Error ? err.message : "Please try again." });
         } finally {
             setIsExporting(false);
         }
@@ -899,12 +906,7 @@ function DashboardContent() {
     if (isRestoringSession) {
         return (
             <AuthenticatedLayout onNewSession={() => setShowNewSessionDialog(true)}>
-                <div className="flex min-h-screen items-center justify-center">
-                    <div className="flex items-center gap-3">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="text-muted-foreground">Restoring session...</span>
-                    </div>
-                </div>
+                <DashboardSkeleton />
             </AuthenticatedLayout>
         );
     }

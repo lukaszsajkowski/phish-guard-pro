@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { SessionDetailHeader } from '../SessionDetailHeader';
 
 // Mock date-fns format function for consistent test results
 vi.mock('date-fns', () => ({
-    format: vi.fn((date: Date, formatStr: string) => {
+    format: vi.fn(() => {
         // Return a consistent formatted date for testing
         return 'Jan 15, 2024, 10:30 AM';
     }),
@@ -57,80 +58,26 @@ describe('SessionDetailHeader Component', () => {
         });
     });
 
-    describe('Attack Type Badge Colors', () => {
-        const attackTypeTestCases = [
-            { attackType: 'nigerian_419', display: 'Nigerian 419', expectedColorClass: 'bg-orange-100' },
-            { attackType: 'ceo_fraud', display: 'CEO Fraud', expectedColorClass: 'bg-red-100' },
-            { attackType: 'fake_invoice', display: 'Fake Invoice', expectedColorClass: 'bg-yellow-100' },
-            { attackType: 'romance_scam', display: 'Romance Scam', expectedColorClass: 'bg-pink-100' },
-            { attackType: 'tech_support', display: 'Tech Support', expectedColorClass: 'bg-purple-100' },
-            { attackType: 'lottery_prize', display: 'Lottery Prize', expectedColorClass: 'bg-green-100' },
-            { attackType: 'crypto_investment', display: 'Crypto Investment', expectedColorClass: 'bg-blue-100' },
-            { attackType: 'delivery_scam', display: 'Delivery Scam', expectedColorClass: 'bg-teal-100' },
-            { attackType: 'not_phishing', display: 'Not Phishing', expectedColorClass: 'bg-gray-100' },
-        ];
-
-        it.each(attackTypeTestCases)(
-            'renders $display badge with correct color class',
-            ({ attackType, display, expectedColorClass }) => {
-                render(
-                    <SessionDetailHeader
-                        {...defaultProps}
-                        attackType={attackType}
-                        attackTypeDisplay={display}
-                    />
-                );
-
-                const badge = screen.getByTestId('attack-type-badge');
-                expect(badge).toHaveTextContent(display);
-                expect(badge.className).toContain(expectedColorClass);
-            }
-        );
-
-        it('falls back to not_phishing colors for unknown attack type', () => {
-            render(
-                <SessionDetailHeader
-                    {...defaultProps}
-                    attackType="unknown_type"
-                    attackTypeDisplay="Unknown"
-                />
-            );
-
-            const badge = screen.getByTestId('attack-type-badge');
-            expect(badge.className).toContain('bg-gray-100');
-        });
-    });
-
-    describe('Status Badge Colors', () => {
-        it('renders active status with green color', () => {
+    describe('Status Badge', () => {
+        it('renders active status with dot indicator', () => {
             render(<SessionDetailHeader {...defaultProps} status="active" />);
 
             const badge = screen.getByTestId('status-badge');
             expect(badge).toHaveTextContent('Active');
-            expect(badge.className).toContain('bg-green-100');
         });
 
-        it('renders archived status with gray color', () => {
-            render(<SessionDetailHeader {...defaultProps} status="archived" />);
-
-            const badge = screen.getByTestId('status-badge');
-            expect(badge).toHaveTextContent('Archived');
-            expect(badge.className).toContain('bg-gray-100');
-        });
-
-        it('renders completed status with blue color', () => {
+        it('renders completed status', () => {
             render(<SessionDetailHeader {...defaultProps} status="completed" />);
 
             const badge = screen.getByTestId('status-badge');
             expect(badge).toHaveTextContent('Completed');
-            expect(badge.className).toContain('bg-blue-100');
         });
 
-        it('falls back to archived colors for unknown status', () => {
-            render(<SessionDetailHeader {...defaultProps} status="unknown_status" />);
+        it('renders archived status', () => {
+            render(<SessionDetailHeader {...defaultProps} status="archived" />);
 
             const badge = screen.getByTestId('status-badge');
-            expect(badge.className).toContain('bg-gray-100');
+            expect(badge).toHaveTextContent('Archived');
         });
     });
 
@@ -138,12 +85,10 @@ describe('SessionDetailHeader Component', () => {
         it('formats valid date string correctly', () => {
             render(<SessionDetailHeader {...defaultProps} createdAt="2024-01-15T10:30:00Z" />);
 
-            // Should show the mocked formatted date
             expect(screen.getByTestId('created-at')).toHaveTextContent('Jan 15, 2024, 10:30 AM');
         });
 
         it('shows Unknown date for invalid date string', async () => {
-            // Reset mock to throw error for invalid dates
             const dateFns = await import('date-fns');
             vi.mocked(dateFns.format).mockImplementationOnce(() => {
                 throw new Error('Invalid date');
@@ -197,8 +142,64 @@ describe('SessionDetailHeader Component', () => {
         it('handles uppercase status', () => {
             render(<SessionDetailHeader {...defaultProps} status="COMPLETED" />);
 
-            // formatStatus capitalizes first letter, rest stays as is
             expect(screen.getByTestId('status-badge')).toHaveTextContent('COMPLETED');
         });
+    });
+
+    describe('Action Buttons', () => {
+        it('renders export session button', () => {
+            render(<SessionDetailHeader {...defaultProps} />);
+
+            expect(screen.getByTestId('export-session-button')).toBeInTheDocument();
+            expect(screen.getByTestId('export-session-button')).toHaveTextContent('Export Session');
+        });
+
+        it('renders export data dropdown button', () => {
+            render(<SessionDetailHeader {...defaultProps} />);
+
+            expect(screen.getByTestId('export-data-button')).toBeInTheDocument();
+            expect(screen.getByTestId('export-data-button')).toHaveTextContent('Export Data');
+        });
+
+        it('opens dropdown and shows JSON/CSV options when export data clicked', async () => {
+            const user = userEvent.setup();
+            render(<SessionDetailHeader {...defaultProps} />);
+
+            await user.click(screen.getByTestId('export-data-button'));
+
+            await waitFor(() => {
+                expect(screen.getByTestId('export-json-button')).toBeInTheDocument();
+                expect(screen.getByTestId('export-csv-button')).toBeInTheDocument();
+            });
+        });
+
+        it('calls onExportJson when JSON option clicked', async () => {
+            const user = userEvent.setup();
+            const onExportJson = vi.fn();
+            render(<SessionDetailHeader {...defaultProps} onExportJson={onExportJson} />);
+
+            await user.click(screen.getByTestId('export-data-button'));
+            await waitFor(() => {
+                expect(screen.getByTestId('export-json-button')).toBeInTheDocument();
+            });
+            await user.click(screen.getByTestId('export-json-button'));
+
+            expect(onExportJson).toHaveBeenCalledTimes(1);
+        });
+
+        it('calls onExportCsv when CSV option clicked', async () => {
+            const user = userEvent.setup();
+            const onExportCsv = vi.fn();
+            render(<SessionDetailHeader {...defaultProps} onExportCsv={onExportCsv} />);
+
+            await user.click(screen.getByTestId('export-data-button'));
+            await waitFor(() => {
+                expect(screen.getByTestId('export-csv-button')).toBeInTheDocument();
+            });
+            await user.click(screen.getByTestId('export-csv-button'));
+
+            expect(onExportCsv).toHaveBeenCalledTimes(1);
+        });
+
     });
 });

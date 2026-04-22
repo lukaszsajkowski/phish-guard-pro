@@ -53,11 +53,22 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
     const pageNumbers = getPageNumbers();
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "ArrowLeft" && currentPage > 1) {
+            e.preventDefault();
+            onPageChange(currentPage - 1);
+        } else if (e.key === "ArrowRight" && currentPage < totalPages) {
+            e.preventDefault();
+            onPageChange(currentPage + 1);
+        }
+    };
+
     return (
         <nav
             className="flex items-center justify-center gap-1"
             aria-label="Pagination"
             data-testid="pagination"
+            onKeyDown={handleKeyDown}
         >
             <Button
                 variant="outline"

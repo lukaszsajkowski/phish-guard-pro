@@ -114,6 +114,7 @@ export function IntelDashboard({
     );
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [showAllTimeline, setShowAllTimeline] = useState(false);
 
     const copyToClipboard = async (value: string, copyKey: string) => {
         try {
@@ -293,7 +294,7 @@ export function IntelDashboard({
                                 <div
                                     key={ioc.id || `ioc-${index}`}
                                     data-testid={`ioc-item-${ioc.type}`}
-                                    className={`rounded-md p-2 text-sm ${isHighValue
+                                    className={`rounded-md p-2 text-sm animate-in fade-in slide-in-from-top-2 duration-300 ${isHighValue
                                         ? "bg-red-500/5 border border-red-500/20"
                                         : "bg-muted/30 border border-border/40"
                                         }`}
@@ -309,7 +310,7 @@ export function IntelDashboard({
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span
-                                                    className={`text-xs font-medium ${isHighValue
+                                                    className={`text-sm font-medium ${isHighValue
                                                         ? "text-red-500"
                                                         : "text-muted-foreground"
                                                         }`}
@@ -319,7 +320,7 @@ export function IntelDashboard({
                                             </div>
                                             <div className="flex items-start gap-1">
                                                 <p
-                                                    className={`font-mono text-xs break-all flex-1 ${isHighValue
+                                                    className={`font-mono text-sm break-all flex-1 ${isHighValue
                                                         ? "text-red-400"
                                                         : "text-foreground"
                                                         }`}
@@ -563,8 +564,9 @@ export function IntelDashboard({
                         No events yet.
                     </p>
                 ) : (
+                    <>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {timeline.map((event, index) => {
+                        {(showAllTimeline ? timeline : timeline.slice(0, 5)).map((event, index) => {
                             const eventTime = new Date(event.timestamp);
                             const timeAgo = formatDistanceToNow(eventTime, { addSuffix: true });
 
@@ -593,6 +595,23 @@ export function IntelDashboard({
                             );
                         })}
                     </div>
+                    {!showAllTimeline && timeline.length > 5 && (
+                        <button
+                            onClick={() => setShowAllTimeline(true)}
+                            className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
+                        >
+                            View all ({timeline.length} events)
+                        </button>
+                    )}
+                    {showAllTimeline && timeline.length > 5 && (
+                        <button
+                            onClick={() => setShowAllTimeline(false)}
+                            className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
+                        >
+                            Show less
+                        </button>
+                    )}
+                    </>
                 )}
             </div>
         </div>

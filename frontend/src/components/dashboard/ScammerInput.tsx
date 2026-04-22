@@ -75,7 +75,7 @@ export function ScammerInput({ onSubmit, disabled = false }: ScammerInputProps) 
 
             <div className="flex items-center justify-between gap-4">
                 <p className="text-xs text-muted-foreground">
-                    Press <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">Ctrl+Enter</kbd> to send
+                    Press <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">{typeof navigator !== "undefined" && /Mac/i.test(navigator.userAgent) ? "Cmd" : "Ctrl"}+Enter</kbd> to send
                 </p>
 
                 <Button

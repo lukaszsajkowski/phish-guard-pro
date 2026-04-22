@@ -95,6 +95,16 @@ export function getComponentScoreBg(score: number): string {
 }
 
 /**
+ * Map a numeric risk score (0-10) to a RiskLevel string.
+ * Thresholds match getRiskScoreColor in ioc.ts: >=8 high, >=5 medium, else low.
+ */
+export function scoreToRiskLevel(score: number): RiskLevel {
+    if (score >= 8) return "high";
+    if (score >= 5) return "medium";
+    return "low";
+}
+
+/**
  * Get text color class for risk level
  */
 export function getRiskLevelColor(level: RiskLevel): string {

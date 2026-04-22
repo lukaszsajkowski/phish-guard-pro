@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
 import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
+import { HistoryListSkeleton } from "@/components/app/LoadingSkeletons";
 import { EmptyState } from "@/components/history/EmptyState";
 import { SessionHistoryList } from "@/components/history/SessionHistoryList";
 import { Pagination } from "@/components/history/Pagination";
@@ -121,12 +121,7 @@ export default function HistoryPage() {
 
                     {/* Loading state for page changes */}
                     {isFetchingSessions && !error && (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="flex items-center gap-3">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                <span className="text-muted-foreground">Loading sessions...</span>
-                            </div>
-                        </div>
+                        <HistoryListSkeleton />
                     )}
 
                     {/* Empty state */}

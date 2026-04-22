@@ -1001,7 +1001,7 @@ Acceptance Criteria:
 - Existing shadcn/ui variables mapped to new tokens for backward compatibility
 - Custom thin scrollbar styling (4px, transparent track, `--border2` thumb)
 
-### US-043: Session Detail View Redesign
+### US-043: Session Detail View Redesign ✅
 
 Title: Redesign session detail page to match hi-fi mockup
 

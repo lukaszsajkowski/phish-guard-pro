@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { FileJson, FileSpreadsheet, Download, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import { ArrowLeft, MessageSquare, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ATTACK_TYPE_COLORS } from "@/lib/constants/ioc";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SessionDetailHeaderProps {
     attackType: string;
@@ -12,14 +17,11 @@ interface SessionDetailHeaderProps {
     createdAt: string;
     status: string;
     turnCount: number;
+    onExportJson?: () => void;
+    onExportCsv?: () => void;
+    onExportSession?: () => void;
+    isExporting?: boolean;
 }
-
-// Status badge colors
-const STATUS_COLORS: Record<string, string> = {
-    active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    archived: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
-    completed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-};
 
 function formatCreatedAt(dateString: string): string {
     try {
@@ -35,62 +37,135 @@ function formatStatus(status: string): string {
 }
 
 export function SessionDetailHeader({
-    attackType,
     attackTypeDisplay,
     createdAt,
     status,
     turnCount,
+    onExportJson,
+    onExportCsv,
+    onExportSession,
+    isExporting,
 }: SessionDetailHeaderProps) {
+    const isActive = status === "active";
+
     return (
-        <div className="space-y-4" data-testid="session-detail-header">
-            {/* Back link */}
-            <Link
-                href="/history"
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                data-testid="back-to-history-link"
-            >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to history</span>
-            </Link>
-
-            {/* Session metadata */}
-            <div className="flex flex-wrap items-center gap-3">
-                {/* Attack type badge */}
-                <span
-                    className={cn(
-                        "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
-                        ATTACK_TYPE_COLORS[attackType] ||
-                            ATTACK_TYPE_COLORS["not_phishing"]
-                    )}
-                    data-testid="attack-type-badge"
+        <div
+            className="flex items-center justify-between gap-4 px-7 py-3.5 border-b border-border bg-surface shrink-0"
+            data-testid="session-detail-header"
+        >
+            {/* Left side */}
+            <div className="flex flex-col gap-2">
+                {/* Back link */}
+                <Link
+                    href="/history"
+                    className="inline-flex items-center gap-1.5 text-[12.5px] text-text-muted hover:text-text-secondary transition-colors w-fit"
+                    data-testid="back-to-history-link"
                 >
-                    {attackTypeDisplay}
-                </span>
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[13px] h-[13px]">
+                        <path d="M10 4L6 8l4 4" />
+                    </svg>
+                    Back to history
+                </Link>
 
-                {/* Status badge */}
-                <span
-                    className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                        STATUS_COLORS[status] || STATUS_COLORS["archived"]
-                    )}
-                    data-testid="status-badge"
-                >
-                    {formatStatus(status)}
-                </span>
-
-                {/* Turn count */}
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <MessageSquare className="h-4 w-4" />
-                    <span data-testid="turn-count">
-                        {turnCount} {turnCount === 1 ? "turn" : "turns"}
+                {/* Session metadata row */}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* Attack type pill */}
+                    <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-medium tracking-[0.01em] bg-pg-accent-dim text-pg-accent border border-pg-accent"
+                        data-testid="attack-type-badge"
+                    >
+                        {attackTypeDisplay}
                     </span>
-                </span>
 
-                {/* Created date */}
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span data-testid="created-at">{formatCreatedAt(createdAt)}</span>
-                </span>
+                    {/* Status badge with dot */}
+                    <span
+                        className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-medium tracking-[0.01em] border",
+                            isActive
+                                ? "bg-pg-green-dim text-pg-green border-pg-green"
+                                : "bg-pg-blue-dim text-pg-blue border-pg-blue"
+                        )}
+                        data-testid="status-badge"
+                    >
+                        <span
+                            className={cn(
+                                "w-[5px] h-[5px] rounded-full",
+                                isActive ? "bg-pg-green" : "bg-pg-blue"
+                            )}
+                        />
+                        {formatStatus(status)}
+                    </span>
+
+                    <span className="text-border2">·</span>
+
+                    {/* Date */}
+                    <span className="flex items-center gap-1.5 text-[12.5px] text-text-muted">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[13px] h-[13px]">
+                            <path d="M3 6h10M5 3v2M11 3v2M3 5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5z" />
+                        </svg>
+                        <span data-testid="created-at">{formatCreatedAt(createdAt)}</span>
+                    </span>
+
+                    <span className="text-border2">·</span>
+
+                    {/* Turn count */}
+                    <span className="flex items-center gap-1.5 text-[12.5px] text-text-muted">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[13px] h-[13px]">
+                            <path d="M3 5h10v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5z" />
+                            <path d="M6 5V3.5C6 3.2 6.2 3 6.5 3h3c.3 0 .5.2.5.5V5" />
+                        </svg>
+                        <span data-testid="turn-count">
+                            {turnCount} {turnCount === 1 ? "turn" : "turns"}
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            {/* Right side — action buttons */}
+            <div className="flex items-center gap-2">
+                {/* Export Session */}
+                <button
+                    className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-[5px] text-[12.5px] font-medium border border-border2 text-text-secondary bg-transparent hover:bg-surface2 hover:text-text transition-all cursor-pointer"
+                    onClick={onExportSession || onExportJson}
+                    disabled={isExporting}
+                    data-testid="export-session-button"
+                >
+                    <Download className="w-[13px] h-[13px]" />
+                    Export Session
+                </button>
+
+                {/* Export Data dropdown — shadcn/ui for full keyboard accessibility */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-[5px] text-[12.5px] font-medium border border-border2 text-text-secondary bg-transparent hover:bg-surface2 hover:text-text transition-all cursor-pointer"
+                            disabled={isExporting}
+                            data-testid="export-data-button"
+                        >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[13px] h-[13px]">
+                                <path d="M4 8h8M4 4h8M4 12h4" />
+                            </svg>
+                            Export Data
+                            <ChevronDown className="w-[11px] h-[11px]" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            onClick={() => onExportJson?.()}
+                            data-testid="export-json-button"
+                        >
+                            <FileJson className="w-4 h-4 mr-2" />
+                            Export JSON
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => onExportCsv?.()}
+                            data-testid="export-csv-button"
+                        >
+                            <FileSpreadsheet className="w-4 h-4 mr-2" />
+                            Export CSV
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );

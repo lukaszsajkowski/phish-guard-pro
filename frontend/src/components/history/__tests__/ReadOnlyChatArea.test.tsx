@@ -49,12 +49,24 @@ describe('ReadOnlyChatArea Component', () => {
                 content: 'I am a bot response.',
             });
 
-            render(<ReadOnlyChatArea messages={[message]} />);
+            render(<ReadOnlyChatArea messages={[message]} personaName="Trevor Hall" />);
 
             expect(screen.getByTestId('read-only-chat-area')).toBeInTheDocument();
             expect(screen.getByTestId('chat-message-bot')).toBeInTheDocument();
-            expect(screen.getByText('PhishGuard Bot')).toBeInTheDocument();
+            expect(screen.getByText('Trevor Hall')).toBeInTheDocument();
             expect(screen.getByText('I am a bot response.')).toBeInTheDocument();
+        });
+
+        it('uses default persona name when not provided', () => {
+            const message = createMockMessage({
+                id: 'bot-msg-1',
+                sender: 'bot',
+                content: 'I am a bot response.',
+            });
+
+            render(<ReadOnlyChatArea messages={[message]} />);
+
+            expect(screen.getByText('Persona')).toBeInTheDocument();
         });
 
         it('renders multiple bot messages', () => {
@@ -149,7 +161,6 @@ describe('ReadOnlyChatArea Component', () => {
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
-            // Common edit-related buttons should not exist
             expect(screen.queryByTestId('edit-response-button')).not.toBeInTheDocument();
             expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
         });
@@ -329,8 +340,6 @@ describe('ReadOnlyChatArea Component', () => {
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
-            // The timestamp should be formatted as time only (HH:MM format)
-            // The exact format depends on locale, but we check that time element exists
             const messageElement = screen.getByTestId('chat-message-bot');
             expect(messageElement).toBeInTheDocument();
         });
@@ -371,7 +380,6 @@ describe('ReadOnlyChatArea Component', () => {
             const thinkingPanel = screen.getByTestId('agent-thinking-panel');
             const summary = thinkingPanel.querySelector('summary');
 
-            // Summary should be focusable and have cursor pointer class
             expect(summary).toHaveClass('cursor-pointer');
         });
     });
