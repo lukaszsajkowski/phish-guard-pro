@@ -32,6 +32,7 @@ import {
 import { RiskScoreBreakdown } from "./RiskScoreBreakdown";
 import { useEnrichment, deriveThreatAssessment } from "@/hooks/useEnrichment";
 import { defangUrl } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface IntelDashboardProps {
     iocs: ExtractedIOC[];
@@ -170,10 +171,11 @@ export function IntelDashboard({
     }, [iocs, getAccessToken, enrich, getKey, enrichmentStates, autoEnrichAll]);
 
     return (
-        <div
-            data-testid="intel-dashboard"
-            className="rounded-lg border border-border/50 bg-card p-4 space-y-4"
-        >
+        <TooltipProvider>
+            <div
+                data-testid="intel-dashboard"
+                className="rounded-lg border border-border/50 bg-card p-4 space-y-4"
+            >
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -326,18 +328,24 @@ export function IntelDashboard({
                                                 >
                                                     {ioc.type === "url" ? defangUrl(ioc.value) : ioc.value}
                                                 </p>
-                                                <button
-                                                    title="Copy to clipboard"
-                                                    aria-label="Copy IOC value"
-                                                    className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
-                                                    onClick={() => copyToClipboard(ioc.value, key)}
-                                                >
-                                                    {copiedKey === key ? (
-                                                        <Check className="h-3 w-3 text-green-500" />
-                                                    ) : (
-                                                        <Copy className="h-3 w-3" />
-                                                    )}
-                                                </button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            aria-label="Copy IOC value"
+                                                            className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+                                                            onClick={() => copyToClipboard(ioc.value, key)}
+                                                        >
+                                                            {copiedKey === key ? (
+                                                                <Check className="h-3 w-3 text-green-500" />
+                                                            ) : (
+                                                                <Copy className="h-3 w-3" />
+                                                            )}
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Copy to clipboard</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             </div>
                                         </div>
 
@@ -406,25 +414,37 @@ export function IntelDashboard({
 
                                                 {/* Cached indicator — subtle dot only */}
                                                 {enrichState.data.cached && (
-                                                    <span
-                                                        data-testid={`cached-badge-${ioc.type}`}
-                                                        title="Result from cache"
-                                                        className="inline-flex items-center justify-center"
-                                                    >
-                                                        <BadgeCheck className="h-3 w-3 text-muted-foreground/50" />
-                                                    </span>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span
+                                                                data-testid={`cached-badge-${ioc.type}`}
+                                                                className="inline-flex items-center justify-center cursor-help"
+                                                            >
+                                                                <BadgeCheck className="h-3 w-3 text-muted-foreground/50" />
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Result from cache</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                 )}
 
                                                 {/* Refresh button */}
-                                                <button
-                                                    data-testid={`refresh-button-${ioc.type}`}
-                                                    title="Force refresh (bypass cache)"
-                                                    aria-label="Refresh enrichment"
-                                                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-                                                    onClick={() => enrich(ioc.type, ioc.value, true)}
-                                                >
-                                                    <RefreshCw className="h-3 w-3" />
-                                                </button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            data-testid={`refresh-button-${ioc.type}`}
+                                                            aria-label="Refresh enrichment"
+                                                            className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                                                            onClick={() => enrich(ioc.type, ioc.value, true)}
+                                                        >
+                                                            <RefreshCw className="h-3 w-3" />
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Force refresh (bypass cache)</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             </div>
 
                                             {/* Expandable raw data (source/latency shown here, not in main view) */}
@@ -584,9 +604,16 @@ export function IntelDashboard({
                                         <p className="text-muted-foreground mt-0.5">
                                             {timeAgo}
                                             <span className="mx-1">&middot;</span>
-                                            <span title={eventTime.toLocaleString()}>
-                                                {eventTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                            </span>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="cursor-help">
+                                                        {eventTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{eventTime.toLocaleString()}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         </p>
                                     </div>
                                 </div>
@@ -595,6 +622,7 @@ export function IntelDashboard({
                     </div>
                 )}
             </div>
-        </div>
+            </div>
+        </TooltipProvider>
     );
 }
