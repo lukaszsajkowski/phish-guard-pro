@@ -858,7 +858,10 @@ def _fetch_iocs_enrichment(ioc_ids: list[str]) -> dict[str, dict[str, Any]]:
     if not ioc_ids:
         return {}
     _SEVERITY: dict[str, int] = {
-        "malicious": 3, "suspicious": 2, "clean": 1, "unknown": 0
+        "malicious": 3,
+        "suspicious": 2,
+        "clean": 1,
+        "unknown": 0,
     }
     try:
         supabase = _get_supabase_client()
@@ -1156,11 +1159,7 @@ async def get_user_sessions(
 
     has_filters = bool(attack_type or min_risk is not None or search)
 
-    query = (
-        supabase.table("sessions")
-        .select("*", count="exact")
-        .eq("user_id", user_id)
-    )
+    query = supabase.table("sessions").select("*", count="exact").eq("user_id", user_id)
     if attack_type:
         query = query.eq("attack_type", attack_type)
     if search:

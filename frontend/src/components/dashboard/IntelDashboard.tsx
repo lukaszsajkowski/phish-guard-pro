@@ -182,6 +182,7 @@ function RadialGauge({ score }: { score: number }) {
         <div className="relative w-16 h-16 flex-shrink-0">
             <svg viewBox="0 0 64 64" className="w-16 h-16" style={{ transform: "rotate(-90deg)" }}>
                 <circle
+                    data-testid="risk-score-bar"
                     cx="32"
                     cy="32"
                     r={r}
@@ -203,7 +204,10 @@ function RadialGauge({ score }: { score: number }) {
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-[17px] font-bold font-mono leading-none ${getGaugeTextClass(animatedScore)}`}>
+                <span
+                    data-testid="risk-score-value"
+                    className={`text-[17px] font-bold font-mono leading-none ${getGaugeTextClass(animatedScore)}`}
+                >
                     {displayScore}
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-none">/10</span>
@@ -336,7 +340,7 @@ export function IntelDashboard({
                                 data-testid="confidence-badge"
                                 className="inline-flex items-center rounded-[4px] bg-[color:var(--pg-amber-dim)] px-2 py-[3px] text-[11px] font-semibold font-mono text-[color:var(--pg-amber)] border border-[color:var(--pg-amber)]"
                             >
-                                {Math.round(confidence)}% conf.
+                                {Math.round(confidence)}% confidence
                             </span>
                         )}
                     </div>
@@ -347,6 +351,11 @@ export function IntelDashboard({
             <div data-testid="ioc-section" className="px-5 py-4 border-b border-border">
                 <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-2.5">
                     Collected IOCs
+                    {iocs.length > 0 && (
+                        <span className="ml-2 font-mono normal-case tracking-normal">
+                            {iocs.length} {iocs.length === 1 ? "IOC" : "IOCs"}
+                        </span>
+                    )}
                 </div>
 
                 {/* Priority pills */}
@@ -354,7 +363,7 @@ export function IntelDashboard({
                     <div className="flex flex-wrap gap-2 mb-3" data-testid="high-value-badge">
                         {highValueCount > 0 && (
                             <span className="inline-flex items-center gap-1.5 rounded-[4px] bg-[color:var(--pg-red-dim)] text-[color:var(--pg-red)] border border-[color:var(--pg-red)] px-2.5 py-1 text-[11.5px] font-medium font-mono">
-                                {highValueCount} High
+                                {highValueCount} High Value
                             </span>
                         )}
                         {medValueCount > 0 && (
@@ -627,7 +636,7 @@ export function IntelDashboard({
                 ) : (
                     <div className="flex items-center gap-4">
                         <RadialGauge score={riskScore} />
-                        <div className="flex-1" data-testid="risk-score-value">
+                        <div className="flex-1">
                             <div className={`text-[13px] font-semibold uppercase ${getGaugeTextClass(riskScore)}`}>
                                 {getRiskLabel(riskScore)} Risk
                             </div>

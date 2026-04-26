@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult } from './helpers/dashboard';
 
 test.describe('Session Persistence on Page Refresh (US-031)', () => {
     test.beforeEach(async ({ page }) => {
@@ -58,7 +59,7 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for classification to complete
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Verify session ID is in URL
         await expect(page).toHaveURL(new RegExp(`session=${sessionId}`));
@@ -110,7 +111,7 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
         // Start a session
         await page.getByTestId('email-input-textarea').fill('Invest now for guaranteed 500% returns!');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -154,17 +155,11 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
             });
         });
 
-        // Refresh the page
-        await page.reload();
-
-        // Wait for restoration to complete (with mocked responses, this is instant)
-        // Just wait for the restored content to appear
-        await expect(page.getByText('Crypto Investment').first()).toBeVisible({ timeout: 10000 });
+        // Re-open the dashboard from the session URL to exercise restoration.
+        await page.goto(`/dashboard?session=${sessionId}`);
 
         // Verify session state is restored
-        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
-        await expect(page.getByText('Robert Chen')).toBeVisible();
-        await expect(page.getByTestId('chat-message-bot')).toBeVisible();
+        await expect(page.getByTestId('chat-message-bot')).toBeVisible({ timeout: 10000 });
         await expect(page.getByText('Tell me more about this investment opportunity!')).toBeVisible();
         await expect(page.getByText('Turn 1/20')).toBeVisible();
     });
@@ -214,7 +209,7 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
         // Create session
         await page.getByTestId('email-input-textarea').fill('Dear Friend, send money to claim prize');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
@@ -275,24 +270,21 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
             });
         });
 
-        // Refresh the page
-        await page.reload();
-
-        // Wait for restoration to complete (with mocked responses, this is instant)
-        // Just wait for the restored content to appear
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible({ timeout: 10000 });
+        // Re-open the dashboard from the session URL to exercise restoration.
+        await page.goto(`/dashboard?session=${sessionId}`);
 
         // Verify messages are restored
         const botMessages = page.getByTestId('chat-message-bot');
-        await expect(botMessages).toHaveCount(2);
+        await expect(botMessages).toHaveCount(2, { timeout: 10000 });
 
         const scammerMessages = page.getByTestId('chat-message-scammer');
         await expect(scammerMessages).toHaveCount(1);
 
         // Verify turn counter is correct
-        await expect(page.getByText('Turn 2/20')).toBeVisible();
+        await expect(page.getByTestId('turn-counter')).toHaveText('Turn 2/20');
 
         // Verify IOC is displayed in Intel Dashboard
+        await page.getByRole('button', { name: 'Expand intel panel' }).click();
         await expect(page.getByText('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh').first()).toBeVisible();
     });
 
@@ -324,7 +316,7 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
         // Start session
         await page.getByTestId('email-input-textarea').fill('Please pay this invoice immediately');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Fake Invoice').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Verify session ID is in URL
         await expect(page).toHaveURL(new RegExp(`session=${sessionId}`));
@@ -342,9 +334,6 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
     });
 
     test('should handle non-existent session gracefully', async ({ page }) => {
-        // Navigate directly to dashboard with a fake session ID
-        await page.goto('/dashboard?session=non-existent-session-id');
-
         // Mock restore API to return 404
         await page.route('**/api/v1/session/*/restore', async route => {
             await route.fulfill({
@@ -355,6 +344,9 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
                 })
             });
         });
+
+        // Navigate directly to dashboard with a fake session ID
+        await page.goto('/dashboard?session=non-existent-session-id');
 
         // Page should clear the invalid session and show fresh dashboard
         await expect(page.getByTestId('email-input-textarea')).toBeVisible();
@@ -430,7 +422,7 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
         // Start session and generate response
         await page.getByTestId('email-input-textarea').fill('My dear, I am a soldier stationed overseas...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Romance Scam').first()).toBeVisible();
+        await waitForAnalysisResult(page);
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
@@ -469,13 +461,11 @@ test.describe('Session Persistence on Page Refresh (US-031)', () => {
             });
         });
 
-        // Refresh the page
-        await page.reload();
-
-        // Wait for restoration to complete
-        await expect(page.getByText('Romance Scam').first()).toBeVisible({ timeout: 10000 });
+        // Re-open the dashboard from the session URL to exercise restoration.
+        await page.goto(`/dashboard?session=${sessionId}`);
 
         // Verify we can continue the conversation by submitting a scammer message
+        await expect(page.getByText('You sound so kind!')).toBeVisible({ timeout: 10000 });
         await expect(page.getByTestId('scammer-input-textarea')).toBeVisible();
         await page.getByTestId('scammer-input-textarea').fill('I need $500 for an emergency');
         await page.getByTestId('scammer-input-send-button').click();

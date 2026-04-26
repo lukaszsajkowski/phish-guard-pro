@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIntelDashboard } from './helpers/dashboard';
 
 test.describe('Attack Type Classification', () => {
     test.beforeEach(async ({ page }) => {
@@ -54,7 +55,8 @@ test.describe('Attack Type Classification', () => {
         await page.getByTestId('analyze-button').click();
 
         // Verification
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForIntelDashboard(page);
+        await expect(page.getByTestId('attack-type-section').getByText('Nigerian 419')).toBeVisible();
         await expect(page.getByText('95.5% Confidence')).toBeVisible();
         await expect(page.getByText('Classic 419 indicators detected')).toBeVisible();
     });

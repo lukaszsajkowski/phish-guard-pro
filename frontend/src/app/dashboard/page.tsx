@@ -237,6 +237,12 @@ function DashboardContent() {
                 reasoning: data.reasoning,
                 persona: data.persona
             });
+            if (data.risk_score) {
+                setRiskScore(data.risk_score);
+            }
+            if (data.risk_score_breakdown) {
+                setRiskScoreBreakdown(data.risk_score_breakdown);
+            }
 
             // Extract IOCs from initial email classification
             if (data.extracted_iocs && data.extracted_iocs.length > 0) {
@@ -496,6 +502,12 @@ function DashboardContent() {
             };
 
             setMessages(prev => [...prev, scammerChatMessage, botMessage]);
+            if (data.risk_score) {
+                setRiskScore(data.risk_score);
+            }
+            if (data.risk_score_breakdown) {
+                setRiskScoreBreakdown(data.risk_score_breakdown);
+            }
 
             // Update extracted IOCs from response
             if (data.extracted_iocs && data.extracted_iocs.length > 0) {

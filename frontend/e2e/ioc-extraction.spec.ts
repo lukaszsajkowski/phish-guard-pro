@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult, waitForIntelDashboard } from './helpers/dashboard';
 
 test.describe('IOC Extraction (US-011)', () => {
     test.beforeEach(async ({ page }) => {
@@ -54,7 +55,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Input email content and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Intel Dashboard should be visible in side panel
         await expect(page.getByTestId('intel-dashboard')).toBeVisible();
@@ -129,7 +130,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Invest in crypto for guaranteed 500% returns!');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -141,6 +142,7 @@ test.describe('IOC Extraction (US-011)', () => {
 
         // Wait for bot response
         await expect(page.getByText('How do I start?')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // IOC should appear in Intel Dashboard
         const btcIocItem = page.getByTestId('ioc-item-btc_wallet');
@@ -227,6 +229,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Setup and generate first response
         await page.getByTestId('email-input-textarea').fill('URGENT: Invoice payment required');
         await page.getByTestId('analyze-button').click();
+        await waitForAnalysisResult(page);
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
@@ -236,6 +239,7 @@ test.describe('IOC Extraction (US-011)', () => {
 
         // Wait for response
         await expect(page.getByText('What are the wire details?')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Check all IOC types are displayed
         await expect(page.getByTestId('ioc-item-iban')).toBeVisible();
@@ -306,6 +310,7 @@ test.describe('IOC Extraction (US-011)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('You won $1 million!');
         await page.getByTestId('analyze-button').click();
+        await waitForAnalysisResult(page);
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
@@ -315,6 +320,7 @@ test.describe('IOC Extraction (US-011)', () => {
 
         // Wait for response
         await expect(page.getByText('How do I proceed?')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Check count display
         await expect(page.getByText('2 IOCs')).toBeVisible();

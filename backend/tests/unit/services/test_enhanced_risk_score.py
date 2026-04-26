@@ -526,15 +526,25 @@ class TestIOCQualityWithEnrichment:
     ) -> None:
         """Score ordering: malicious > no enrichment > clean."""
         iocs = [{"type": "url", "value": "http://evil.example"}]
-        s_malicious = calculator.calculate(
-            "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "malicious"}
-        ).get_component(RiskComponent.IOC_QUALITY).raw_score
-        s_plain = calculator.calculate("ceo_fraud", iocs).get_component(
-            RiskComponent.IOC_QUALITY
-        ).raw_score
-        s_clean = calculator.calculate(
-            "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "clean"}
-        ).get_component(RiskComponent.IOC_QUALITY).raw_score
+        s_malicious = (
+            calculator.calculate(
+                "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "malicious"}
+            )
+            .get_component(RiskComponent.IOC_QUALITY)
+            .raw_score
+        )
+        s_plain = (
+            calculator.calculate("ceo_fraud", iocs)
+            .get_component(RiskComponent.IOC_QUALITY)
+            .raw_score
+        )
+        s_clean = (
+            calculator.calculate(
+                "ceo_fraud", iocs, ioc_enrichment={"http://evil.example": "clean"}
+            )
+            .get_component(RiskComponent.IOC_QUALITY)
+            .raw_score
+        )
         assert s_malicious > s_plain > s_clean
 
     def test_missing_key_falls_back_to_1x(
@@ -553,9 +563,7 @@ class TestIOCQualityWithEnrichment:
             == plain.get_component(RiskComponent.IOC_QUALITY).raw_score
         )
 
-    def test_cap_at_ten_with_malicious(
-        self, calculator: RiskScoreCalculator
-    ) -> None:
+    def test_cap_at_ten_with_malicious(self, calculator: RiskScoreCalculator) -> None:
         """IOC Quality score never exceeds 10.0 even with ×1.5 multiplier."""
         iocs = [
             {"type": "btc_wallet", "value": "bc1q"},
@@ -572,10 +580,15 @@ class TestIOCQualityWithEnrichment:
         self, calculator: RiskScoreCalculator
     ) -> None:
         """Passing ioc_enrichment=None gives identical result to omitting param."""
-        iocs = [{"type": "btc_wallet", "value": "bc1q"}, {"type": "iban", "value": "DE89"}]
+        iocs = [
+            {"type": "btc_wallet", "value": "bc1q"},
+            {"type": "iban", "value": "DE89"},
+        ]
         result_none = calculator.calculate("ceo_fraud", iocs, ioc_enrichment=None)
         result_omit = calculator.calculate("ceo_fraud", iocs)
-        assert result_none.get_component(RiskComponent.IOC_QUALITY).raw_score == pytest.approx(
+        assert result_none.get_component(
+            RiskComponent.IOC_QUALITY
+        ).raw_score == pytest.approx(
             result_omit.get_component(RiskComponent.IOC_QUALITY).raw_score
         )
 
@@ -600,6 +613,8 @@ class TestIOCQualityWithEnrichment:
             "ceo_fraud", iocs, ioc_enrichment={"bc1q": "unknown"}
         )
         plain = calculator.calculate("ceo_fraud", iocs)
-        assert enriched.get_component(RiskComponent.IOC_QUALITY).raw_score == pytest.approx(
+        assert enriched.get_component(
+            RiskComponent.IOC_QUALITY
+        ).raw_score == pytest.approx(
             plain.get_component(RiskComponent.IOC_QUALITY).raw_score
         )

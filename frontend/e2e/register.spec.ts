@@ -35,7 +35,7 @@ test.describe('Registration Page', () => {
         test('should have link to login page', async ({ page }) => {
             const loginLink = page.getByRole('link', { name: 'Sign in' });
             await expect(loginLink).toBeVisible();
-            await expect(loginLink).toHaveAttribute('href', '/login');
+            await expect(loginLink).toHaveAttribute('href', '/');
         });
     });
 
@@ -126,7 +126,7 @@ test.describe('Registration Page', () => {
 
 test.describe('Login Page - Registration Success', () => {
     test('should display success message when redirected after registration', async ({ page }) => {
-        await page.goto('/login?registered=true');
+        await page.goto('/?registered=true');
 
         await expect(page.locator('#registration-success-message')).toBeVisible();
         await expect(page.getByText('Registration successful')).toBeVisible();

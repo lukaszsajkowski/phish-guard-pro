@@ -150,7 +150,9 @@ class VirusTotalSource:
         # Use provided key verbatim (including "") so callers can disable the
         # source in tests by passing api_key="".  Only fall back to settings
         # when the caller explicitly passes None (the default).
-        self._api_key = api_key if api_key is not None else get_settings().virustotal_api_key
+        self._api_key = (
+            api_key if api_key is not None else get_settings().virustotal_api_key
+        )
         self._external_client = http_client
 
     def _headers(self) -> dict[str, str]:

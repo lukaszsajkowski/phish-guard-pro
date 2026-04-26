@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIntelDashboard } from './helpers/dashboard';
 
 test.describe('Safe Email Handling', () => {
     test.beforeEach(async ({ page }) => {
@@ -60,6 +61,7 @@ test.describe('Safe Email Handling', () => {
 
         // 5. Expect Result Card (Green)
         await expect(page.getByRole('alertdialog')).toBeHidden();
+        await waitForIntelDashboard(page);
         await expect(page.getByText('Not Phishing').first()).toBeVisible();
         await expect(page.getByText('Legitimate Email Detected')).toBeVisible();
     });

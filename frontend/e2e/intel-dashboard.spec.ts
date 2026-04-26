@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult, waitForIntelDashboard } from './helpers/dashboard';
 
 test.describe('Intel Dashboard (US-012)', () => {
     test.beforeEach(async ({ page }) => {
@@ -56,7 +57,7 @@ test.describe('Intel Dashboard (US-012)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for the attack type section to be visible (this is specific to Intel Dashboard)
-        await expect(page.getByTestId('attack-type-section')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Section 1: Attack Type section should be visible with category and confidence
         await expect(page.getByTestId('attack-type-section').getByText('Nigerian 419 Scam')).toBeVisible();
@@ -89,6 +90,7 @@ test.describe('Intel Dashboard (US-012)', () => {
                     reasoning: 'CEO impersonation detected',
                     classification_time_ms: 400,
                     session_id: 'test-session-ceo',
+                    risk_score: 6,
                     persona: {
                         persona_type: 'stressed_manager',
                         name: 'David Chen',
@@ -102,13 +104,14 @@ test.describe('Intel Dashboard (US-012)', () => {
 
         await page.getByTestId('email-input-textarea').fill('I need you to wire $50,000 immediately...');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
         await expect(page.getByTestId('attack-type-section').getByText('CEO Fraud')).toBeVisible();
 
-        // Risk score should be higher for CEO fraud (base score 4)
+        // Risk score should be higher for CEO fraud.
         const riskScoreValue = page.getByTestId('risk-score-value');
         await expect(riskScoreValue).toBeVisible();
         const scoreText = await riskScoreValue.textContent();
-        const score = parseInt(scoreText || '0', 10);
+        const score = parseFloat(scoreText || '0');
         expect(score).toBeGreaterThanOrEqual(4);
     });
 
@@ -124,6 +127,7 @@ test.describe('Intel Dashboard (US-012)', () => {
                     reasoning: 'Crypto scam detected',
                     classification_time_ms: 350,
                     session_id: 'test-session-risk',
+                    risk_score: 4,
                     persona: {
                         persona_type: 'greedy_investor',
                         name: 'Mike Johnson',
@@ -157,10 +161,11 @@ test.describe('Intel Dashboard (US-012)', () => {
                     contentType: 'application/json',
                     body: JSON.stringify({
                         content: 'Great! Where exactly do I send the BTC?',
-                        generation_time_ms: 1500,
-                        safety_validated: true,
-                        message_id: 'msg-risk-2',
-                        scammer_message_id: 'scam-risk-1',
+                    generation_time_ms: 1500,
+                    safety_validated: true,
+                    message_id: 'msg-risk-2',
+                    scammer_message_id: 'scam-risk-1',
+                    risk_score: 8,
                         extracted_iocs: [
                             {
                                 id: 'ioc-btc-1',
@@ -183,8 +188,9 @@ test.describe('Intel Dashboard (US-012)', () => {
         // Get initial risk score
         await page.getByTestId('email-input-textarea').fill('Invest in crypto for 500% returns!');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
         await expect(page.getByTestId('risk-score-value')).toBeVisible();
-        const initialScore = parseInt(await page.getByTestId('risk-score-value').textContent() || '0', 10);
+        const initialScore = parseFloat(await page.getByTestId('risk-score-value').textContent() || '0');
 
         // Generate response and submit scammer message with IOCs
         await page.getByTestId('generate-response-button').click();
@@ -196,8 +202,10 @@ test.describe('Intel Dashboard (US-012)', () => {
         await expect(page.getByText('Great! Where exactly')).toBeVisible();
 
         // Risk score should have increased due to high-value IOCs
-        const updatedScore = parseInt(await page.getByTestId('risk-score-value').textContent() || '0', 10);
-        expect(updatedScore).toBeGreaterThan(initialScore);
+        await expect.poll(async () => {
+            await waitForIntelDashboard(page);
+            return parseFloat(await page.getByTestId('risk-score-value').textContent() || '0');
+        }).toBeGreaterThan(initialScore);
     });
 
     test('should display timeline events after IOC extraction', async ({ page }) => {
@@ -273,6 +281,7 @@ test.describe('Intel Dashboard (US-012)', () => {
         await expect(page.getByText('What are the wire details?')).toBeVisible();
 
         // Timeline should now have an event
+        await waitForIntelDashboard(page);
         await expect(page.getByTestId('timeline-section')).toBeVisible();
         await expect(page.getByText('No events yet')).not.toBeVisible();
         await expect(page.getByTestId('timeline-event')).toBeVisible();
@@ -350,6 +359,7 @@ test.describe('Intel Dashboard (US-012)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('You have won $5 million!');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
 
@@ -392,6 +402,7 @@ test.describe('Intel Dashboard (US-012)', () => {
 
         await page.getByTestId('email-input-textarea').fill('This is the CEO. Wire $100k now.');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
         await expect(page.getByTestId('attack-type-section').getByText('CEO Fraud')).toBeVisible();
 
         // Check risk score bar element exists
@@ -428,6 +439,7 @@ test.describe('Intel Dashboard (US-012)', () => {
 
         await page.getByTestId('email-input-textarea').fill('Nigerian prince email');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
         await expect(page.getByText('Nigerian 419 Scam')).toBeVisible();
 
         // Now analyze a different email
@@ -454,6 +466,7 @@ test.describe('Intel Dashboard (US-012)', () => {
 
         await page.getByTestId('email-input-textarea').fill('Your package is delayed, click here');
         await page.getByTestId('analyze-button').click();
+        await waitForIntelDashboard(page);
 
         // Dashboard should show new attack type
         await expect(page.getByText('Delivery Scam').first()).toBeVisible();
@@ -523,7 +536,7 @@ test.describe('Side Panel Collapse (US-026)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for side panel to appear
-        await expect(page.getByTestId('side-panel')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Collapse button should be visible
         await expect(page.getByTestId('collapse-side-panel-button')).toBeVisible();
@@ -560,7 +573,7 @@ test.describe('Side Panel Collapse (US-026)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for side panel
-        await expect(page.getByTestId('side-panel')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Click collapse button
         await page.getByTestId('collapse-side-panel-button').click();
@@ -603,7 +616,7 @@ test.describe('Side Panel Collapse (US-026)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for side panel
-        await expect(page.getByTestId('side-panel')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Collapse first
         await page.getByTestId('collapse-side-panel-button').click();
@@ -650,6 +663,7 @@ test.describe('Side Panel Collapse (US-026)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for side panel
+        await waitForAnalysisResult(page);
         await expect(page.getByTestId('side-panel')).toBeVisible();
 
         // Panel should be collapsed automatically
@@ -692,7 +706,7 @@ test.describe('Side Panel Collapse (US-026)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for side panel
-        await expect(page.getByTestId('side-panel')).toBeVisible();
+        await waitForIntelDashboard(page);
 
         // Collapse the panel
         await page.getByTestId('collapse-side-panel-button').click();

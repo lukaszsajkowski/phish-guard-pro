@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForStoredAuth } from './helpers/auth';
 
 /**
  * E2E tests for US-029: View Session Details
@@ -103,6 +104,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should load session detail page when authenticated', async ({ page }) => {
@@ -190,10 +194,11 @@ test.describe('Session Detail Page', () => {
             await page.goto(`/history/${testSessionId}`);
 
             // Verify persona card is displayed
-            await expect(page.getByTestId('persona-card')).toBeVisible();
-            await expect(page.getByText('Margaret Thompson')).toBeVisible();
-            await expect(page.getByText('72')).toBeVisible();
-            await expect(page.getByText('Trusting and polite retired teacher')).toBeVisible();
+            const personaCard = page.getByTestId('persona-card');
+            await expect(personaCard).toBeVisible();
+            await expect(personaCard.getByText('Margaret Thompson')).toBeVisible();
+            await expect(personaCard.getByText('72')).toBeVisible();
+            await expect(personaCard.getByText('Trusting and polite retired teacher')).toBeVisible();
         });
 
         test('should have working Back to history link', async ({ page }) => {
@@ -277,6 +282,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should not display edit buttons', async ({ page }) => {
@@ -368,6 +376,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display 404 state when session not found', async ({ page }) => {
@@ -451,6 +462,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display error state when API fails', async ({ page }) => {
@@ -534,6 +548,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display thinking panel for bot messages', async ({ page }) => {
@@ -597,6 +614,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display timeline with IOC extraction events', async ({ page }) => {
@@ -638,6 +658,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should handle session without persona gracefully', async ({ page }) => {
@@ -685,6 +708,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should show empty state when session has no messages', async ({ page }) => {
@@ -737,6 +763,9 @@ test.describe('Session Detail Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await page.setViewportSize({ width: 1400, height: 900 });
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display Export JSON button', async ({ page }) => {
@@ -750,7 +779,9 @@ test.describe('Session Detail Page', () => {
 
             await page.goto(`/history/${testSessionId}`);
 
-            // Verify export JSON button is visible
+            await page.getByTestId('export-data-button').click();
+
+            // Verify export JSON item is visible
             await expect(page.getByTestId('export-json-button')).toBeVisible();
             await expect(page.getByTestId('export-json-button')).toContainText('Export JSON');
         });
@@ -766,7 +797,9 @@ test.describe('Session Detail Page', () => {
 
             await page.goto(`/history/${testSessionId}`);
 
-            // Verify export CSV button is visible
+            await page.getByTestId('export-data-button').click();
+
+            // Verify export CSV item is visible
             await expect(page.getByTestId('export-csv-button')).toBeVisible();
             await expect(page.getByTestId('export-csv-button')).toContainText('Export CSV');
         });
@@ -798,6 +831,7 @@ test.describe('Session Detail Page', () => {
             const downloadPromise = page.waitForEvent('download');
 
             // Click export JSON button
+            await page.getByTestId('export-data-button').click();
             await page.getByTestId('export-json-button').click();
 
             // Verify download was triggered
@@ -833,6 +867,7 @@ test.describe('Session Detail Page', () => {
             const downloadPromise = page.waitForEvent('download');
 
             // Click export CSV button
+            await page.getByTestId('export-data-button').click();
             await page.getByTestId('export-csv-button').click();
 
             // Verify download was triggered

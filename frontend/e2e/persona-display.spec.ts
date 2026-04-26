@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForIntelDashboard } from './helpers/dashboard';
 
 test.describe('Persona Display', () => {
     test.beforeEach(async ({ page }) => {
@@ -61,6 +62,7 @@ test.describe('Persona Display', () => {
         await page.getByTestId('analyze-button').click();
 
         // Verification
+        await waitForIntelDashboard(page);
 
         // Wait for persona card to appear
         const personaCard = page.getByTestId('persona-card');
@@ -74,6 +76,6 @@ test.describe('Persona Display', () => {
 
         // Verify background and style
         await expect(page.getByText('Retired teacher.')).toBeVisible();
-        await expect(page.getByText('"Trusting and polite, uses formal language."')).toBeVisible();
+        await expect(personaCard.getByText('Trusting and polite, uses formal language.')).toBeVisible();
     });
 });

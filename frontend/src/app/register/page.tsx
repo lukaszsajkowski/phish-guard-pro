@@ -125,10 +125,12 @@ export default function RegisterPage() {
                                 </label>
                                 <input
                                     id="email"
-                                    type="email"
+                                    type="text"
+                                    inputMode="email"
                                     placeholder="you@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
+                                    onInput={(e) => setEmail(e.currentTarget.value)}
                                     className="flex h-11 w-full rounded-md border border-input bg-background px-4 py-2 text-sm transition-colors placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
                                     autoComplete="email"
                                     disabled={isLoading}

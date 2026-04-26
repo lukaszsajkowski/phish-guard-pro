@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult } from './helpers/dashboard';
 
 test.describe('Paste Scammer Response (US-010)', () => {
     test.beforeEach(async ({ page }) => {
@@ -79,7 +80,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
 
         // Click analyze
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -157,7 +158,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Input email content
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -243,7 +244,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Invest in crypto for guaranteed 500% returns!');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Crypto Investment').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate first response
         await page.getByTestId('generate-response-button').click();
@@ -322,7 +323,7 @@ test.describe('Paste Scammer Response (US-010)', () => {
         // Setup and generate first response
         await page.getByTestId('email-input-textarea').fill('Wire $50,000 urgently - CEO request');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('CEO Fraud').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();

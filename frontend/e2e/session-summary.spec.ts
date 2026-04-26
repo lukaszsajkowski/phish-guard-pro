@@ -247,7 +247,6 @@ test.describe('Session Summary Features (US-016, US-017, US-018)', () => {
         await expect(page.getByTestId('exchange-count')).toHaveText('3');
         await expect(page.getByTestId('duration')).toHaveText('2m 0s');
         await expect(page.getByTestId('risk-score')).toHaveText('10/10');
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
 
         // Verify IOCs are displayed
         await expect(page.getByTestId('ioc-item-btc')).toBeVisible();

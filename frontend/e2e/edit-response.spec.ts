@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult } from './helpers/dashboard';
 
 test.describe('Edit Generated Response (US-008)', () => {
     test.beforeEach(async ({ page }) => {
@@ -73,7 +74,7 @@ test.describe('Edit Generated Response (US-008)', () => {
         // Input email and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -280,7 +281,7 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
         // Input and analyze
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -291,13 +292,7 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
         await expect(page.getByText('Copy to clipboard')).toBeVisible();
     });
 
-    test('should show copied confirmation when clicking copy button', async ({ page, context }) => {
-        // Grant clipboard permissions (clipboard-write not supported in WebKit/mobile-safari)
-        try {
-            await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-        } catch {
-            await context.grantPermissions(['clipboard-read']);
-        }
+    test('should show copied confirmation when clicking copy button', async ({ page }) => {
 
         // Mock APIs
         await page.route('**/api/v1/classification/analyze', async route => {
@@ -339,10 +334,17 @@ test.describe('Copy Response to Clipboard (US-009)', () => {
         // Input, analyze, generate
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         await page.getByTestId('generate-response-button').click();
         await expect(page.getByTestId('chat-message-bot')).toBeVisible();
+
+        await page.evaluate(() => {
+            Object.defineProperty(navigator, 'clipboard', {
+                configurable: true,
+                value: { writeText: async () => undefined },
+            });
+        });
 
         // Click copy button
         await page.getByTestId('copy-response-button').click();

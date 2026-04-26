@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult } from './helpers/dashboard';
 
 test.describe('Generate First Response (US-007)', () => {
     test.beforeEach(async ({ page }) => {
@@ -59,7 +60,7 @@ test.describe('Generate First Response (US-007)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for classification to complete
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Should show the generate response button
         await expect(page.getByTestId('generate-response-button')).toBeVisible();
@@ -118,7 +119,7 @@ test.describe('Generate First Response (US-007)', () => {
         await page.getByTestId('analyze-button').click();
 
         // Wait for classification to complete
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Click generate response
         await page.getByTestId('generate-response-button').click();
@@ -167,9 +168,9 @@ test.describe('Generate First Response (US-007)', () => {
         });
 
         // Input and analyze
-        await page.getByTestId('email-input-textarea').fill('Dear Friend...');
+        await page.getByTestId('email-input-textarea').fill('Dear Friend, I have an urgent business opportunity for you.');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Generate response
         await page.getByTestId('generate-response-button').click();
@@ -223,7 +224,7 @@ test.describe('Generate First Response (US-007)', () => {
         // Setup
         await page.getByTestId('email-input-textarea').fill('Dear Friend...');
         await page.getByTestId('analyze-button').click();
-        await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+        await waitForAnalysisResult(page);
 
         // Click generate and check loading state
         await page.getByTestId('generate-response-button').click();

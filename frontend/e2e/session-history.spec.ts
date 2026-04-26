@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForStoredAuth } from './helpers/auth';
 
 /**
  * E2E tests for US-028: View Session History List
@@ -17,8 +18,8 @@ test.describe('Session History Page', () => {
             // Try to access history page directly without authentication
             await page.goto('/history');
 
-            // Should be redirected to login page
-            await expect(page).toHaveURL('/login');
+            // Root is the login screen in this app.
+            await expect(page).toHaveURL(/\/(login)?$/);
         });
     });
 
@@ -41,6 +42,8 @@ test.describe('Session History Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should load history page when authenticated', async ({ page }) => {
@@ -139,9 +142,9 @@ test.describe('Session History Page', () => {
             await expect(page.getByTestId('session-row-session-3')).toBeVisible();
 
             // Verify attack types are displayed
-            await expect(page.getByText('Nigerian 419')).toBeVisible();
-            await expect(page.getByText('CEO Fraud')).toBeVisible();
-            await expect(page.getByText('Romance Scam')).toBeVisible();
+            await expect(page.getByTestId('session-row-session-1').getByText('Nigerian 419')).toBeVisible();
+            await expect(page.getByTestId('session-row-session-2').getByText('CEO Fraud')).toBeVisible();
+            await expect(page.getByTestId('session-row-session-3').getByText('Romance Scam')).toBeVisible();
 
             // Verify persona names are displayed
             await expect(page.getByText('Margaret Thompson')).toBeVisible();
@@ -242,8 +245,8 @@ test.describe('Session History Page', () => {
             // Click on the session
             await page.getByTestId(`session-row-${targetSessionId}`).click();
 
-            // Should navigate to dashboard with session parameter
-            await expect(page).toHaveURL(new RegExp(`/dashboard\\?session=${targetSessionId}`));
+            // Should navigate to the read-only session detail page.
+            await expect(page).toHaveURL(`/history/${targetSessionId}`);
         });
     });
 
@@ -266,6 +269,8 @@ test.describe('Session History Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display pagination controls when multiple pages exist', async ({ page }) => {
@@ -436,14 +441,14 @@ test.describe('Session History Page', () => {
 
             // Verify page 1 content - use session testid for reliability
             await expect(page.getByTestId('session-row-session-page1-item1')).toBeVisible();
-            await expect(page.getByText('Nigerian 419').first()).toBeVisible();
+            await expect(page.getByTestId('session-row-session-page1-item1').getByText('Nigerian 419')).toBeVisible();
 
             // Navigate to page 2
             await page.getByTestId('pagination-page-2').click();
 
             // Verify page 2 content - use session testid for reliability
             await expect(page.getByTestId('session-row-session-page2-item1')).toBeVisible();
-            await expect(page.getByText('CEO Fraud').first()).toBeVisible();
+            await expect(page.getByTestId('session-row-session-page2-item1').getByText('CEO Fraud')).toBeVisible();
 
             // Navigate using Next button
             await page.getByTestId('pagination-next').click();
@@ -512,6 +517,8 @@ test.describe('Session History Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display error state when API fails', async ({ page }) => {
@@ -608,6 +615,8 @@ test.describe('Session History Page', () => {
             await page.locator('#password').fill(password);
             await page.getByRole('button', { name: 'Sign in' }).click();
             await expect(page).toHaveURL('/dashboard');
+            await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+            await waitForStoredAuth(page);
         });
 
         test('should display risk scores with appropriate labels', async ({ page }) => {

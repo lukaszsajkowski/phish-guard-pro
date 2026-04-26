@@ -230,8 +230,9 @@ class EnrichmentService:
             cached_row = self._read_cache(source.name, ioc_type, value_hash)
             if cached_row is not None:
                 fetched_at = _parse_timestamp(cached_row.get("fetched_at"))
-                if fetched_at is not None and self._clock() - fetched_at <= self._ttl_for(
-                    ioc_type
+                if (
+                    fetched_at is not None
+                    and self._clock() - fetched_at <= self._ttl_for(ioc_type)
                 ):
                     result = EnrichmentResult(
                         status=cached_row.get("status", "ok"),

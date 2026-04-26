@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForAnalysisResult } from './helpers/dashboard';
 
 /**
  * E2E Tests for Response Security Validation (US-024)
@@ -345,7 +346,7 @@ test.describe('Response Security Validation (US-024)', () => {
 
             await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
             await page.getByTestId('analyze-button').click();
-            await expect(page.getByText('Nigerian 419', { exact: true })).toBeVisible();
+            await waitForAnalysisResult(page);
 
             await page.getByTestId('generate-response-button').click();
 
@@ -391,7 +392,7 @@ test.describe('Response Security Validation (US-024)', () => {
 
             await page.getByTestId('email-input-textarea').fill('Dear Friend...');
             await page.getByTestId('analyze-button').click();
-            await expect(page.getByText('Nigerian 419', { exact: true })).toBeVisible();
+            await waitForAnalysisResult(page);
 
             await page.getByTestId('generate-response-button').click();
             await expect(page.getByTestId('chat-message-bot')).toBeVisible();
@@ -433,9 +434,9 @@ async function setupGeneratedResponse(page: import('@playwright/test').Page) {
     // Input email and analyze
     await page.getByTestId('email-input-textarea').fill('Dear Friend, I am a Nigerian Prince...');
     await page.getByTestId('analyze-button').click();
-    await expect(page.getByText('Nigerian 419', { exact: true })).toBeVisible();
+    await waitForAnalysisResult(page);
 
     // Generate response
     await page.getByTestId('generate-response-button').click();
-    await expect(page.getByTestId('chat-message-bot')).toBeVisible();
+    await expect(page.getByTestId('chat-message-bot')).toBeVisible({ timeout: 10000 });
 }

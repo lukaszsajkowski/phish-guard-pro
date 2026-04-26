@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForStoredAuth } from './helpers/auth';
 
 /**
  * E2E tests for US-026: Interface Responsiveness
@@ -143,6 +144,8 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
         await page.getByRole('button', { name: 'Sign in' }).click();
 
         await expect(page).toHaveURL('/dashboard');
+        await expect(page.getByTestId('email-input-textarea')).toBeVisible();
+        await waitForStoredAuth(page);
     });
 
     test.describe('Minimum width (1024px)', () => {
@@ -283,7 +286,7 @@ test.describe('Interface Responsiveness - Authenticated Pages (US-026)', () => {
 
             // This test would apply to session detail page
             // For now, just verify history page loads
-            await page.locator('[data-testid="sidebar-nav-history"]').click();
+            await page.goto('/history');
             await expect(page).toHaveURL('/history');
         });
     });

@@ -38,10 +38,8 @@ test.describe('Login Page', () => {
             await expect(registerLink).toHaveAttribute('href', '/register');
         });
 
-        test('should have back to home link', async ({ page }) => {
-            const homeLink = page.getByRole('link', { name: 'Back to home' });
-            await expect(homeLink).toBeVisible();
-            await expect(homeLink).toHaveAttribute('href', '/');
+        test('should display product header', async ({ page }) => {
+            await expect(page.getByText('PhishGuard Pro', { exact: true })).toBeVisible();
         });
     });
 
@@ -118,7 +116,7 @@ test.describe('Login Page', () => {
 
 test.describe('Login Page - Registration Success Message', () => {
     test('should display success message when redirected after registration', async ({ page }) => {
-        await page.goto('/login?registered=true');
+        await page.goto('/?registered=true');
 
         await expect(page.locator('#registration-success-message')).toBeVisible();
         await expect(page.getByText('Registration successful')).toBeVisible();
@@ -137,6 +135,6 @@ test.describe('Dashboard Protection', () => {
         await page.goto('/dashboard');
 
         // Should be redirected to login page
-        await expect(page).toHaveURL('/login');
+        await expect(page).toHaveURL(/\/(login)?$/);
     });
 });

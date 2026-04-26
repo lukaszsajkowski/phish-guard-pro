@@ -249,7 +249,9 @@ class TestExportIocsCsv:
         ]
         enrichment_by_id = {
             "ioc-1": {
-                "threat_score": 85, "reputation": "malicious", "source": "btc_mempool"
+                "threat_score": 85,
+                "reputation": "malicious",
+                "source": "btc_mempool",
             },
         }
 
@@ -281,7 +283,9 @@ class TestExportIocsCsv:
         ]
         enrichment_by_id = {
             "ioc-1": {
-                "threat_score": 90, "reputation": "malicious", "source": "btc_mempool"
+                "threat_score": 90,
+                "reputation": "malicious",
+                "source": "btc_mempool",
             },
             # ioc-2 has no enrichment
         }
@@ -421,7 +425,6 @@ class TestExportSessionJson:
     async def test_export_json_structure(self):
         """Exported JSON should have correct top-level structure."""
 
-
         # Mock the dependent functions
         mock_session = {
             "id": "session-123",
@@ -508,7 +511,6 @@ class TestExportSessionJson:
     async def test_export_json_metadata(self):
         """Exported JSON metadata should contain session info."""
 
-
         mock_session = {
             "id": "session-123",
             "attack_type": "ceo_fraud",
@@ -550,7 +552,6 @@ class TestExportSessionJson:
     @pytest.mark.asyncio
     async def test_export_json_excludes_original_email_from_history(self):
         """Conversation history should not include the original email."""
-
 
         mock_session = {
             "id": "session-123",
@@ -613,7 +614,6 @@ class TestExportSessionJson:
     @pytest.mark.asyncio
     async def test_export_json_summary_stats(self):
         """Exported JSON should include accurate summary statistics."""
-
 
         mock_session = {
             "id": "session-123",
@@ -720,7 +720,6 @@ class TestExportSessionJson:
     @pytest.mark.asyncio
     async def test_export_json_session_not_found(self):
         """Should raise exception when session not found."""
-
 
         with patch.object(
             _ss, "get_session", new_callable=AsyncMock

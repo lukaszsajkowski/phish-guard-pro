@@ -67,10 +67,12 @@ export const ATTACK_TYPE_COLORS: Record<string, string> = {
 };
 
 export function getRiskScoreColor(score: number): string {
-  if (score >= 7) {
+  if (score >= 8) {
     return "text-red-500 dark:text-red-400";
-  } else if (score >= 4) {
+  } else if (score >= 5) {
     return "text-orange-500 dark:text-orange-400";
+  } else if (score >= 3) {
+    return "text-yellow-500 dark:text-yellow-400";
   }
   return "text-green-500 dark:text-green-400";
 }
@@ -83,10 +85,12 @@ export function getRiskScoreColor(score: number): string {
  * @returns Tailwind CSS background color class
  */
 export function getRiskScoreBarColor(score: number): string {
-  if (score >= 7) {
+  if (score >= 8) {
     return "bg-red-500";
-  } else if (score >= 4) {
+  } else if (score >= 5) {
     return "bg-orange-500";
+  } else if (score >= 3) {
+    return "bg-yellow-500";
   }
   return "bg-green-500";
 }
@@ -99,10 +103,12 @@ export function getRiskScoreBarColor(score: number): string {
  * @returns Tailwind CSS background color class
  */
 export function getRiskScoreBg(score: number): string {
-  if (score >= 7) {
+  if (score >= 8) {
     return "bg-red-50";
-  } else if (score >= 4) {
+  } else if (score >= 5) {
     return "bg-orange-50";
+  } else if (score >= 3) {
+    return "bg-yellow-50";
   }
   return "bg-green-50";
 }
@@ -115,9 +121,9 @@ export function getRiskScoreBg(score: number): string {
  * @returns Risk level label
  */
 export function getRiskLabel(score: number): string {
-  if (score >= 7) {
+  if (score >= 8) {
     return "High";
-  } else if (score >= 4) {
+  } else if (score >= 5) {
     return "Medium";
   }
   return "Low";
