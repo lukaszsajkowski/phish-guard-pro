@@ -6,6 +6,7 @@ sessions and their associated messages in the database.
 
 import logging
 from typing import Any
+from uuid import NAMESPACE_URL, uuid5
 
 from supabase import Client, create_client
 
@@ -977,6 +978,71 @@ async def export_session_json(session_id: str) -> dict[str, Any]:
     }
 
 
+def _stix_pattern(ioc_type: str, value: str) -> str:
+    """Build a STIX pattern for a supported IOC value."""
+    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
+    if ioc_type == "ip":
+        return f"[ipv4-addr:value = '{escaped}']"
+    if ioc_type == "url":
+        return f"[url:value = '{escaped}']"
+    return f"[x-phishguard-ioc:value = '{escaped}']"
+
+
+async def export_session_stix(session_id: str) -> dict[str, Any]:
+    """Export extracted IOCs as a STIX 2.1 bundle.
+
+    The bundle intentionally contains only indicator objects so it can be
+    imported by threat intelligence tooling without exposing full conversation
+    contents.
+    """
+    from datetime import UTC, datetime
+
+    session = await get_session(session_id)
+    if not session:
+        raise Exception(f"Session {session_id} not found")
+
+    iocs = await get_session_iocs(session_id)
+    exported_at = (
+        datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+    bundle_id = f"bundle--{uuid5(NAMESPACE_URL, f'phishguard:{session_id}:bundle')}"
+
+    indicators = []
+    for ioc in iocs:
+        ioc_type = ioc.get("type", "")
+        value = ioc.get("value", "")
+        if not value:
+            continue
+
+        created_at = ioc.get("created_at") or exported_at
+        indicator_key = f"phishguard:{session_id}:{ioc_type}:{value}"
+        indicator_id = f"indicator--{uuid5(NAMESPACE_URL, indicator_key)}"
+        indicators.append(
+            {
+                "type": "indicator",
+                "spec_version": "2.1",
+                "id": indicator_id,
+                "created": created_at,
+                "modified": exported_at,
+                "name": f"PhishGuard {ioc_type.upper()} IOC",
+                "description": f"IOC extracted from PhishGuard session {session_id}",
+                "indicator_types": ["malicious-activity"],
+                "pattern": _stix_pattern(ioc_type, value),
+                "pattern_type": "stix",
+                "valid_from": created_at,
+                "confidence": int(round(float(ioc.get("confidence", 1.0)) * 100)),
+                "labels": ["phishing", "phishguard", ioc_type],
+                "x_phishguard_ioc_type": ioc_type,
+            }
+        )
+
+    return {
+        "type": "bundle",
+        "id": bundle_id,
+        "objects": indicators,
+    }
+
+
 def export_iocs_csv(
     iocs: list[dict[str, Any]],
     enrichment_by_id: dict[str, dict[str, Any]] | None = None,
@@ -1055,6 +1121,9 @@ async def get_user_sessions(
     user_id: str,
     page: int = 1,
     per_page: int = 20,
+    attack_type: str | None = None,
+    min_risk: int | None = None,
+    search: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """Retrieve paginated sessions for a user with turn counts and risk scores.
 
@@ -1077,23 +1146,36 @@ async def get_user_sessions(
         raise ValueError("Page must be >= 1")
     if per_page < 1 or per_page > 100:
         raise ValueError("per_page must be between 1 and 100")
+    if min_risk is not None and (min_risk < 1 or min_risk > 10):
+        raise ValueError("min_risk must be between 1 and 10")
 
     supabase = _get_supabase_client()
 
     # Calculate offset for pagination
     offset = (page - 1) * per_page
 
-    # Query sessions with pagination
-    result = (
+    has_filters = bool(attack_type or min_risk is not None or search)
+
+    query = (
         supabase.table("sessions")
         .select("*", count="exact")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .range(offset, offset + per_page - 1)
-        .execute()
     )
+    if attack_type:
+        query = query.eq("attack_type", attack_type)
+    if search:
+        clean_search = search.strip()
+        if clean_search:
+            query = query.or_(
+                f"title.ilike.%{clean_search}%,attack_type.ilike.%{clean_search}%"
+            )
 
-    total_count = result.count if result.count else 0
+    query = query.order("created_at", desc=True)
+    if not has_filters:
+        query = query.range(offset, offset + per_page - 1)
+
+    result = query.execute()
+
     sessions = result.data if result.data else []
 
     # Enrich sessions with turn counts and risk scores
@@ -1158,6 +1240,19 @@ async def get_user_sessions(
                 "risk_score": risk_score,
             }
         )
+
+    if min_risk is not None:
+        enriched_sessions = [
+            session
+            for session in enriched_sessions
+            if session.get("risk_score", 1) >= min_risk
+        ]
+
+    total_count = (
+        len(enriched_sessions) if has_filters else (result.count if result.count else 0)
+    )
+    if has_filters:
+        enriched_sessions = enriched_sessions[offset : offset + per_page]
 
     logger.debug(
         "Retrieved %d sessions for user %s (page %d, total %d)",

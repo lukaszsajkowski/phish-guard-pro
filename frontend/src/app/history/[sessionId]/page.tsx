@@ -291,6 +291,45 @@ export default function SessionDetailPage() {
         }
     };
 
+    const handleExportStix = async () => {
+        setIsExporting(true);
+        try {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (!supabaseUrl || !supabaseAnonKey) return;
+
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/session/${sessionId}/export/stix`,
+                {
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to export STIX 2.1");
+            }
+
+            const filename = `phishguard_iocs_${new Date().toISOString().slice(0, 10)}.stix.json`;
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Exported ${filename}`);
+        } catch (err) {
+            console.error("Error exporting STIX:", err);
+            toast.error("STIX export failed", { description: err instanceof Error ? err.message : "Please try again." });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     // Fallback risk score calculation (used when API doesn't return breakdown)
     const calculateFallbackRiskScore = (): number => {
         if (!sessionData) return riskScore || 1;
@@ -359,6 +398,7 @@ export default function SessionDetailPage() {
                                 turnCount={sessionData.turn_count}
                                 onExportJson={handleExportJson}
                                 onExportCsv={handleExportCsv}
+                                onExportStix={handleExportStix}
                                 isExporting={isExporting}
                             />
 

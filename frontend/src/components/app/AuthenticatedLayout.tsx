@@ -102,7 +102,7 @@ export function AuthenticatedLayout({
                             <Menu className="h-5 w-5" />
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-64 p-0">
+                    <SheetContent side="left" className="w-[224px] p-0">
                         <SheetHeader className="sr-only">
                             <SheetTitle>Navigation</SheetTitle>
                         </SheetHeader>
@@ -122,7 +122,7 @@ export function AuthenticatedLayout({
 
             {/* Fixed sidebar — hidden on mobile, visible on lg+ */}
             <div
-                className="fixed left-0 top-0 h-full w-64 z-40 hidden lg:block"
+                className="fixed left-0 top-0 h-full w-[224px] z-40 hidden lg:block"
                 data-testid="sidebar-container"
             >
                 <AppSidebar
@@ -134,7 +134,7 @@ export function AuthenticatedLayout({
             </div>
 
             {/* Main content area — top padding for mobile header, left margin for desktop sidebar */}
-            <main className="flex-1 pt-14 lg:pt-0 lg:ml-64" data-testid="main-content">
+            <main className="flex-1 pt-14 lg:pt-0 lg:ml-[224px]" data-testid="main-content">
                 {children}
             </main>
         </div>

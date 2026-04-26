@@ -1030,7 +1030,7 @@ Acceptance Criteria:
   scammer right-aligned (red avatar, radius 6px 0 6px 6px). Message count badge.
 - All elements use design tokens from US-042
 
-### US-044: Threat Intel Panel Redesign
+### US-044: Threat Intel Panel Redesign ✅
 
 Title: Redesign right-side Threat Intel panel per mockup
 

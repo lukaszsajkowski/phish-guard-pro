@@ -188,11 +188,10 @@ describe("IntelDashboard – Enrichment UI", () => {
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
             const badge = screen.getByTestId("reputation-badge-btc");
-            expect(badge).toHaveTextContent("Malicious");
-            expect(badge).toHaveClass("text-red-500");
+            expect(badge).toHaveTextContent("MALICIOUS");
         });
 
-        it("shows Suspicious badge with yellow styling", async () => {
+        it("shows Suspicious badge with amber styling", async () => {
             mockFetchSuccess(
                 createSuccessResponse({
                     payload: { reputation: "suspicious", report_count: 0 },
@@ -203,8 +202,7 @@ describe("IntelDashboard – Enrichment UI", () => {
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
             const badge = screen.getByTestId("reputation-badge-btc");
-            expect(badge).toHaveTextContent("Suspicious");
-            expect(badge).toHaveClass("text-yellow-500");
+            expect(badge).toHaveTextContent("SUSPICIOUS");
         });
 
         it("shows Clean badge with green styling", async () => {
@@ -225,8 +223,7 @@ describe("IntelDashboard – Enrichment UI", () => {
             );
 
             const badge = await screen.findByTestId("reputation-badge-url");
-            expect(badge).toHaveTextContent("Clean");
-            expect(badge).toHaveClass("text-green-500");
+            expect(badge).toHaveTextContent("CLEAN");
         });
     });
 

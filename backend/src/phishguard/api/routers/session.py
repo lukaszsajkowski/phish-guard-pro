@@ -234,6 +234,15 @@ async def get_sessions(
     per_page: Annotated[
         int, Query(ge=1, le=100, description="Items per page (max 100)")
     ] = 20,
+    attack_type: Annotated[
+        str | None, Query(description="Filter by raw attack type")
+    ] = None,
+    min_risk: Annotated[
+        int | None, Query(ge=1, le=10, description="Minimum risk score")
+    ] = None,
+    search: Annotated[
+        str | None, Query(description="Search session title or attack type")
+    ] = None,
 ) -> PaginatedSessionsResponse:
     """Get paginated list of user's sessions for the history sidebar.
 
@@ -258,6 +267,9 @@ async def get_sessions(
             user_id=user_id,
             page=page,
             per_page=per_page,
+            attack_type=attack_type,
+            min_risk=min_risk,
+            search=search,
         )
     except ValueError as e:
         raise HTTPException(
@@ -669,6 +681,40 @@ async def export_iocs_csv(
     return Response(
         content=csv_content,
         media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@router.get("/{session_id}/export/stix")
+async def export_iocs_stix(
+    session_id: str,
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Response:
+    """Export extracted IOCs as a STIX 2.1 bundle."""
+    session = await session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found",
+        )
+
+    if session.get("user_id") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to export this session",
+        )
+
+    export_data = await session_service.export_session_stix(session_id)
+    filename = session_service.generate_export_filename(
+        "phishguard_iocs",
+        "stix.json",
+    )
+
+    return Response(
+        content=json.dumps(export_data, indent=2, ensure_ascii=False),
+        media_type="application/stix+json",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
         },

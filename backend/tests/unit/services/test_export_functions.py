@@ -301,6 +301,70 @@ class TestExportIocsCsv:
         assert rows[1]["source"] == ""
 
 
+class TestExportSessionStix:
+    """Tests for STIX 2.1 IOC export."""
+
+    @pytest.mark.asyncio
+    async def test_export_stix_bundle_contains_indicator_objects(self):
+        mock_session = {"id": "session-123", "user_id": "user-456"}
+        mock_iocs = [
+            {
+                "id": "ioc-1",
+                "type": "url",
+                "value": "https://phishing.example.com/login",
+                "confidence": 0.8,
+                "created_at": "2026-01-07T17:02:00Z",
+            },
+            {
+                "id": "ioc-2",
+                "type": "btc_wallet",
+                "value": "bc1qtest",
+                "confidence": 1.0,
+                "created_at": "2026-01-07T17:03:00Z",
+            },
+        ]
+
+        with (
+            patch.object(_ss, "get_session", new_callable=AsyncMock) as m_sess,
+            patch.object(_ss, "get_session_iocs", new_callable=AsyncMock) as m_iocs,
+        ):
+            m_sess.return_value = mock_session
+            m_iocs.return_value = mock_iocs
+
+            result = await _ss.export_session_stix("session-123")
+
+        assert result["type"] == "bundle"
+        assert result["id"].startswith("bundle--")
+        assert len(result["objects"]) == 2
+
+        url_indicator = result["objects"][0]
+        assert url_indicator["type"] == "indicator"
+        assert url_indicator["spec_version"] == "2.1"
+        assert url_indicator["indicator_types"] == ["malicious-activity"]
+        assert url_indicator["x_phishguard_ioc_type"] == "url"
+        assert url_indicator["pattern"] == (
+            "[url:value = 'https://phishing.example.com/login']"
+        )
+        assert url_indicator["confidence"] == 80
+
+        wallet_indicator = result["objects"][1]
+        assert wallet_indicator["indicator_types"] == ["malicious-activity"]
+        assert wallet_indicator["x_phishguard_ioc_type"] == "btc_wallet"
+        assert wallet_indicator["pattern"] == "[x-phishguard-ioc:value = 'bc1qtest']"
+
+    @pytest.mark.asyncio
+    async def test_export_stix_session_not_found(self):
+        with patch.object(
+            _ss,
+            "get_session",
+            new_callable=AsyncMock,
+        ) as m_sess:
+            m_sess.return_value = None
+
+            with pytest.raises(Exception, match="not found"):
+                await _ss.export_session_stix("missing-session")
+
+
 class TestGenerateExportFilename:
     """Tests for generate_export_filename function."""
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileJson, FileSpreadsheet, Download, ChevronDown } from "lucide-react";
+import { FileCode2, FileJson, FileSpreadsheet, Download, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +19,7 @@ interface SessionDetailHeaderProps {
     turnCount: number;
     onExportJson?: () => void;
     onExportCsv?: () => void;
+    onExportStix?: () => void;
     onExportSession?: () => void;
     isExporting?: boolean;
 }
@@ -43,6 +44,7 @@ export function SessionDetailHeader({
     turnCount,
     onExportJson,
     onExportCsv,
+    onExportStix,
     onExportSession,
     isExporting,
 }: SessionDetailHeaderProps) {
@@ -163,6 +165,13 @@ export function SessionDetailHeader({
                         >
                             <FileSpreadsheet className="w-4 h-4 mr-2" />
                             Export CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => onExportStix?.()}
+                            data-testid="export-stix-button"
+                        >
+                            <FileCode2 className="w-4 h-4 mr-2" />
+                            Export STIX 2.1
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

@@ -34,7 +34,7 @@ export function AppSidebar({
 
     return (
         <aside
-            className="flex flex-col h-full w-64 bg-card border-r border-border"
+            className="flex flex-col h-full w-[224px] bg-card border-r border-border"
             data-testid="app-sidebar"
         >
             {/* Header with logo */}
@@ -77,7 +77,7 @@ export function AppSidebar({
                         <UserIcon className="h-4 w-4 text-primary" />
                     </div>
                     <p
-                        className="text-sm font-medium truncate max-w-[180px]"
+                        className="text-sm font-medium truncate max-w-[148px]"
                         title={user.email || ""}
                         data-testid="sidebar-user-email"
                     >

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { SessionDetailHeader } from '../SessionDetailHeader';
@@ -170,6 +170,7 @@ describe('SessionDetailHeader Component', () => {
             await waitFor(() => {
                 expect(screen.getByTestId('export-json-button')).toBeInTheDocument();
                 expect(screen.getByTestId('export-csv-button')).toBeInTheDocument();
+                expect(screen.getByTestId('export-stix-button')).toBeInTheDocument();
             });
         });
 
@@ -199,6 +200,20 @@ describe('SessionDetailHeader Component', () => {
             await user.click(screen.getByTestId('export-csv-button'));
 
             expect(onExportCsv).toHaveBeenCalledTimes(1);
+        });
+
+        it('calls onExportStix when STIX option clicked', async () => {
+            const user = userEvent.setup();
+            const onExportStix = vi.fn();
+            render(<SessionDetailHeader {...defaultProps} onExportStix={onExportStix} />);
+
+            await user.click(screen.getByTestId('export-data-button'));
+            await waitFor(() => {
+                expect(screen.getByTestId('export-stix-button')).toBeInTheDocument();
+            });
+            await user.click(screen.getByTestId('export-stix-button'));
+
+            expect(onExportStix).toHaveBeenCalledTimes(1);
         });
 
     });
