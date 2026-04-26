@@ -1057,7 +1057,7 @@ Acceptance Criteria:
 - **Extraction Timeline:** vertical timeline with 15px dots (active=green with
   inner dot), connector lines, event text (13px medium) + timestamp (11.5px muted)
 
-### US-045: Sidebar Visual Polish
+### US-045: Sidebar Visual Polish ✅
 
 Title: Update sidebar styling to match design handoff
 
@@ -1079,7 +1079,7 @@ Acceptance Criteria:
 - Border-right 1px solid border token
 - Icons: 15px inline SVG, stroke-width 1.5
 
-### US-046: Default to Light Mode
+### US-046: Default to Light Mode ✅
 
 Title: Application defaults to light mode
 
