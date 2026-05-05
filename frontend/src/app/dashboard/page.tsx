@@ -20,6 +20,7 @@ import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent, RiskScoreBreakdown, AgentThinking } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import {
@@ -1010,17 +1011,23 @@ function DashboardContent() {
                                             {/* Collapsed state - just show toggle button */}
                                             {isSidePanelCollapsed ? (
                                                 <div className="flex flex-col items-center">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => setIsSidePanelCollapsed(false)}
-                                                        data-testid="expand-side-panel-button"
-                                                        title="Expand panel"
-                                                        aria-label="Expand intel panel"
-                                                        className="mb-2"
-                                                    >
-                                                        <PanelRightOpen className="h-4 w-4" />
-                                                    </Button>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => setIsSidePanelCollapsed(false)}
+                                                                data-testid="expand-side-panel-button"
+                                                                aria-label="Expand intel panel"
+                                                                className="mb-2"
+                                                            >
+                                                                <PanelRightOpen className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Expand panel</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                     {/* Show IOC count badge when collapsed */}
                                                     {extractedIOCs.length > 0 && (
                                                         <span
@@ -1036,16 +1043,22 @@ function DashboardContent() {
                                                 <>
                                                     <div className="flex items-center justify-between pb-3 border-b border-border/50 mb-4">
                                                         <h3 className="text-lg font-semibold">Analysis Results</h3>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => setIsSidePanelCollapsed(true)}
-                                                            data-testid="collapse-side-panel-button"
-                                                            title="Collapse panel"
-                                                            aria-label="Collapse intel panel"
-                                                        >
-                                                            <PanelRightClose className="h-4 w-4" />
-                                                        </Button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => setIsSidePanelCollapsed(true)}
+                                                                    data-testid="collapse-side-panel-button"
+                                                                    aria-label="Collapse intel panel"
+                                                                >
+                                                                    <PanelRightClose className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Collapse panel</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     </div>
                                                     <div className="space-y-4">
                                                         <ClassificationResult
