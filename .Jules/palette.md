@@ -1,0 +1,3 @@
+## 2025-02-23 - Add Tooltip to ThemeToggle
+**Learning:** For enhanced accessibility on the frontend, icon-only buttons should be wrapped in the 'Tooltip' component from '@/components/ui/tooltip' rather than relying solely on native HTML 'title' attributes or 'aria-label' alone. This requires a 'TooltipProvider' at the top-level layout (e.g. 'layout.tsx') and explicitly adding 'TooltipProvider' in component test environments (e.g. inside 'render' wrappers) to avoid rendering errors.
+**Action:** When adding Tooltip components to Next.js components, ensure the 'TooltipProvider' is present at the application root layout, and always remember to wrap the component in 'TooltipProvider' inside test files to prevent test failures.
