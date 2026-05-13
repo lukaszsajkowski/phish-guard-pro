@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { IntelDashboard } from "../IntelDashboard";
 import type { ExtractedIOC, EnrichmentResponse } from "@/types/schemas";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,13 +49,15 @@ function mockFetchSuccess(response: EnrichmentResponse) {
 
 function renderDashboard(iocs: ExtractedIOC[] = [btcIoc]) {
     return render(
-        <IntelDashboard
-            iocs={iocs}
-            attackType="ceo_fraud"
-            confidence={95}
-            riskScore={7}
-            getAccessToken={mockGetAccessToken}
-        />,
+        <TooltipProvider>
+            <IntelDashboard
+                iocs={iocs}
+                attackType="ceo_fraud"
+                confidence={95}
+                riskScore={7}
+                getAccessToken={mockGetAccessToken}
+            />
+        </TooltipProvider>,
     );
 }
 
@@ -83,12 +87,14 @@ describe("IntelDashboard – Enrichment UI", () => {
 
         it("does NOT render Enrich buttons when getAccessToken is not provided", () => {
             render(
-                <IntelDashboard
-                    iocs={[btcIoc]}
-                    attackType="ceo_fraud"
-                    confidence={95}
-                    riskScore={7}
-                />,
+                <TooltipProvider>
+                    <IntelDashboard
+                        iocs={[btcIoc]}
+                        attackType="ceo_fraud"
+                        confidence={95}
+                        riskScore={7}
+                    />
+                </TooltipProvider>,
             );
 
             expect(
@@ -216,10 +222,12 @@ describe("IntelDashboard – Enrichment UI", () => {
             // URL IOCs are auto-enriched on mount (US-038/US-035), so we
             // wait for the reputation badge to appear rather than clicking.
             render(
-                <IntelDashboard
-                    iocs={[{ id: "u1", type: "url", value: "https://evil.com", is_high_value: false }]}
-                    getAccessToken={mockGetAccessToken}
-                />,
+                <TooltipProvider>
+                    <IntelDashboard
+                        iocs={[{ id: "u1", type: "url", value: "https://evil.com", is_high_value: false }]}
+                        getAccessToken={mockGetAccessToken}
+                    />
+                </TooltipProvider>,
             );
 
             const badge = await screen.findByTestId("reputation-badge-url");
@@ -236,7 +244,11 @@ describe("IntelDashboard – Enrichment UI", () => {
 
             const cachedBadge = screen.getByTestId("cached-badge-btc");
             expect(cachedBadge).toBeInTheDocument();
-            expect(cachedBadge).toHaveAttribute("title", "Result from cache");
+
+            await userEvent.hover(cachedBadge);
+            await waitFor(() => {
+                expect(screen.getByRole("tooltip")).toHaveTextContent("Result from cache");
+            });
         });
 
         it("does NOT show Cached badge for fresh results", async () => {
