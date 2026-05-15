@@ -57,7 +57,7 @@ export function PhishingEmailCard({
                 </div>
 
                 {/* Email body */}
-                <div className="px-5 py-5">
+                <div className="px-5 py-5" id="email-body-content">
                     <div
                         className="text-[13px] text-text-secondary leading-[1.75] whitespace-pre-wrap"
                         data-testid="email-body"
@@ -71,6 +71,8 @@ export function PhishingEmailCard({
                     <button
                         className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 border-t border-border text-[12px] text-text-muted hover:text-text-secondary hover:bg-surface2 transition-colors cursor-pointer"
                         onClick={() => setExpanded(!expanded)}
+                        aria-expanded={expanded}
+                        aria-controls="email-body-content"
                         data-testid="email-expand-toggle"
                     >
                         <svg
