@@ -1,0 +1,3 @@
+## 2026-05-16 - [Aria Expansions via React's useId]
+**Learning:** When creating accessible expand/collapse toggle buttons (`aria-expanded` and `aria-controls`), the target container must have a matching `id`. However, hardcoding an `id` can cause conflicts if a component like `PhishingEmailCard.tsx` is rendered multiple times on a page. React's `useId()` hook dynamically generates unique IDs during renders which is perfectly suited for linking the ARIA relationships without polluting the DOM namespace.
+**Action:** Use `useId()` when creating dynamically collapsible or interactive text areas requiring `aria-controls` bindings.
