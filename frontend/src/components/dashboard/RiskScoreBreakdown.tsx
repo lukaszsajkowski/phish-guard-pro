@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { ChevronDown, ChevronUp, Info, Zap } from "lucide-react";
 import type { RiskScoreBreakdown as RiskScoreBreakdownType } from "@/types/schemas";
 import {
@@ -34,6 +34,7 @@ export function RiskScoreBreakdown({
     hasUnenrichedIOCs = false,
 }: RiskScoreBreakdownProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const contentId = useId();
 
     const riskLevel = breakdown.risk_level;
     const totalScore = breakdown.total_score;
@@ -57,7 +58,7 @@ export function RiskScoreBreakdown({
                 <button
                     data-testid="breakdown-toggle"
                     aria-expanded={isExpanded}
-                    aria-controls="breakdown-content"
+                    aria-controls={contentId}
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
                 >
@@ -97,7 +98,7 @@ export function RiskScoreBreakdown({
 
                 {/* Expandable content */}
                 <div
-                    id="breakdown-content"
+                    id={contentId}
                     data-testid="breakdown-content"
                     className={cn(
                         "overflow-hidden transition-all duration-300 ease-in-out",
