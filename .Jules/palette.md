@@ -1,0 +1,3 @@
+## 2024-05-30 - Expand/Collapse Accessibility with React `useId`
+**Learning:** Expand/collapse toggle buttons must implement both `aria-expanded` and `aria-controls` attributes to be fully accessible, and the target content container must have a matching `id`. When mapping over items or using reusable components in React, generating unique IDs for these attributes is critical to prevent collisions across multiple instances on the same page.
+**Action:** Always use React's `useId()` hook (or a unique stable identifier like a mapping `key`) to generate these matching IDs for `aria-controls` when building accessible toggle components.
