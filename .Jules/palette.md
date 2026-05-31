@@ -1,0 +1,3 @@
+## 2024-06-01 - Expand/Collapse Accessibility with useId
+**Learning:** When creating expand/collapse UI components (like viewing long emails), standard accessibility guidelines dictate that the toggle button must implement `aria-expanded` and `aria-controls` attributes, and the target content container must have a matching `id`. React's `useId()` hook is crucial here to generate a stable, globally unique ID to prevent accessibility bugs when multiple instances of the same component render on a single page.
+**Action:** Always use `useId()` in tandem with `aria-expanded` and `aria-controls` for all custom expand/collapse, disclosure, or accordion components.
