@@ -525,6 +525,8 @@ export function IntelDashboard({
                                                                     <button
                                                                         data-testid={`expand-raw-${ioc.type}`}
                                                                         aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`raw-data-${key}`}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
                                                                     >
@@ -541,6 +543,7 @@ export function IntelDashboard({
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
                                                                             <pre
+                                                                                id={`raw-data-${key}`}
                                                                                 data-testid={`raw-data-${ioc.type}`}
                                                                                 className="mt-2 p-2.5 rounded-[4px] bg-background border border-border font-mono text-[10.5px] text-secondary-foreground leading-relaxed max-h-32 overflow-auto break-all"
                                                                             >
