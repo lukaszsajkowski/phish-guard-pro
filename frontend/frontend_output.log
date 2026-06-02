@@ -1,0 +1,14 @@
+
+> frontend@0.1.0 dev /app/frontend
+> next dev
+
+◇ injected env (0) from ../.env // tip: ⌘ suppress logs { quiet: true }
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+✓ Ready in 1107ms
+○ Compiling / ...
+ GET / 200 in 4.5s (compile: 4.1s, render: 450ms)
+ GET /test-components 200 in 1816ms (compile: 1431ms, render: 385ms)
