@@ -1,0 +1,3 @@
+## 2024-06-04 - Accessible Tooltips for Icon-only Buttons
+**Learning:** Icon-only buttons (like the theme toggle) often rely on generic `title` attributes or hidden text (`sr-only`), which limits visual feedback for sighted users. Using Radix UI Tooltips significantly improves the user experience by providing clear, immediate visual context on hover or focus. However, adding `Tooltip` components requires `TooltipProvider` to be wrapping the component tree (ideally at the root layout) to avoid Context errors, and must also be explicitly provided in test environments.
+**Action:** When creating or modifying icon-only buttons, wrap them in a `Tooltip`. Ensure `TooltipProvider` is properly set up in both the application layout and the test rendering wrappers.
