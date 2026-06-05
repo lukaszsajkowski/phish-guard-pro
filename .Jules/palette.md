@@ -1,0 +1,3 @@
+## 2025-06-05 - Wrapping Icon-Only Buttons with Tooltips in Radix UI
+**Learning:** When using Radix UI tooltips, simply setting an `aria-label` on an icon-only button isn't always enough for sighted users who need visual context. Wrapping the button in a `Tooltip` component provides accessible, hoverable text that explains the action. Furthermore, to prevent testing errors when adding a `Tooltip` to a component, the test environment's render function MUST include a `TooltipProvider` context wrapper.
+**Action:** When adding tooltips to existing components to replace or supplement native `title` or `aria-label` attributes for icon-only buttons, always ensure the corresponding unit tests are updated to wrap the rendered component in a `<TooltipProvider>`.
