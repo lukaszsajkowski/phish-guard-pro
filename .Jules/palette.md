@@ -1,0 +1,3 @@
+## 2026-06-11 - Wrap theme toggle with tooltips
+**Learning:** Wrapping a standard button with a Tooltip and TooltipTrigger is cleaner than relying on aria-labels. It also serves as a visual hint for users, especially those not utilizing screen readers. Next.js test environments require TooltipProvider Context to be wrapped around testing elements if Radix UI tooltips are used.
+**Action:** For standard Radix Tooltip implementations, update the top-level layout (or the component's immediate rendering test context) with `<TooltipProvider>` to ensure the Context is available across the app and testing environments.
