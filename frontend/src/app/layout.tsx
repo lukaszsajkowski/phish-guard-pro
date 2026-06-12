@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -60,10 +61,12 @@ export default function RootLayout({
       <body
         className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased min-w-[1024px]`}
       >
-        <ThemeProvider>
-          {children}
-          <Toaster position="bottom-right" richColors />
-        </ThemeProvider>
+        <TooltipProvider>
+          <ThemeProvider>
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </ThemeProvider>
+        </TooltipProvider>
       </body>
     </html>
   );
