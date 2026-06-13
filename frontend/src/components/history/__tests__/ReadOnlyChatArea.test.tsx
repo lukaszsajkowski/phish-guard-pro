@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ReadOnlyChatArea } from '../ReadOnlyChatArea';
 import { ChatMessage } from '@/types/schemas';
@@ -274,7 +274,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+            await act(async () => { fireEvent.click(copyButton); });
 
             expect(mockClipboard.writeText).toHaveBeenCalledWith(messageContent);
         });
@@ -285,7 +285,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+            await act(async () => { fireEvent.click(copyButton); });
 
             await waitFor(() => {
                 expect(screen.getByText('Copied!')).toBeInTheDocument();
@@ -299,13 +299,13 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            await fireEvent.click(copyButton);
+            await act(async () => { fireEvent.click(copyButton); });
 
             // Wait for copied state
             expect(await screen.findByText('Copied!')).toBeInTheDocument();
 
             // Fast-forward 2 seconds
-            await vi.advanceTimersByTimeAsync(2000);
+            await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
 
             // Should revert back to original text
             expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+            await act(async () => { fireEvent.click(copyButton); });
 
             await waitFor(() => {
                 expect(consoleSpy).toHaveBeenCalledWith('Failed to copy:', expect.any(Error));

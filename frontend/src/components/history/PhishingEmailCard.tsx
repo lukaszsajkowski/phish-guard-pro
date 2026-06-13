@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 
 interface PhishingEmailCardProps {
     emailContent: string;
@@ -19,6 +19,7 @@ export function PhishingEmailCard({
     collapsedParagraphs = 3,
 }: PhishingEmailCardProps) {
     const [expanded, setExpanded] = useState(false);
+    const contentId = useId();
 
     // Split into paragraphs for collapse logic
     const paragraphs = emailContent.split("\n\n");
@@ -61,6 +62,7 @@ export function PhishingEmailCard({
                     <div
                         className="text-[13px] text-text-secondary leading-[1.75] whitespace-pre-wrap"
                         data-testid="email-body"
+                        id={contentId}
                     >
                         {displayContent}
                     </div>
@@ -72,6 +74,8 @@ export function PhishingEmailCard({
                         className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 border-t border-border text-[12px] text-text-muted hover:text-text-secondary hover:bg-surface2 transition-colors cursor-pointer"
                         onClick={() => setExpanded(!expanded)}
                         data-testid="email-expand-toggle"
+                        aria-expanded={expanded}
+                        aria-controls={contentId}
                     >
                         <svg
                             viewBox="0 0 16 16"
