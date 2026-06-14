@@ -1,0 +1,3 @@
+## 2026-06-14 - Accessible Expand/Collapse Toggles
+**Learning:** For expand/collapse toggle buttons in React components to be fully accessible to screen readers, they must include `aria-expanded` reflecting the current state and `aria-controls` pointing to the ID of the collapsible content container. `useId()` is the ideal way to generate stable, unique IDs to prevent collisions when multiple instances of the component render on the same page.
+**Action:** Always use `useId()` along with `aria-expanded` and `aria-controls` attributes when creating or modifying custom expand/collapse toggle functionality.
