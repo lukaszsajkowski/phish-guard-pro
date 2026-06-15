@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { ThemeProvider } from "../theme-provider";
+import { TooltipProvider } from "../ui/tooltip";
 import { ThemeToggle } from "../app/ThemeToggle";
 
 // Mock localStorage
@@ -25,7 +26,9 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock });
 function renderWithTheme() {
   return render(
     <ThemeProvider>
-      <ThemeToggle />
+      <TooltipProvider>
+        <ThemeToggle />
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
