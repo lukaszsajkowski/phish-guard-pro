@@ -1,0 +1,3 @@
+## 2026-06-16 - Adding Tooltips to Icon-Only Buttons
+**Learning:** Icon-only buttons relying purely on native HTML 'aria-label' or 'title' attributes lack accessible visual hints on hover. Wrapping icon-only buttons with Radix UI 'Tooltip' components creates a smoother and more accessible user experience, particularly for screen-reader usability combined with visual feedback. Also, when testing components wrapped in 'Tooltip', it is crucial to remember to wrap them with 'TooltipProvider' in the test environment to avoid rendering errors.
+**Action:** When creating or refactoring icon-only buttons, wrap them in 'Tooltip' components from '@components/ui/tooltip' to provide visible hover text, and remember to include 'TooltipProvider' in the component's unit tests.
