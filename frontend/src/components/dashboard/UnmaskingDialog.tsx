@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, FileText } from "lucide-react";
+import { AlertTriangle, ArrowRight, FileText, Loader2 } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -92,7 +92,11 @@ export function UnmaskingDialog({
                         className="w-full sm:w-auto"
                         data-testid="unmasking-summarize-button"
                     >
-                        <FileText className="w-4 h-4 mr-2" />
+                        {isLoading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <FileText className="w-4 h-4 mr-2" />
+                        )}
                         {isLoading ? "Loading..." : "Summarize"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
