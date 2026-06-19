@@ -296,6 +296,7 @@ export function ChatMessage({
                             <button
                                 onClick={handleEdit}
                                 className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label="Edit message"
                                 data-testid="edit-response-button"
                             >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -307,6 +308,7 @@ export function ChatMessage({
                         <button
                             onClick={handleCopy}
                             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Copy message to clipboard"
                             data-testid="copy-response-button"
                         >
                             {copied ? (
