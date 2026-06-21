@@ -1,0 +1,3 @@
+## 2024-05-18 - Tooltip Accessibility and Global Providers
+**Learning:** Replacing native HTML `title` attributes on icon-only buttons with Radix UI `Tooltip` significantly improves accessibility and visual consistency across the app. Crucially, when mapping over arrays or implementing tooltips in repeated components, adding a generic `TooltipProvider` everywhere creates portal delay problems or test failures (`Tooltip must be used within TooltipProvider`).
+**Action:** Always wrap interactive icon-only buttons in accessible custom Tooltips. Add `<TooltipProvider>` once at the root level (e.g. `layout.tsx`) to enable seamless, globally synchronized tooltip delays across the entire app interface without throwing rendering errors in mapped elements or portals.
