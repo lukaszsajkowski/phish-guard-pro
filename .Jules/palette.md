@@ -1,0 +1,3 @@
+## 2024-05-24 - Missing ARIA Attributes on Expand/Collapse Toggles
+**Learning:** We frequently use custom toggle buttons (like "Show full email" or "Show raw data") to expand/collapse content sections. Often, these buttons lack `aria-expanded` and `aria-controls` attributes, meaning screen reader users receive no feedback when content is revealed or hidden, nor do they know which content block is being controlled. This is a recurring pattern in custom list/card components.
+**Action:** Always pair expandable content wrappers with a unique `id` (using React `useId()` when appropriate) and strictly add `aria-expanded={isExpanded}` and `aria-controls={contentId}` to the toggle `<button>`. Do not rely solely on visual cues (like Chevron changes) for state changes.

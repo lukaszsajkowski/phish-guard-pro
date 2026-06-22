@@ -252,31 +252,41 @@ describe("IntelDashboard – Enrichment UI", () => {
     });
 
     describe("Success – expandable raw data", () => {
-        it("shows expand toggle when payload is present", async () => {
+        it("shows expand toggle when payload is present and has correct aria attributes", async () => {
             mockFetchSuccess(createSuccessResponse());
 
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
-            expect(screen.getByTestId("expand-raw-btc")).toBeInTheDocument();
+            const expandButton = screen.getByTestId("expand-raw-btc");
+            expect(expandButton).toBeInTheDocument();
             expect(screen.getByText("Show raw data")).toBeInTheDocument();
+
+            // Check initial aria attributes
+            expect(expandButton).toHaveAttribute("aria-expanded", "false");
+            expect(expandButton).toHaveAttribute("aria-controls", "raw-data-content-btc::1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa");
         });
 
-        it("expands and shows raw JSON data on click", async () => {
+        it("expands and shows raw JSON data on click and updates aria-expanded", async () => {
             const response = createSuccessResponse();
             mockFetchSuccess(response);
 
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
+            const expandButton = screen.getByTestId("expand-raw-btc");
+
             // Click expand
-            await userEvent.click(screen.getByTestId("expand-raw-btc"));
+            await userEvent.click(expandButton);
 
             const rawData = screen.getByTestId("raw-data-btc");
             expect(rawData).toBeInTheDocument();
             expect(rawData.textContent).toContain("malicious");
             expect(rawData.textContent).toContain("report_count");
             expect(screen.getByText("Hide raw data")).toBeInTheDocument();
+
+            // Check updated aria-expanded attribute
+            expect(expandButton).toHaveAttribute("aria-expanded", "true");
         });
 
         it("collapses raw data on second click", async () => {
