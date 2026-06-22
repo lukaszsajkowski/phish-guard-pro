@@ -68,18 +68,27 @@ describe('PhishingEmailCard Component', () => {
             expect(screen.getByText('Show full email')).toBeInTheDocument();
         });
 
-        it('expands email on toggle click', () => {
+        it('expands email on toggle click and updates aria attributes', () => {
             render(<PhishingEmailCard emailContent={longEmail} />);
 
             const toggle = screen.getByTestId('email-expand-toggle');
+            const emailBody = screen.getByTestId('email-body');
+
+            // Check initial state
+            expect(toggle).toHaveAttribute('aria-expanded', 'false');
+            expect(toggle).toHaveAttribute('aria-controls', emailBody.id);
+
             fireEvent.click(toggle);
 
             expect(screen.getByText('Show less')).toBeInTheDocument();
             // Full content should now be visible
             expect(screen.getByTestId('email-body')).toHaveTextContent('God bless you,');
+
+            // Check expanded state
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
         });
 
-        it('collapses email on second toggle click', () => {
+        it('collapses email on second toggle click and updates aria attributes', () => {
             render(<PhishingEmailCard emailContent={longEmail} />);
 
             const toggle = screen.getByTestId('email-expand-toggle');
@@ -87,6 +96,7 @@ describe('PhishingEmailCard Component', () => {
             fireEvent.click(toggle); // collapse
 
             expect(screen.getByText('Show full email')).toBeInTheDocument();
+            expect(toggle).toHaveAttribute('aria-expanded', 'false');
         });
     });
 });
