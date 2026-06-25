@@ -1,6 +1,8 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { ThemeProvider } from "../theme-provider";
+import { TooltipProvider } from "../ui/tooltip";
 import { ThemeToggle } from "../app/ThemeToggle";
 
 // Mock localStorage
@@ -25,7 +27,9 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock });
 function renderWithTheme() {
   return render(
     <ThemeProvider>
-      <ThemeToggle />
+      <TooltipProvider>
+        <ThemeToggle />
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -86,5 +90,21 @@ describe("ThemeToggle", () => {
     const button = screen.getByTestId("theme-toggle");
     fireEvent.click(button); // dark -> light
     expect(document.documentElement.classList.contains("dark")).toBe(false);
+  });
+
+  it("displays tooltip with correct text on hover", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+    const button = screen.getByTestId("theme-toggle");
+
+    // Default is light mode, so tooltip should say "Switch to dark mode"
+    await user.hover(button);
+
+    // Wait for the tooltip to appear (Radix UI tooltips have a delay)
+    await waitFor(() => {
+      const tooltip = screen.getByRole("tooltip");
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveTextContent("Switch to dark mode");
+    });
   });
 });
