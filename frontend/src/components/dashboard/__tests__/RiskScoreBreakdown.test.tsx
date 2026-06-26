@@ -293,20 +293,17 @@ describe("RiskScoreBreakdown Component", () => {
     });
 
     describe("Accessibility", () => {
-        it("toggle button has aria-controls", () => {
+        it("toggle button has aria-controls and matches breakdown content id", () => {
             const breakdown = createMockBreakdown(6.5, "medium");
             render(<RiskScoreBreakdown breakdown={breakdown} />);
 
             const toggle = screen.getByTestId("breakdown-toggle");
-            expect(toggle).toHaveAttribute("aria-controls", "breakdown-content");
-        });
-
-        it("breakdown content has matching id", () => {
-            const breakdown = createMockBreakdown(6.5, "medium");
-            render(<RiskScoreBreakdown breakdown={breakdown} />);
-
             const content = screen.getByTestId("breakdown-content");
-            expect(content).toHaveAttribute("id", "breakdown-content");
+
+            const ariaControls = toggle.getAttribute("aria-controls");
+            expect(ariaControls).not.toBeNull();
+            expect(ariaControls).not.toBe("breakdown-content"); // Verify it's dynamically generated
+            expect(content).toHaveAttribute("id", ariaControls);
         });
 
         it("is keyboard accessible", async () => {
