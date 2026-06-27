@@ -1,0 +1,3 @@
+## 2024-06-27 - Dynamic IDs for Accessible Expandables
+**Learning:** Hardcoded strings or missing `id` and `aria-controls` bindings for expandable sections (like "Details" and "Timeline") break screen reader navigation. React's `useId()` hook should be utilized to generate unique string IDs dynamically to bind toggle buttons with their target content areas accurately, preventing ID collision if multiple instances render.
+**Action:** Always import `useId` from "react" and assign generated IDs to both the container `id` attribute and the toggler's `aria-controls` attribute in complex widget components. Ensure tests adapt to these dynamic IDs instead of asserting hardcoded values.

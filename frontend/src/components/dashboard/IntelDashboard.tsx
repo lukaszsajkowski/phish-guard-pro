@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -231,6 +231,9 @@ export function IntelDashboard({
     autoEnrichAll = false,
     onEnrichmentComplete,
 }: IntelDashboardProps) {
+    const breakdownId = useId();
+    const timelineId = useId();
+
     const highValueCount = iocs.filter((ioc) => ioc.is_high_value).length;
     const medValueCount = iocs.filter((ioc) => !ioc.is_high_value && (ioc.type === "btc" || ioc.type === "btc_wallet" || ioc.type === "url")).length;
     const lowValueCount = iocs.length - highValueCount - medValueCount;
@@ -609,6 +612,8 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
+                                    aria-expanded={showBreakdown}
+                                    aria-controls={breakdownId}
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
                                 >
                                     Details
@@ -619,7 +624,7 @@ export function IntelDashboard({
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id={breakdownId} className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
@@ -661,7 +666,7 @@ export function IntelDashboard({
                 ) : (
                     <>
                         <div className="max-h-48 overflow-y-auto">
-                            <div className="flex flex-col">
+                            <div id={timelineId} className="flex flex-col">
                                 {(showAllTimeline ? timeline : timeline.slice(0, 5)).map((event, index, arr) => {
                                     const eventTime = new Date(event.timestamp);
                                     const timeAgo = formatDistanceToNow(eventTime, { addSuffix: true });
@@ -719,6 +724,8 @@ export function IntelDashboard({
                         {!showAllTimeline && timeline.length > 5 && (
                             <button
                                 onClick={() => setShowAllTimeline(true)}
+                                aria-expanded={showAllTimeline}
+                                aria-controls={timelineId}
                                 className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
                             >
                                 View all ({timeline.length} events)
@@ -727,6 +734,8 @@ export function IntelDashboard({
                         {showAllTimeline && timeline.length > 5 && (
                             <button
                                 onClick={() => setShowAllTimeline(false)}
+                                aria-expanded={showAllTimeline}
+                                aria-controls={timelineId}
                                 className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
                             >
                                 Show less
