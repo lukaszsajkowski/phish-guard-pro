@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -241,6 +241,10 @@ export function IntelDashboard({
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [showAllTimeline, setShowAllTimeline] = useState(false);
     const [showBreakdown, setShowBreakdown] = useState(false);
+
+    // Accessibility IDs
+    const riskBreakdownId = useId();
+    const rawDataIdPrefix = useId();
 
     const copyToClipboard = async (value: string, copyKey: string) => {
         try {
@@ -525,6 +529,8 @@ export function IntelDashboard({
                                                                     <button
                                                                         data-testid={`expand-raw-${ioc.type}`}
                                                                         aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`${rawDataIdPrefix}-${key}`}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
                                                                     >
@@ -536,7 +542,7 @@ export function IntelDashboard({
                                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                                     </button>
                                                                     {isExpanded && (
-                                                                        <>
+                                                                        <div id={`${rawDataIdPrefix}-${key}`}>
                                                                             <div className="mt-1 text-[10px] text-muted-foreground/50">
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
@@ -546,7 +552,7 @@ export function IntelDashboard({
                                                                             >
                                                                                 {JSON.stringify(enrichState.data.payload, null, 2)}
                                                                             </pre>
-                                                                        </>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -609,17 +615,25 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
-                                    className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
+                                    aria-expanded={showBreakdown}
+                                    aria-controls={riskBreakdownId}
+                                    className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5 group"
                                 >
                                     Details
-                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[11px] h-[11px]">
+                                    <svg
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        className={`w-[11px] h-[11px] transition-transform duration-200 ${showBreakdown ? 'rotate-90' : ''}`}
+                                    >
                                         <path d="M6 4l4 4-4 4" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id={riskBreakdownId} className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
