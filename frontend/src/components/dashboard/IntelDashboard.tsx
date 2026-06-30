@@ -525,6 +525,8 @@ export function IntelDashboard({
                                                                     <button
                                                                         data-testid={`expand-raw-${ioc.type}`}
                                                                         aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`raw-data-content-${key}`}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
                                                                     >
@@ -536,7 +538,7 @@ export function IntelDashboard({
                                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                                     </button>
                                                                     {isExpanded && (
-                                                                        <>
+                                                                        <div id={`raw-data-content-${key}`}>
                                                                             <div className="mt-1 text-[10px] text-muted-foreground/50">
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
@@ -546,7 +548,7 @@ export function IntelDashboard({
                                                                             >
                                                                                 {JSON.stringify(enrichState.data.payload, null, 2)}
                                                                             </pre>
-                                                                        </>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -609,6 +611,8 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
+                                    aria-expanded={showBreakdown}
+                                    aria-controls="risk-score-breakdown-details"
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
                                 >
                                     Details
@@ -619,7 +623,7 @@ export function IntelDashboard({
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id="risk-score-breakdown-details" className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
@@ -661,7 +665,7 @@ export function IntelDashboard({
                 ) : (
                     <>
                         <div className="max-h-48 overflow-y-auto">
-                            <div className="flex flex-col">
+                            <div id="timeline-events-container" className="flex flex-col">
                                 {(showAllTimeline ? timeline : timeline.slice(0, 5)).map((event, index, arr) => {
                                     const eventTime = new Date(event.timestamp);
                                     const timeAgo = formatDistanceToNow(eventTime, { addSuffix: true });
@@ -719,6 +723,8 @@ export function IntelDashboard({
                         {!showAllTimeline && timeline.length > 5 && (
                             <button
                                 onClick={() => setShowAllTimeline(true)}
+                                aria-expanded={showAllTimeline}
+                                aria-controls="timeline-events-container"
                                 className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
                             >
                                 View all ({timeline.length} events)
@@ -727,6 +733,8 @@ export function IntelDashboard({
                         {showAllTimeline && timeline.length > 5 && (
                             <button
                                 onClick={() => setShowAllTimeline(false)}
+                                aria-expanded={showAllTimeline}
+                                aria-controls="timeline-events-container"
                                 className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
                             >
                                 Show less
