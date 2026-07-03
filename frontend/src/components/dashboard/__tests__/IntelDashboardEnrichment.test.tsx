@@ -269,14 +269,16 @@ describe("IntelDashboard – Enrichment UI", () => {
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
+            const expandButton = screen.getByTestId("expand-raw-btc");
             // Click expand
-            await userEvent.click(screen.getByTestId("expand-raw-btc"));
+            await userEvent.click(expandButton);
 
             const rawData = screen.getByTestId("raw-data-btc");
             expect(rawData).toBeInTheDocument();
             expect(rawData.textContent).toContain("malicious");
             expect(rawData.textContent).toContain("report_count");
             expect(screen.getByText("Hide raw data")).toBeInTheDocument();
+            expect(expandButton).toHaveAttribute("aria-expanded", "true");
         });
 
         it("collapses raw data on second click", async () => {
@@ -285,15 +287,19 @@ describe("IntelDashboard – Enrichment UI", () => {
             renderDashboard();
             await userEvent.click(screen.getByTestId("enrich-button-btc"));
 
+            const expandButton = screen.getByTestId("expand-raw-btc");
+
             // Expand
-            await userEvent.click(screen.getByTestId("expand-raw-btc"));
+            await userEvent.click(expandButton);
             expect(screen.getByTestId("raw-data-btc")).toBeInTheDocument();
+            expect(expandButton).toHaveAttribute("aria-expanded", "true");
 
             // Collapse
-            await userEvent.click(screen.getByTestId("expand-raw-btc"));
+            await userEvent.click(expandButton);
             expect(
                 screen.queryByTestId("raw-data-btc"),
             ).not.toBeInTheDocument();
+            expect(expandButton).toHaveAttribute("aria-expanded", "false");
         });
     });
 
