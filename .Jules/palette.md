@@ -1,0 +1,3 @@
+## 2024-07-09 - Tooltip Provider Wrapping
+**Learning:** When adding Tooltip components to existing icon-only buttons (like `ThemeToggle`), `TooltipProvider` must be added globally to the root layout (`app/layout.tsx`) so that portaled tooltips work consistently without duplicating the provider across the app. Moreover, `TooltipProvider` needs to be provided in tests (e.g. wrapper functions like `renderWithTheme`) to prevent context rendering errors from Radix UI.
+**Action:** When adding a tooltip to a standalone component, always verify that a `TooltipProvider` wraps both the application root and the test wrapper.
