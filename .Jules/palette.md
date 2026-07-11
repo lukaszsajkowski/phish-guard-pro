@@ -1,0 +1,3 @@
+## 2024-07-11 - Adding global TooltipProvider in RootLayout
+**Learning:** In Radix UI, wrapping every individual `Tooltip` with its own `TooltipProvider` inside a loop or mapped array breaks the global delay feature. When mapping over items to add `Tooltip` components, always ensure a single `TooltipProvider` wraps the entire list or component (or ideally, the entire application layout).
+**Action:** Always add `<TooltipProvider>` to the root layout (`layout.tsx`) when first adding tooltips to the application to support global delay functionality, and avoid wrapping single tooltips in `TooltipProvider` unless absolutely necessary for isolated functionality.
