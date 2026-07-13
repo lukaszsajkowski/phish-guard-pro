@@ -80,15 +80,30 @@ export function SessionSummary({
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard icon={MessageSquare} label="Exchanges" testId="exchange-count">
+                <StatCard
+                    icon={MessageSquare}
+                    label="Exchanges"
+                    testId="exchange-count"
+                    tooltip="Total number of back-and-forth messages with the scammer"
+                >
                     {summary.exchange_count}
                 </StatCard>
 
-                <StatCard icon={Clock} label="Duration" testId="duration">
+                <StatCard
+                    icon={Clock}
+                    label="Duration"
+                    testId="duration"
+                    tooltip="Total time from first email to session end"
+                >
                     {summary.formatted_duration}
                 </StatCard>
 
-                <StatCard icon={TrendingUp} label="IOCs Found" testId="ioc-count">
+                <StatCard
+                    icon={TrendingUp}
+                    label="IOCs Found"
+                    testId="ioc-count"
+                    tooltip="Indicators of Compromise extracted (links, emails, wallets, etc.)"
+                >
                     {summary.iocs.length}
                     {summary.high_value_ioc_count > 0 && (
                         <span className="text-sm font-normal text-red-500 ml-1">
@@ -102,6 +117,7 @@ export function SessionSummary({
                     label="Risk Score"
                     testId="risk-score"
                     valueClassName={getRiskScoreColor(summary.risk_score)}
+                    tooltip="Overall danger level based on attack type and extracted IOCs"
                 >
                     {summary.risk_score}/10
                 </StatCard>
