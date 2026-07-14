@@ -1,0 +1,3 @@
+## 2024-07-14 - Accessible Expand/Collapse Toggles in React
+**Learning:** When building expand/collapse functionality (like showing a details panel), toggle buttons need `aria-expanded` and `aria-controls` to communicate state to screen readers. In React, using `useId()` is the best way to generate a stable, unique ID for the `aria-controls` attribute and the corresponding panel's `id` to prevent collisions when a component might be rendered multiple times on a page.
+**Action:** Always pair `aria-expanded` with `aria-controls` on custom disclosure buttons, and leverage React's `useId()` for the ID linkage.
