@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -241,6 +241,7 @@ export function IntelDashboard({
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [showAllTimeline, setShowAllTimeline] = useState(false);
     const [showBreakdown, setShowBreakdown] = useState(false);
+    const breakdownId = useId();
 
     const copyToClipboard = async (value: string, copyKey: string) => {
         try {
@@ -609,6 +610,8 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
+                                    aria-expanded={showBreakdown}
+                                    aria-controls={breakdownId}
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
                                 >
                                     Details
@@ -619,7 +622,7 @@ export function IntelDashboard({
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id={breakdownId} className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
