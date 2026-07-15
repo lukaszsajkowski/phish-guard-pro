@@ -88,5 +88,23 @@ describe('PhishingEmailCard Component', () => {
 
             expect(screen.getByText('Show full email')).toBeInTheDocument();
         });
+
+        it('has correct accessibility attributes on toggle and content', () => {
+            render(<PhishingEmailCard emailContent={longEmail} />);
+
+            const toggle = screen.getByTestId('email-expand-toggle');
+            const content = screen.getByTestId('email-body');
+
+            // Check initial state
+            expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+            const controlsId = toggle.getAttribute('aria-controls');
+            expect(controlsId).toBeTruthy();
+            expect(content).toHaveAttribute('id', controlsId);
+
+            // Check state after click
+            fireEvent.click(toggle);
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        });
     });
 });
