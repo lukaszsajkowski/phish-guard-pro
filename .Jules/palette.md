@@ -1,0 +1,3 @@
+## 2025-02-20 - Explicitly Linking Expand/Collapse Toggles
+**Learning:** For components that toggle the visibility of content (like `PhishingEmailCard`'s "Show full email" button), it is critical for screen reader accessibility to explicitly link the toggle button to the content it controls. Simply showing/hiding content visually is not enough.
+**Action:** Always add `aria-expanded` (reflecting the current state) and `aria-controls` to the toggle button. Crucially, use React's `useId()` hook to generate a unique ID for the content container and pass that to `aria-controls`. This ensures the linkage remains valid even if multiple instances of the component are rendered on the same page.
