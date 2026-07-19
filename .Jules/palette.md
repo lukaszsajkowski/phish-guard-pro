@@ -1,0 +1,3 @@
+## 2024-05-15 - Global TooltipProviders for Icon Buttons
+**Learning:** Wrapping every individual `Tooltip` with its own `TooltipProvider` inside a loop or mapped array breaks the global delay feature in Radix UI. For components like icon-only buttons (`ThemeToggle`, etc.), using a global `TooltipProvider` at the root layout ensures consistent delay and accessibility.
+**Action:** When adding `Tooltip` components to icon-only buttons or mapping over items, always ensure a single `TooltipProvider` wraps the entire list or component structure (e.g., in `layout.tsx` or a parent wrapper) rather than instantiating multiple providers.
