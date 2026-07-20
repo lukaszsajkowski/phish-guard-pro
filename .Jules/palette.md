@@ -1,0 +1,3 @@
+## 2025-07-20 - Adding ARIA attributes to expand/collapse toggles instead of relying on visual chevron cues
+**Learning:** We need to use `aria-expanded` and `aria-controls` for expand/collapse content instead of relying solely on a visual cue (like a Chevron arrow). Using React's `useId` provides unique IDs so the toggle accurately tracks state changes dynamically. The `id` attribute on the container ensures that the screen reader correctly resolves the `aria-controls` linkage.
+**Action:** In future frontend tasks where there are toggle sections or menus, make sure they have `aria-expanded` and `aria-controls` with dynamically generated `id`s using `useId`.
