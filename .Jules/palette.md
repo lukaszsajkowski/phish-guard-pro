@@ -1,0 +1,4 @@
+
+## 2024-07-21 - Accessible dynamic IDs with useId()
+**Learning:** When using ARIA attributes like `aria-controls` to link a toggle button with its content area (such as an accordion or breakdown panel), hardcoded string IDs (like "breakdown-content") will cause accessibility bugs if multiple instances of the component are rendered on the same page, as screen readers rely on unique DOM IDs. The tests in Vitest also previously asserted specifically on the string "breakdown-content".
+**Action:** Always use React's `useId()` hook to generate unique IDs for linking elements with ARIA attributes. Furthermore, when writing or updating UI tests with React Testing Library, test for dynamic ID matching between targets and toggles (e.g. `expect(controlsId).toEqual(contentId)`) rather than asserting on hardcoded string values.
