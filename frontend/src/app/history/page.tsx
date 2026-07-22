@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Filter, Search, X } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
 import { HistoryListSkeleton } from "@/components/app/LoadingSkeletons";
 import { EmptyState } from "@/components/history/EmptyState";
@@ -196,16 +197,22 @@ export default function HistoryPage() {
                                     Search
                                 </button>
                                 {hasActiveFilters && (
-                                    <button
-                                        type="button"
-                                        onClick={clearFilters}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                        aria-label="Clear filters"
-                                        title="Clear filters"
-                                        data-testid="history-clear-filters"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                type="button"
+                                                onClick={clearFilters}
+                                                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                aria-label="Clear filters"
+                                                data-testid="history-clear-filters"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Clear filters</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
                             </div>
                         </form>
