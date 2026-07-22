@@ -1,0 +1,3 @@
+## 2024-07-22 - Radix UI Tooltip Accessibility Pattern
+**Learning:** Native `title` attributes on icon-only buttons provide inconsistent delay and styling across browsers, causing poor UX. However, when migrating to Radix UI's `Tooltip`, explicitly wrapping the button in `<TooltipTrigger asChild>` is crucial. Furthermore, the `TooltipProvider` should be placed at the root layout (e.g., `layout.tsx`) to enable a consistent global delay.
+**Action:** When adding accessible tooltips to icon-only interactive elements in this app, always use Radix UI Tooltips instead of native `title`. Ensure `<TooltipProvider>` wraps the application at the root layout, and use `asChild` on `<TooltipTrigger>` to avoid invalid HTML nesting errors.
