@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { ThemeProvider } from "../theme-provider";
 import { ThemeToggle } from "../app/ThemeToggle";
+import { TooltipProvider } from "../ui/tooltip";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -25,7 +27,9 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock });
 function renderWithTheme() {
   return render(
     <ThemeProvider>
-      <ThemeToggle />
+      <TooltipProvider>
+        <ThemeToggle />
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
@@ -86,5 +90,17 @@ describe("ThemeToggle", () => {
     const button = screen.getByTestId("theme-toggle");
     fireEvent.click(button); // dark -> light
     expect(document.documentElement.classList.contains("dark")).toBe(false);
+  });
+
+  it("shows tooltip content on hover", async () => {
+    const user = userEvent.setup();
+    renderWithTheme();
+    const button = screen.getByTestId("theme-toggle");
+
+    await user.hover(button);
+
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip", { name: "Switch to dark mode" })).toBeInTheDocument();
+    });
   });
 });
