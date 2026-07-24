@@ -1,0 +1,3 @@
+## 2024-05-18 - Tooltip Provider Wrapping
+**Learning:** When wrapping an existing icon-only interactive element with Radix UI Tooltip component to improve accessibility and UX on hover, it must be ensured that `TooltipProvider` wraps the parent tree (e.g. at the RootLayout level) so that global delays work properly. Additionally, component tests for elements using tooltips must be updated to wrap the render tree with `TooltipProvider` to avoid Radix UI rendering errors.
+**Action:** Next time when introducing tooltips or similar context-dependent portaled components, check the layout files and testing wrappers to ensure providers are added there first.
