@@ -1,0 +1,3 @@
+## 2024-07-28 - Tooltip global delays require root-level TooltipProvider
+**Learning:** In Radix UI, for global hover delays to work correctly across the application and for tooltips to render properly in test environments without throwing errors, `<TooltipProvider>` must wrap the entire application or component tree (e.g. in `layout.tsx` or the test render wrapper). Wrapping every individual `<Tooltip>` with its own provider breaks the global delay feature.
+**Action:** When adding Radix UI `<Tooltip>` components, always ensure a single `<TooltipProvider>` is placed at the root of the app and in any test file render functions.
