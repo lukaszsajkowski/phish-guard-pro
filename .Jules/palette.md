@@ -1,0 +1,3 @@
+## 2024-05-18 - Added Expand/Collapse ARIA Attributes to PhishingEmailCard
+**Learning:** Expanding/collapsing content toggles on custom buttons must manually implement `aria-expanded` and `aria-controls` connected to the controlled container's unique ID (`useId()`) to provide proper screen reader context about the state change and structural relationship. Without them, it's just a generic button to screen readers.
+**Action:** When creating new components that act as accordions or collapsible panels without leveraging a library like Radix UI, explicitly enforce adding `aria-expanded` and `aria-controls` attributes linking the trigger to the content block with dynamically generated IDs.

@@ -88,5 +88,21 @@ describe('PhishingEmailCard Component', () => {
 
             expect(screen.getByText('Show full email')).toBeInTheDocument();
         });
+
+        it('has proper aria attributes for accessibility', () => {
+            render(<PhishingEmailCard emailContent={longEmail} />);
+
+            const toggle = screen.getByTestId('email-expand-toggle');
+            const emailBody = screen.getByTestId('email-body');
+
+            // Check initial state
+            expect(toggle).toHaveAttribute('aria-expanded', 'false');
+            expect(toggle).toHaveAttribute('aria-controls', emailBody.id);
+            expect(emailBody).toHaveAttribute('id');
+
+            // Check state after expansion
+            fireEvent.click(toggle);
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        });
     });
 });
