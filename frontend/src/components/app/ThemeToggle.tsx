@@ -3,12 +3,15 @@
 import { Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <Button
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
@@ -34,7 +37,12 @@ export function ThemeToggle() {
             : "scale-0 opacity-0 -rotate-90"
         } absolute`}
       />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      </TooltipContent>
+    </Tooltip>
   );
 }
