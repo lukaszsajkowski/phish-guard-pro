@@ -1,0 +1,3 @@
+## 2024-08-05 - Dynamic ARIA IDs with React useId
+**Learning:** Hardcoding IDs for ARIA attributes (like `aria-controls` or `aria-describedby`) in React components can lead to accessibility bugs when the component is rendered multiple times on the same page. Screen readers rely on unique IDs to establish relationships between elements. Using React's `useId()` hook generates a unique, stable ID for each component instance, preventing ID collisions and ensuring robust accessibility.
+**Action:** When adding accessible IDs for ARIA attributes in reusable React components (e.g., expand/collapse toggles, tooltips, dialogs), always use `useId()` to generate dynamic IDs instead of hardcoded strings. Update related tests to check for dynamic ID matching.
