@@ -1,0 +1,3 @@
+## 2024-08-14 - Improve Icon-only Button Tooltips Accessibility
+**Learning:** Native `title` attributes on icon-only buttons provide inconsistent accessibility and poor UX compared to dedicated tooltips. For Radix UI `Tooltip` components to work properly across the application with coordinated hover delays, the root layout (e.g., `app/layout.tsx`) must be explicitly wrapped in a single `<TooltipProvider>`.
+**Action:** When adding or updating icon-only buttons, always wrap them using the `@/components/ui/tooltip` components (`Tooltip`, `TooltipTrigger asChild`, `TooltipContent`) instead of `title="..."` attributes, and ensure `<TooltipProvider>` exists at the root layout.
