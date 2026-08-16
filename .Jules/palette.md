@@ -1,0 +1,3 @@
+## 2024-08-16 - Radix UI Tooltips for Icon-Only Buttons
+**Learning:** Using native HTML `title` attributes for icon-only buttons limits accessibility and UI consistency across platforms. Radix UI Tooltips provide a more accessible, consistent alternative, but requiring a `TooltipProvider` globally is essential to enable global delays and avoid rendering errors.
+**Action:** When adding icon-only buttons, wrap them in `Tooltip` components rather than using `title` attributes. Ensure `<TooltipProvider delayDuration={300}>` is configured in `layout.tsx`, and wrap components in `<TooltipProvider delayDuration={0}>` within test environments to prevent hover delay timeouts.
