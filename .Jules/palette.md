@@ -1,0 +1,3 @@
+## 2024-08-20 - Accessible Icon-Only Buttons with Dynamic Text
+**Learning:** When using Tooltips for icon-only buttons whose state changes (e.g., a Copy button that turns into a Check mark), a static `aria-label` prevents screen readers from announcing the change. Additionally, wrapping the `IntelDashboard` in Radix UI `Tooltip` components requires `TooltipProvider` globally and in tests.
+**Action:** Replace static `aria-label` with `aria-live="polite"` on the `<button>` and include an `<span className="sr-only">` whose text updates dynamically (e.g., from "Copy" to "Copied"). Always wrap component tests using tooltips in `<TooltipProvider delayDuration={0}>` to prevent timeout failures.
