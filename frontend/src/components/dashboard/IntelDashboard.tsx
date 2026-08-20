@@ -16,6 +16,7 @@ import {
     Check,
 } from "lucide-react";
 import { ExtractedIOC, TimelineEvent, RiskScoreBreakdown as RiskScoreBreakdownType, EnrichmentState, ReputationLabel } from "@/types/schemas";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
     IOC_ICONS,
     IOC_LABELS,
@@ -425,18 +426,25 @@ export function IntelDashboard({
                                                                 {ioc.type === "url" ? defangUrl(ioc.value) : ioc.value}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
-                                                            className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
-                                                            onClick={() => copyToClipboard(ioc.value, key)}
-                                                        >
-                                                            {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
-                                                            ) : (
-                                                                <Copy className="h-3 w-3" />
-                                                            )}
-                                                        </button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    aria-live="polite"
+                                                                    className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
+                                                                    onClick={() => copyToClipboard(ioc.value, key)}
+                                                                >
+                                                                    {copiedKey === key ? (
+                                                                        <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
+                                                                    ) : (
+                                                                        <Copy className="h-3 w-3" />
+                                                                    )}
+                                                                    <span className="sr-only">
+                                                                        {copiedKey === key ? "Copied" : "Copy IOC value"}
+                                                                    </span>
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Copy to clipboard</TooltipContent>
+                                                        </Tooltip>
 
                                                         {/* Enrich button — only shown when getAccessToken is provided and
                                                             not in autoEnrichAll mode where unsupported types silently skip */}
@@ -507,15 +515,19 @@ export function IntelDashboard({
                                                                     )}
 
                                                                     {/* Refresh button */}
-                                                                    <button
-                                                                        data-testid={`refresh-button-${ioc.type}`}
-                                                                        title="Force refresh (bypass cache)"
-                                                                        aria-label="Refresh enrichment"
-                                                                        className="p-[3px] text-muted-foreground hover:text-foreground transition-colors"
-                                                                        onClick={() => enrich(ioc.type, ioc.value, true)}
-                                                                    >
-                                                                        <RefreshCw className="h-[11px] w-[11px]" />
-                                                                    </button>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <button
+                                                                                data-testid={`refresh-button-${ioc.type}`}
+                                                                                aria-label="Refresh enrichment"
+                                                                                className="p-[3px] text-muted-foreground hover:text-foreground transition-colors"
+                                                                                onClick={() => enrich(ioc.type, ioc.value, true)}
+                                                                            >
+                                                                                <RefreshCw className="h-3 w-3" />
+                                                                            </button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>Force refresh (bypass cache)</TooltipContent>
+                                                                    </Tooltip>
                                                                 </div>
                                                             </div>
 
