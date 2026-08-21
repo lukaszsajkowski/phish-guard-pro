@@ -1,0 +1,6 @@
+## 2024-05-18 - Dynamic Accessible IDs for Expand/Collapse Components
+**Learning:** Expanding/collapsing elements that rely on `aria-expanded` and `aria-controls` require a robust matching mechanism between the toggle button and the content container, otherwise screen readers cannot announce the state change properly. Hardcoding an ID like `aria-controls="breakdown-content"` causes accessibility violations if the component is used multiple times on a page, as IDs must be unique.
+**Action:** Use React `useId()` to generate unique `aria-controls` IDs and map them to the corresponding expandable container `id` within dynamic frontend components.
+## 2024-05-18 - Dynamic ARIA Live Regions for Icon-only Interactive Buttons
+**Learning:** For dynamic icon-only buttons (like copy buttons that switch to checkmarks upon click), adding a static `aria-label` attribute blocks screen readers from announcing the dynamically changing state.
+**Action:** Remove static `aria-label` attributes on dynamic icon-only buttons. Instead, use an `aria-live="polite"` attribute on the button element and include a visually hidden span containing dynamically updating text (e.g. `<span className="sr-only">{copied ? "Copied!" : "Copy to clipboard"}</span>`).
