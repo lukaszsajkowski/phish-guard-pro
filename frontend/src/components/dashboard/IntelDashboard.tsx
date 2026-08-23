@@ -426,11 +426,14 @@ export function IntelDashboard({
                                                             </div>
                                                         </div>
                                                         <button
-                                                            title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
+                                                            title={copiedKey === key ? "Copied!" : "Copy to clipboard"}
+                                                            aria-live="polite"
                                                             className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
                                                             onClick={() => copyToClipboard(ioc.value, key)}
                                                         >
+                                                            <span className="sr-only">
+                                                                {copiedKey === key ? "Copied!" : "Copy to clipboard"}
+                                                            </span>
                                                             {copiedKey === key ? (
                                                                 <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
                                                             ) : (
