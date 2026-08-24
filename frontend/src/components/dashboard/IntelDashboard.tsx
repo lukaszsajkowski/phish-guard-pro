@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -241,6 +241,7 @@ export function IntelDashboard({
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [showAllTimeline, setShowAllTimeline] = useState(false);
     const [showBreakdown, setShowBreakdown] = useState(false);
+    const breakdownId = useId();
 
     const copyToClipboard = async (value: string, copyKey: string) => {
         try {
@@ -427,14 +428,20 @@ export function IntelDashboard({
                                                         </div>
                                                         <button
                                                             title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
+                                                            aria-live="polite"
                                                             className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
                                                             onClick={() => copyToClipboard(ioc.value, key)}
                                                         >
                                                             {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
+                                                                <>
+                                                                    <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
+                                                                    <span className="sr-only">Copied!</span>
+                                                                </>
                                                             ) : (
-                                                                <Copy className="h-3 w-3" />
+                                                                <>
+                                                                    <Copy className="h-3 w-3" />
+                                                                    <span className="sr-only">Copy IOC value</span>
+                                                                </>
                                                             )}
                                                         </button>
 
@@ -524,7 +531,8 @@ export function IntelDashboard({
                                                                 <div className="px-3 py-1.5 border-t border-border">
                                                                     <button
                                                                         data-testid={`expand-raw-${ioc.type}`}
-                                                                        aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`raw-data-content-${key}`}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
                                                                     >
@@ -536,7 +544,7 @@ export function IntelDashboard({
                                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                                     </button>
                                                                     {isExpanded && (
-                                                                        <>
+                                                                        <div id={`raw-data-content-${key}`}>
                                                                             <div className="mt-1 text-[10px] text-muted-foreground/50">
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
@@ -546,7 +554,7 @@ export function IntelDashboard({
                                                                             >
                                                                                 {JSON.stringify(enrichState.data.payload, null, 2)}
                                                                             </pre>
-                                                                        </>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -609,6 +617,8 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
+                                    aria-expanded={showBreakdown}
+                                    aria-controls={breakdownId}
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
                                 >
                                     Details
@@ -619,7 +629,7 @@ export function IntelDashboard({
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id={breakdownId} className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
