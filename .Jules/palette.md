@@ -1,0 +1,3 @@
+## 2024-08-28 - Explicit ARIA states for custom toggles
+**Learning:** When using custom toggle buttons for expanding/collapsing content (instead of native `<details>`), relying solely on visual cues (like an expanding chevron icon) or `aria-label` isn't enough for screen readers. They need explicit state management using `aria-expanded` and an ID reference via `aria-controls` to understand what content the button affects and its current state.
+**Action:** When implementing custom collapsibles or expand/collapse buttons, always pair them with `aria-expanded={isExpanded}` and `aria-controls="[target-id]"` for proper accessibility.
