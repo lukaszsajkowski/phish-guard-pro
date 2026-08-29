@@ -1,0 +1,3 @@
+## 2024-05-15 - Tooltips and ARIA Live for Dynamic Icon Buttons
+**Learning:** Wrapping individual tooltips with local TooltipProviders inside a list causes buggy interactions and delays. Icon-only buttons with dynamic content changes (like "Copy" -> "Copied!") need screen reader context since static `aria-label` attributes override dynamic state changes.
+**Action:** Always wrap dynamic icon-only buttons in Radix Tooltips (`Tooltip`, `TooltipTrigger asChild`, `TooltipContent`) with a global `TooltipProvider` set at the layout level. Furthermore, apply `aria-live="polite"` on the button with a visually hidden `<span className="sr-only">` for proper dynamic screen reader announcements.
