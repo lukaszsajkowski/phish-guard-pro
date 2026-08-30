@@ -307,6 +307,7 @@ export function ChatMessage({
                         <button
                             onClick={handleCopy}
                             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            aria-live="polite"
                             data-testid="copy-response-button"
                         >
                             {copied ? (
