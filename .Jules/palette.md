@@ -1,0 +1,3 @@
+## 2024-08-30 - Dynamic Icon Buttons Need aria-live regions
+**Learning:** Adding a static `aria-label` (e.g. `aria-label="Copy"`) to a button whose content changes visually (e.g. from a "Copy" icon to a "Copied!" checkmark) causes the static label to persist for screen readers. Screen reader users miss out on the state change.
+**Action:** Always use an `aria-live="polite"` attribute on the button, and either rely on dynamic visible text (if it exists) or use a visually hidden span (`<span className="sr-only">`) to announce the changing text to screen readers while removing the static `aria-label`.
