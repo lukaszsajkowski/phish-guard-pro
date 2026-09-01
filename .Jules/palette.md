@@ -1,0 +1,3 @@
+## 2024-03-24 - Accessible Expand/Collapse Sections
+**Learning:** Screen readers need context when sections can be toggled. If we just rely on visual chevron changes or "Show More/Less" text, visually impaired users may not know what exactly is expanding or if the action was successful. Using `aria-expanded` signals the current state of the toggled section, and `aria-controls` explicitly links the toggle button to the container it manages.
+**Action:** When creating any expand/collapse feature, always include `aria-expanded` (true/false) on the toggle button and link it to the content container using `aria-controls` paired with a unique `id`. In React, `useId()` should be used for reliable ID generation to avoid collisions if multiple instances are on the same page.
