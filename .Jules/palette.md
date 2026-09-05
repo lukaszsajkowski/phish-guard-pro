@@ -1,0 +1,3 @@
+## 2024-09-05 - Accessible Expand/Collapse Toggles
+**Learning:** For accessibility in the frontend, expand/collapse toggle buttons must implement `aria-expanded` and `aria-controls` attributes, and the target content container must have a matching `id`. Relying solely on visual cues (like chevron changes) leaves screen reader users without context of the state change. Using React's `useId()` ensures the ID is unique when multiple toggles are present on the same page.
+**Action:** Always pair `aria-expanded` and `aria-controls` on toggle buttons with a matching `id` on the target container when implementing or reviewing expandable components.
