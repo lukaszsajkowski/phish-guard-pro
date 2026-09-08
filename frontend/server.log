@@ -1,0 +1,79 @@
+
+> frontend@0.1.0 dev /app/frontend
+> next dev
+
+◇ injected env (0) from ../.env // tip: ◈ encrypted .env [www.dotenvx.com]
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1116ms
+○ Compiling / ...
+ GET / 200 in 7.0s (compile: 6.4s, render: 610ms)
+ GET / 200 in 119ms (compile: 7ms, render: 112ms)
+ GET / 200 in 62ms (compile: 4ms, render: 59ms)
+ GET / 200 in 58ms (compile: 3ms, render: 55ms)
+ GET / 200 in 73ms (compile: 5ms, render: 67ms)
+ GET / 200 in 71ms (compile: 4ms, render: 67ms)
+ GET / 200 in 61ms (compile: 4ms, render: 58ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 69ms (compile: 5ms, render: 64ms)
+ GET / 200 in 106ms (compile: 6ms, render: 100ms)
+ GET / 200 in 62ms (compile: 3ms, render: 58ms)
+ GET / 200 in 63ms (compile: 3ms, render: 60ms)
+ GET / 200 in 61ms (compile: 3ms, render: 58ms)
+ GET / 200 in 63ms (compile: 3ms, render: 59ms)
+ GET / 200 in 68ms (compile: 4ms, render: 64ms)
+ GET / 200 in 61ms (compile: 4ms, render: 58ms)
+ GET / 200 in 61ms (compile: 3ms, render: 58ms)
+ GET / 200 in 58ms (compile: 3ms, render: 56ms)
+ GET / 200 in 118ms (compile: 5ms, render: 113ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 65ms (compile: 4ms, render: 62ms)
+ GET / 200 in 60ms (compile: 3ms, render: 58ms)
+ GET / 200 in 52ms (compile: 3ms, render: 49ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 65ms (compile: 3ms, render: 62ms)
+ GET / 200 in 62ms (compile: 3ms, render: 59ms)
+ GET / 200 in 64ms (compile: 4ms, render: 60ms)
+ GET / 200 in 56ms (compile: 3ms, render: 53ms)
+ GET / 200 in 54ms (compile: 3ms, render: 51ms)
+ GET / 200 in 63ms (compile: 3ms, render: 60ms)
+ GET / 200 in 65ms (compile: 3ms, render: 62ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 60ms (compile: 3ms, render: 57ms)
+ GET / 200 in 57ms (compile: 3ms, render: 54ms)
+ GET / 200 in 53ms (compile: 3ms, render: 51ms)
+ GET / 200 in 52ms (compile: 3ms, render: 49ms)
+ GET / 200 in 56ms (compile: 3ms, render: 53ms)
+ GET / 200 in 54ms (compile: 4ms, render: 51ms)
+ GET / 200 in 57ms (compile: 3ms, render: 54ms)
+ GET / 200 in 56ms (compile: 3ms, render: 53ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 54ms (compile: 3ms, render: 51ms)
+ GET / 200 in 54ms (compile: 3ms, render: 51ms)
+ GET / 200 in 52ms (compile: 3ms, render: 49ms)
+ GET / 200 in 101ms (compile: 4ms, render: 97ms)
+ GET / 200 in 55ms (compile: 3ms, render: 53ms)
+ GET / 200 in 55ms (compile: 3ms, render: 52ms)
+ GET / 200 in 51ms (compile: 3ms, render: 48ms)
+ GET / 200 in 50ms (compile: 3ms, render: 48ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 57ms (compile: 3ms, render: 55ms)
+ GET / 200 in 109ms (compile: 6ms, render: 104ms)
+ GET / 200 in 59ms (compile: 3ms, render: 56ms)
+ GET / 200 in 56ms (compile: 3ms, render: 53ms)
+ GET / 200 in 60ms (compile: 3ms, render: 57ms)
+ GET / 200 in 53ms (compile: 4ms, render: 49ms)
+ GET / 200 in 65ms (compile: 3ms, render: 62ms)
+ GET / 200 in 55ms (compile: 3ms, render: 52ms)
+ GET / 200 in 56ms (compile: 3ms, render: 53ms)
+ GET / 200 in 58ms (compile: 3ms, render: 55ms)
+ GET /test-components 200 in 1055ms (compile: 781ms, render: 274ms)
