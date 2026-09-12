@@ -89,7 +89,8 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             expect(screen.getByTestId('copy-response-button')).toBeInTheDocument();
-            expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+            const copyTexts = screen.getAllByText('Copy to clipboard');
+            expect(copyTexts.length).toBeGreaterThan(0);
         });
     });
 
@@ -264,6 +265,14 @@ describe('ReadOnlyChatArea Component', () => {
     });
 
     describe('Copy Button Functionality', () => {
+        it('has aria-live polite for accessibility', () => {
+            const message = createMockMessage({ sender: 'bot' });
+            render(<ReadOnlyChatArea messages={[message]} />);
+
+            const copyButton = screen.getByTestId('copy-response-button');
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
+        });
+
         it('copies message content to clipboard when clicked', async () => {
             const messageContent = 'This is the message to copy.';
             const message = createMockMessage({
@@ -288,7 +297,8 @@ describe('ReadOnlyChatArea Component', () => {
             fireEvent.click(copyButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                const copiedTexts = screen.getAllByText('Copied!');
+                expect(copiedTexts.length).toBeGreaterThan(0);
             });
         });
 
@@ -302,13 +312,15 @@ describe('ReadOnlyChatArea Component', () => {
             await fireEvent.click(copyButton);
 
             // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            const copiedTexts = await screen.findAllByText('Copied!');
+            expect(copiedTexts.length).toBeGreaterThan(0);
 
             // Fast-forward 2 seconds
             await vi.advanceTimersByTimeAsync(2000);
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            const copyTexts = await screen.findAllByText('Copy to clipboard');
+            expect(copyTexts.length).toBeGreaterThan(0);
 
             vi.useRealTimers();
         });
