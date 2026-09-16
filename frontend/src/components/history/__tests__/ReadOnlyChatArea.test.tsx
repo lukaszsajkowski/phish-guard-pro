@@ -288,7 +288,8 @@ describe('ReadOnlyChatArea Component', () => {
             fireEvent.click(copyButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                const copiedElements = screen.getAllByText('Copied!');
+                expect(copiedElements.length).toBeGreaterThan(0);
             });
         });
 
@@ -302,13 +303,15 @@ describe('ReadOnlyChatArea Component', () => {
             await fireEvent.click(copyButton);
 
             // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            const copiedElements = await screen.findAllByText('Copied!');
+            expect(copiedElements.length).toBeGreaterThan(0);
 
             // Fast-forward 2 seconds
             await vi.advanceTimersByTimeAsync(2000);
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            const copyElements = await screen.findAllByText('Copy to clipboard');
+            expect(copyElements.length).toBeGreaterThan(0);
 
             vi.useRealTimers();
         });
@@ -362,7 +365,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            expect(copyButton).toBeInTheDocument();
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
         });
 
         it('thinking panel summary is accessible via keyboard', () => {
