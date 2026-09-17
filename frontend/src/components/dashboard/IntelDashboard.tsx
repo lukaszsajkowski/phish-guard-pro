@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import {
     AlertCircle,
@@ -425,18 +426,29 @@ export function IntelDashboard({
                                                                 {ioc.type === "url" ? defangUrl(ioc.value) : ioc.value}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
-                                                            className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
-                                                            onClick={() => copyToClipboard(ioc.value, key)}
-                                                        >
-                                                            {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
-                                                            ) : (
-                                                                <Copy className="h-3 w-3" />
-                                                            )}
-                                                        </button>
+                                                        <TooltipProvider delayDuration={0}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <button
+                                                                        aria-live="polite"
+                                                                        className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
+                                                                        onClick={() => copyToClipboard(ioc.value, key)}
+                                                                    >
+                                                                        {copiedKey === key ? (
+                                                                            <Check className="h-3 w-3 text-[color:var(--pg-green)]" aria-hidden="true" />
+                                                                        ) : (
+                                                                            <Copy className="h-3 w-3" aria-hidden="true" />
+                                                                        )}
+                                                                        <span className="sr-only">
+                                                                            {copiedKey === key ? 'Copied!' : 'Copy to clipboard'}
+                                                                        </span>
+                                                                    </button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    {copiedKey === key ? 'Copied!' : 'Copy to clipboard'}
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
 
                                                         {/* Enrich button — only shown when getAccessToken is provided and
                                                             not in autoEnrichAll mode where unsupported types silently skip */}

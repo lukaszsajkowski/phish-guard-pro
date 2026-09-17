@@ -356,13 +356,13 @@ describe('ReadOnlyChatArea Component', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper aria labels for copy button', () => {
+        it('has proper aria-live attribute for dynamic copy button', () => {
             const message = createMockMessage({ sender: 'bot' });
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            expect(copyButton).toBeInTheDocument();
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
         });
 
         it('thinking panel summary is accessible via keyboard', () => {
