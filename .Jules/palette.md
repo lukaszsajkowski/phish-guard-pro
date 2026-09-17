@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid static aria-labels on dynamic buttons
+**Learning:** When a button's visible text (or intent) changes dynamically (e.g., from "Copy" to "Copied!"), using a static `aria-label` prevents screen readers from announcing the state change.
+**Action:** Remove static `aria-label`s from dynamic buttons. Instead, use `aria-live="polite"` on the button element and ensure the changing text is within the button (either visibly or within a `.sr-only` span) so screen readers automatically announce updates. Apply `aria-hidden="true"` to decorative icons to prevent redundant announcements.
