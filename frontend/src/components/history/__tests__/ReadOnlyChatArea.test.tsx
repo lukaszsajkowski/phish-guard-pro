@@ -89,7 +89,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             expect(screen.getByTestId('copy-response-button')).toBeInTheDocument();
-            expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+            expect(screen.getAllByText('Copy to clipboard').length).toBeGreaterThan(0);
         });
     });
 
@@ -288,7 +288,7 @@ describe('ReadOnlyChatArea Component', () => {
             fireEvent.click(copyButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                expect(screen.getAllByText('Copied!').length).toBeGreaterThan(0);
             });
         });
 
@@ -302,13 +302,17 @@ describe('ReadOnlyChatArea Component', () => {
             await fireEvent.click(copyButton);
 
             // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getAllByText('Copied!').length).toBeGreaterThan(0);
+            });
 
             // Fast-forward 2 seconds
             await vi.advanceTimersByTimeAsync(2000);
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getAllByText('Copy to clipboard').length).toBeGreaterThan(0);
+            });
 
             vi.useRealTimers();
         });
@@ -356,13 +360,14 @@ describe('ReadOnlyChatArea Component', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper aria labels for copy button', () => {
+        it('has proper aria-live for copy button dynamic text', () => {
             const message = createMockMessage({ sender: 'bot' });
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
             expect(copyButton).toBeInTheDocument();
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
         });
 
         it('thinking panel summary is accessible via keyboard', () => {
