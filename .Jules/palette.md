@@ -1,0 +1,3 @@
+## 2024-03-14 - Accessible Dynamic Icon Buttons
+**Learning:** Using static `aria-label` on icon buttons that change state (e.g., Copy -> Copied!) overrides the state change for screen readers. Using native HTML `title` is also less accessible and customizable than Radix UI tooltips. Wraping every `Tooltip` in a loop with its own `TooltipProvider` breaks the global delay feature.
+**Action:** Instead of static `aria-label`, use an `aria-live="polite"` container with a visually hidden `<span className="sr-only">` for the dynamic text. Add `aria-hidden="true"` to the SVG icons. Wrap the icon-only buttons in a Radix UI `Tooltip` and ensure a single `TooltipProvider` wraps the application in the layout.
