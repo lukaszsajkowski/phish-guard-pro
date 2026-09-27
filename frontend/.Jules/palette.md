@@ -1,0 +1,3 @@
+## 2024-05-24 - Dynamic state in Copy Buttons
+**Learning:** Using a static `aria-label` on dynamic buttons (like a copy button turning into a checkmark) overrides the visible text changes and prevents screen readers from announcing state changes (e.g., "Copied!").
+**Action:** For buttons with dynamic states, remove static `aria-label`s. Use `aria-live="polite"` on the button so screen readers announce changes. If the button is icon-only, render a visually hidden `<span className="sr-only">` whose text updates dynamically, and always add `aria-hidden="true"` to the SVG icons to prevent duplicate announcements.
