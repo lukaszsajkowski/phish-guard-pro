@@ -116,19 +116,22 @@ function ReadOnlyMessage({
                     <div className="mt-2 flex items-center gap-3">
                         <button
                             onClick={handleCopy}
-                            className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
-                            aria-label="Copy message to clipboard"
+                            className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors cursor-pointer relative"
                             data-testid="copy-response-button"
+                            aria-live="polite"
                         >
+                            <span className="sr-only">
+                                {copied ? "Copied!" : "Copy to clipboard"}
+                            </span>
                             {copied ? (
                                 <>
-                                    <Check className="w-3.5 h-3.5 text-pg-green" />
-                                    <span className="text-pg-green">Copied!</span>
+                                    <Check className="w-3.5 h-3.5 text-pg-green" aria-hidden="true" />
+                                    <span className="text-pg-green" aria-hidden="true">Copied!</span>
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="w-3.5 h-3.5" />
-                                    <span>Copy to clipboard</span>
+                                    <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+                                    <span aria-hidden="true">Copy to clipboard</span>
                                 </>
                             )}
                         </button>
