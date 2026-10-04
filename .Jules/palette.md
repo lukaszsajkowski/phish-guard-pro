@@ -1,0 +1,3 @@
+## 2024-10-04 - Dynamic Text Buttons Need Aria-Live
+**Learning:** When a button's visible text changes dynamically (like "Copy to clipboard" to "Copied!"), standard testing assertions and accessibility tooling might miss the fact that screen readers won't announce the change. Adding `aria-live="polite"` to the button ensures the state change is announced, and using a visually hidden span for the text while hiding the icon from screen readers (`aria-hidden="true"`) provides the best experience.
+**Action:** Always add `aria-live="polite"` to buttons with dynamic text states and ensure proper use of `sr-only` and `aria-hidden` for icons.
