@@ -1,0 +1,3 @@
+## 2024-10-06 - Dynamic button accessibility and collapsible sections
+**Learning:** Static `aria-label`s on icon-only buttons that change state prevent screen readers from announcing the new state. Also, standard collapsible sections need `aria-expanded` and `aria-controls` to be properly understood by screen readers.
+**Action:** When a button's content changes dynamically (e.g. Copy -> Copied), use `aria-live="polite"` and a visually hidden span containing the dynamic text, rather than relying on a static `aria-label`. Ensure toggle buttons have `aria-expanded` linked to the target container's ID via `aria-controls`.

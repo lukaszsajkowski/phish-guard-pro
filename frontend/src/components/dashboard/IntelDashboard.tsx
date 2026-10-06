@@ -427,14 +427,20 @@ export function IntelDashboard({
                                                         </div>
                                                         <button
                                                             title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
+                                                            aria-live="polite"
                                                             className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
                                                             onClick={() => copyToClipboard(ioc.value, key)}
                                                         >
                                                             {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
+                                                                <>
+                                                                    <Check className="h-3 w-3 text-[color:var(--pg-green)]" aria-hidden="true" />
+                                                                    <span className="sr-only">IOC value copied!</span>
+                                                                </>
                                                             ) : (
-                                                                <Copy className="h-3 w-3" />
+                                                                <>
+                                                                    <Copy className="h-3 w-3" aria-hidden="true" />
+                                                                    <span className="sr-only">Copy IOC value</span>
+                                                                </>
                                                             )}
                                                         </button>
 
@@ -527,6 +533,8 @@ export function IntelDashboard({
                                                                         aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`raw-data-container-${key}`}
                                                                     >
                                                                         {isExpanded ? (
                                                                             <ChevronUp className="h-[11px] w-[11px]" />
@@ -536,7 +544,7 @@ export function IntelDashboard({
                                                                         {isExpanded ? "Hide" : "Show"} raw data
                                                                     </button>
                                                                     {isExpanded && (
-                                                                        <>
+                                                                        <div id={`raw-data-container-${key}`}>
                                                                             <div className="mt-1 text-[10px] text-muted-foreground/50">
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
@@ -546,7 +554,7 @@ export function IntelDashboard({
                                                                             >
                                                                                 {JSON.stringify(enrichState.data.payload, null, 2)}
                                                                             </pre>
-                                                                        </>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             )}
@@ -610,6 +618,8 @@ export function IntelDashboard({
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
+                                    aria-expanded={showBreakdown}
+                                    aria-controls="risk-score-breakdown"
                                 >
                                     Details
                                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[11px] h-[11px]">
@@ -619,7 +629,7 @@ export function IntelDashboard({
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id="risk-score-breakdown" className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
