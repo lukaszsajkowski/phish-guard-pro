@@ -264,6 +264,14 @@ describe('ReadOnlyChatArea Component', () => {
     });
 
     describe('Copy Button Functionality', () => {
+        it('has aria-live polite for accessibility', () => {
+            const message = createMockMessage({ sender: 'bot' });
+            render(<ReadOnlyChatArea messages={[message]} />);
+
+            const copyButton = screen.getByTestId('copy-response-button');
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
+        });
+
         it('copies message content to clipboard when clicked', async () => {
             const messageContent = 'This is the message to copy.';
             const message = createMockMessage({
