@@ -1,0 +1,3 @@
+## 2024-05-18 - Accessible dynamic icon buttons
+**Learning:** For icon-only buttons with dynamically changing states (like "Copy" -> "Copied!"), static `aria-label` tags override dynamic changes, and standard frontend testing assertions like `toBeInTheDocument()` aren't enough to verify accessibility correctly.
+**Action:** Remove static `aria-label` attributes and apply `aria-live="polite"` directly to the button. Wrap the dynamic text in a visually hidden `span` (`className="sr-only"`) to provide context to screen readers, and apply `aria-hidden="true"` to SVG elements to prevent duplicate announcements. Ensure that tests explicitly assert on `toHaveAttribute('aria-live', 'polite')`.
