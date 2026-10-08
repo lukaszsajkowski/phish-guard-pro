@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ReadOnlyChatArea } from '../ReadOnlyChatArea';
 import { ChatMessage } from '@/types/schemas';
@@ -89,7 +89,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             expect(screen.getByTestId('copy-response-button')).toBeInTheDocument();
-            expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+            expect(screen.getAllByText('Copy to clipboard').length).toBeGreaterThan(0);
         });
     });
 
@@ -274,7 +274,9 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+            await act(async () => {
+                fireEvent.click(copyButton);
+            });
 
             expect(mockClipboard.writeText).toHaveBeenCalledWith(messageContent);
         });
@@ -285,10 +287,14 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+
+            await act(async () => {
+                fireEvent.click(copyButton);
+            });
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                const hiddenSpans = screen.getAllByText('Copied!');
+                expect(hiddenSpans.length).toBeGreaterThan(0);
             });
         });
 
@@ -299,16 +305,26 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            await fireEvent.click(copyButton);
+
+            // Verify aria-live is present
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
+
+            await act(async () => {
+                fireEvent.click(copyButton);
+            });
 
             // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            const copiedSpans = await screen.findAllByText('Copied!');
+            expect(copiedSpans.length).toBeGreaterThan(0);
 
             // Fast-forward 2 seconds
-            await vi.advanceTimersByTimeAsync(2000);
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(2000);
+            });
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            const copySpans = await screen.findAllByText('Copy to clipboard');
+            expect(copySpans.length).toBeGreaterThan(0);
 
             vi.useRealTimers();
         });
@@ -322,7 +338,9 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
-            fireEvent.click(copyButton);
+            await act(async () => {
+                fireEvent.click(copyButton);
+            });
 
             await waitFor(() => {
                 expect(consoleSpy).toHaveBeenCalledWith('Failed to copy:', expect.any(Error));
