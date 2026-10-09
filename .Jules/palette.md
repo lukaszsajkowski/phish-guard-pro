@@ -1,0 +1,3 @@
+## 2025-02-28 - Dynamic Icon-only Copy Button Tooltips and Screen Reader Context
+**Learning:** Using a static `aria-label` on dynamic icon-only copy buttons prevents screen readers from announcing state changes (like "Copied!"). Relying solely on the native HTML `title` attribute provides poor visibility and discoverability compared to standard UI tooltips.
+**Action:** Wrap icon-only buttons with `<Tooltip>` components from Radix UI using `asChild`. Remove static `aria-label`s on dynamic buttons and instead add `aria-live="polite"` to the button along with a visually hidden `<span className="sr-only">` that dynamically updates to announce the correct state context. Also add `aria-hidden="true"` to visible icons.
