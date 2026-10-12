@@ -88,7 +88,9 @@ describe('ReadOnlyChatArea Component', () => {
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
-            expect(screen.getByTestId('copy-response-button')).toBeInTheDocument();
+            const copyButton = screen.getByTestId('copy-response-button');
+            expect(copyButton).toBeInTheDocument();
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
             expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
         });
     });
