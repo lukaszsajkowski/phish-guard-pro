@@ -1,0 +1,3 @@
+## 2024-05-24 - Dynamic Accessible Labels for Icon-Only Buttons
+**Learning:** Using a static `aria-label` on an icon-only button that dynamically changes state (like a "Copy" to "Copied!" checkmark) overrides the state change announcement for screen reader users. The screen reader only reads the static label, hiding the state change.
+**Action:** Instead of `aria-label`, use `aria-live="polite"` on the button along with a dynamic visually hidden span (e.g., `<span className="sr-only">`) to provide screen readers with context that updates dynamically. Apply `aria-hidden="true"` to the visible icons to prevent duplicate announcements.
