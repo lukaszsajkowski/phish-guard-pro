@@ -426,15 +426,21 @@ export function IntelDashboard({
                                                             </div>
                                                         </div>
                                                         <button
+                                                            aria-live="polite"
                                                             title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
                                                             className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
                                                             onClick={() => copyToClipboard(ioc.value, key)}
                                                         >
                                                             {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
+                                                                <>
+                                                                    <Check className="h-3 w-3 text-[color:var(--pg-green)]" aria-hidden="true" />
+                                                                    <span className="sr-only">Copied!</span>
+                                                                </>
                                                             ) : (
-                                                                <Copy className="h-3 w-3" />
+                                                                <>
+                                                                    <Copy className="h-3 w-3" aria-hidden="true" />
+                                                                    <span className="sr-only">Copy IOC value</span>
+                                                                </>
                                                             )}
                                                         </button>
 

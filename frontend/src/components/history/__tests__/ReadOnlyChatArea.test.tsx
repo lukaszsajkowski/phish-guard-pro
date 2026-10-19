@@ -288,7 +288,8 @@ describe('ReadOnlyChatArea Component', () => {
             fireEvent.click(copyButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                const copiedElements = screen.getAllByText('Copied!');
+                expect(copiedElements.length).toBeGreaterThan(0);
             });
         });
 
@@ -301,14 +302,16 @@ describe('ReadOnlyChatArea Component', () => {
             const copyButton = screen.getByTestId('copy-response-button');
             await fireEvent.click(copyButton);
 
-            // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            // Wait for copied state (multiple elements match due to sr-only)
+            const copiedElements = await screen.findAllByText('Copied!');
+            expect(copiedElements.length).toBeGreaterThan(0);
 
             // Fast-forward 2 seconds
             await vi.advanceTimersByTimeAsync(2000);
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            const copyTextElements = await screen.findAllByText(/Copy (message )?to clipboard/);
+            expect(copyTextElements.length).toBeGreaterThan(0);
 
             vi.useRealTimers();
         });
