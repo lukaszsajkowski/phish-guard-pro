@@ -1,0 +1,3 @@
+## 2024-10-25 - Dynamic Text Buttons Accessibility
+**Learning:** Using a static `aria-label` on an icon button whose state changes (e.g., "Copy" to "Copied!") overrides the dynamic text, preventing screen readers from announcing the state change.
+**Action:** Use `aria-live="polite"` on the button and include a visually hidden span (`<span className="sr-only">`) containing the dynamically updating text. Ensure decorative icons have `aria-hidden="true"` to prevent duplicate announcements.
