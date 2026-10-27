@@ -1,0 +1,3 @@
+## 2024-05-24 - Expand/Collapse Accessibility
+**Learning:** Expand/collapse toggle buttons require `aria-expanded` and `aria-controls` attributes with matching IDs for the controlled content to be fully accessible to screen readers, instead of relying solely on visual cues or text changes.
+**Action:** Always add `aria-expanded` reflecting the state, and `aria-controls` matching the target container's `id` when creating interactive toggle components. Use React's `useId` for robust ID generation.

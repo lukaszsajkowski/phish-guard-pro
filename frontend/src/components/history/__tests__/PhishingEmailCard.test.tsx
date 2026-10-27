@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { PhishingEmailCard } from '../PhishingEmailCard';
 
@@ -65,26 +65,35 @@ describe('PhishingEmailCard Component', () => {
             render(<PhishingEmailCard emailContent={longEmail} />);
 
             expect(screen.getByTestId('email-expand-toggle')).toBeInTheDocument();
+            expect(screen.getByTestId('email-expand-toggle')).toHaveAttribute('aria-expanded', 'false');
+            expect(screen.getByTestId('email-expand-toggle')).toHaveAttribute('aria-controls', screen.getByTestId('email-body').id);
             expect(screen.getByText('Show full email')).toBeInTheDocument();
         });
 
-        it('expands email on toggle click', () => {
+        it('expands email on toggle click', async () => {
             render(<PhishingEmailCard emailContent={longEmail} />);
 
             const toggle = screen.getByTestId('email-expand-toggle');
-            fireEvent.click(toggle);
+            await act(async () => {
+                fireEvent.click(toggle);
+            });
 
             expect(screen.getByText('Show less')).toBeInTheDocument();
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
             // Full content should now be visible
             expect(screen.getByTestId('email-body')).toHaveTextContent('God bless you,');
         });
 
-        it('collapses email on second toggle click', () => {
+        it('collapses email on second toggle click', async () => {
             render(<PhishingEmailCard emailContent={longEmail} />);
 
             const toggle = screen.getByTestId('email-expand-toggle');
-            fireEvent.click(toggle); // expand
-            fireEvent.click(toggle); // collapse
+            await act(async () => {
+                fireEvent.click(toggle); // expand
+            });
+            await act(async () => {
+                fireEvent.click(toggle); // collapse
+            });
 
             expect(screen.getByText('Show full email')).toBeInTheDocument();
         });
