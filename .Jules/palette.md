@@ -1,0 +1,3 @@
+## 2024-03-20 - Dynamic Text Accessibility on Icon Buttons
+**Learning:** When using interactive elements like buttons where the visible inner text changes dynamically (e.g., 'Copy to clipboard' -> 'Copied!'), adding a static `aria-label` overrides these dynamic state changes. Standard screen readers will only announce the static label.
+**Action:** Instead of a static `aria-label`, rely on the visible text and ensure it is announced by adding `aria-live="polite"` to the element. Also, accompanying icons (like SVGs) should have `aria-hidden="true"` to prevent redundant announcements.
