@@ -368,3 +368,37 @@ def test_basal_timeout_default_is_30s(monkeypatch):
     monkeypatch.delenv("BASAL_TIMEOUT_S", raising=False)
 
     assert Settings(_env_file=None).basal_timeout_s == 30.0
+
+
+class _FakeBasal:
+    def __init__(self, answer: BasalAnswer) -> None:
+        self._answer = answer
+
+    async def ask_choice(self, state, instructions, criteria):
+        return self._answer
+
+
+class TestLiveCascadeEndToEnd:
+    @pytest.mark.asyncio
+    async def test_below_threshold_and_unparseable_llm_uses_basal_low_confidence(
+        self,
+    ):
+        low = BasalAnswer(
+            "delivery_scam", {"delivery_scam": 0.6234, "fake_invoice": 0.3}, 0.6234, 50
+        )
+        service = DecisionService(
+            basal=_FakeBasal(low),  # type: ignore[arg-type]
+            mode="live",
+            threshold_for=lambda n: 0.9,
+            recorder=None,
+        )
+        agent = ProfilerAgent(
+            llm_client=_llm_client(_response("nope"), _response("still nope")),
+            decision_service=service,
+        )
+
+        result = await agent.classify("Your parcel", session_id="s-1")
+
+        assert result.decision_source == "basal_low_confidence"
+        assert result.attack_type == AttackType.DELIVERY_SCAM
+        assert result.reasoning.startswith("Classified locally by Basal:")

@@ -109,3 +109,49 @@ async def test_ask_choice_raises_on_non_string_choice(bad_choice):
     client = _client(lambda r: _ok(bad_choice))
     with pytest.raises(BasalUnavailableError):
         await client.ask_choice("s", "i", CRITERIA)
+
+
+def _resp(confidence, probabilities=None) -> httpx.Response:
+    body = {
+        "answers": {
+            "q": {
+                "type": "choice",
+                "choice": "romance_scam",
+                "probabilities": probabilities or {"romance_scam": 0.9},
+                "confidence": confidence,
+            }
+        }
+    }
+    # json.dumps (unlike httpx json=) emits NaN, as a sloppy server would.
+    return httpx.Response(200, content=json.dumps(body).encode())
+
+
+@pytest.mark.parametrize("confidence", [94.0, float("nan"), -0.1, 1.01])
+async def test_out_of_range_confidence_is_unavailable(confidence):
+    with pytest.raises(BasalUnavailableError):
+        await _client(lambda r: _resp(confidence)).ask_choice("t", "i", CRITERIA)
+
+
+@pytest.mark.parametrize("bad", [94.0, float("nan"), -0.1])
+async def test_out_of_range_probability_is_unavailable(bad):
+    handler = lambda r: _resp(0.9, {"romance_scam": 0.9, "nigerian_419": bad})  # noqa: E731
+    with pytest.raises(BasalUnavailableError):
+        await _client(handler).ask_choice("t", "i", CRITERIA)
+
+
+@pytest.mark.parametrize("edge", [0.0, 1.0])
+async def test_boundary_confidence_is_accepted(edge):
+    answer = await _client(lambda r: _resp(edge)).ask_choice("t", "i", CRITERIA)
+    assert answer.confidence == edge
+
+
+def test_basal_thresholds_must_be_within_unit_interval():
+    from pydantic import ValidationError
+
+    for kwargs in (
+        {"basal_threshold": 90},
+        {"basal_threshold": -0.1},
+        {"basal_threshold_profiler": 90},
+    ):
+        with pytest.raises(ValidationError):
+            Settings(**kwargs)

@@ -1,5 +1,6 @@
 """HTTP client for a Basal decision server."""
 
+import math
 import time
 from dataclasses import dataclass
 
@@ -80,6 +81,12 @@ class BasalClient:
 
         if not isinstance(choice, str) or choice not in criteria:
             raise BasalUnavailableError(f"Basal choice not in options: {choice!r}")
+
+        scores = [confidence, *probabilities.values()]
+        if not all(math.isfinite(v) and 0.0 <= v <= 1.0 for v in scores):
+            raise BasalUnavailableError(
+                f"Basal confidence/probabilities outside 0..1: {scores!r}"
+            )
 
         latency_ms = int((time.perf_counter() - start) * 1000)
         return BasalAnswer(choice, probabilities, confidence, latency_ms)

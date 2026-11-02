@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     # Basal local decision layer (empty URL behaves like mode "off")
     basal_url: str = ""
     basal_mode: Literal["off", "shadow", "live"] = "shadow"
-    basal_threshold: float = 0.9
-    basal_threshold_profiler: float | None = None
+    basal_threshold: float = Field(default=0.9, ge=0, le=1)
+    basal_threshold_profiler: float | None = Field(default=None, ge=0, le=1)
     basal_timeout_s: float = 30.0
     basal_model: str = ""
 
