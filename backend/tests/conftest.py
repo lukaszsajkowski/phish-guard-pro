@@ -1,5 +1,16 @@
 import pytest
 
+from phishguard.core import get_settings
+
+
+@pytest.fixture(autouse=True)
+def _no_real_basal(monkeypatch):
+    """Pin BASAL_URL empty so tests never read .env and call a real Basal."""
+    monkeypatch.setenv("BASAL_URL", "")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
 
 @pytest.fixture(scope="session")
 def check_db_connection():
