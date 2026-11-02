@@ -38,23 +38,26 @@ async def classify_email(state: PhishGuardState) -> dict[str, Any]:
         return {"error": "No email content provided"}
 
     profiler = ProfilerAgent()
-    result = await profiler.classify(email_content)
+    result = await profiler.classify(email_content, session_id=state.get("session_id"))
 
     classification = {
         "attack_type": result.attack_type.value,
         "confidence": result.confidence,
         "reasoning": result.reasoning,
         "classification_time_ms": result.classification_time_ms,
+        "decision_source": result.decision_source,
     }
 
     # Track if fallback model was used (US-023)
     used_fallback = getattr(result, "used_fallback_model", False)
 
     logger.info(
-        "Node: classify_email completed - attack_type=%s, confidence=%.1f, fallback=%s",
+        "Node: classify_email completed - attack_type=%s, confidence=%.1f, "
+        "fallback=%s, source=%s",
         result.attack_type.value,
         result.confidence,
         used_fallback,
+        result.decision_source,
     )
 
     return {"classification": classification, "used_fallback_model": used_fallback}

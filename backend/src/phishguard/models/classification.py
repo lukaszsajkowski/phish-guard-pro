@@ -5,6 +5,7 @@ the results of phishing email classification by the Profiler Agent.
 """
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -98,6 +99,8 @@ class ClassificationResult(BaseModel):
         classification_time_ms: Time taken to classify in milliseconds.
         persona: The suggested victim persona for engagement (optional).
         used_fallback_model: Whether fallback LLM was used (US-023).
+        decision_source: Who decided the attack type (US-049): "llm",
+            "basal", or "basal_low_confidence".
 
     Example:
         >>> result = ClassificationResult(
@@ -166,6 +169,13 @@ class ClassificationResult(BaseModel):
     extracted_iocs: list[dict] = Field(
         default_factory=list,
         description="IOCs extracted from the initial email.",
+    )
+    decision_source: Literal["llm", "basal", "basal_low_confidence"] = Field(
+        default="llm",
+        description=(
+            "Who decided the attack type (US-049). With Basal, confidence is a "
+            "calibrated probability x 100; with the LLM, a self-assessment."
+        ),
     )
 
     @field_validator("confidence", mode="after")

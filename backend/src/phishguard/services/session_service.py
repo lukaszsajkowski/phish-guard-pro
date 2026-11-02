@@ -132,6 +132,7 @@ async def update_session_classification(
     update_data: dict[str, Any] = {
         "attack_type": classification_result.attack_type.value,
         "attack_confidence": classification_result.confidence,  # For US-031
+        "decision_source": classification_result.decision_source,  # US-049
     }
 
     # Add persona if present

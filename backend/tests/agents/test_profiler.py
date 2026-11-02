@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from phishguard.agents.profiler import ClassificationError, ProfilerAgent
+from phishguard.decisions import DecisionService
 from phishguard.llm import LLMRequestError, LLMResponse
 from phishguard.models.classification import AttackType, ClassificationResult
 
@@ -20,8 +21,11 @@ def mock_llm_client():
 
 @pytest.fixture
 def profiler(mock_llm_client):
-    """Create a ProfilerAgent instance with mocked LLM client."""
-    return ProfilerAgent(llm_client=mock_llm_client)
+    """Create a ProfilerAgent with a mocked LLM client and Basal off."""
+    off = DecisionService(
+        basal=None, mode="off", threshold_for=lambda n: 0.9, recorder=None
+    )
+    return ProfilerAgent(llm_client=mock_llm_client, decision_service=off)
 
 
 @pytest.mark.asyncio

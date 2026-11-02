@@ -216,6 +216,7 @@ class SessionRestoreResponse(BaseModel):
     turn_count: int
     turn_limit: int
     is_at_limit: bool
+    decision_source: str | None = None  # US-049; None for pre-Basal sessions
 
 
 # Session History List Endpoint (US-028)
@@ -448,6 +449,7 @@ async def restore_session(
         turn_count=session_info["turn_count"],
         turn_limit=session_info["turn_limit"],
         is_at_limit=session_info["is_at_limit"],
+        decision_source=session.get("decision_source"),
     )
 
 

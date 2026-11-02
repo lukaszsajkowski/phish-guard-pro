@@ -111,6 +111,7 @@ async def classify_email(
             persona=persona,
             session_id=session_id,
             extracted_iocs=extracted_iocs,
+            decision_source=classification.get("decision_source", "llm"),
         )
 
         # Update session with classification results

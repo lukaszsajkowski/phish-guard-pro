@@ -25,6 +25,7 @@ class ClassificationState(TypedDict, total=False):
     confidence: float
     reasoning: str
     classification_time_ms: int
+    decision_source: str
 
 
 class IOCState(TypedDict, total=False):
