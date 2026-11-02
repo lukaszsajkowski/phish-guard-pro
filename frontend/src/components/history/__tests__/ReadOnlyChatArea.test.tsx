@@ -89,7 +89,7 @@ describe('ReadOnlyChatArea Component', () => {
             render(<ReadOnlyChatArea messages={[message]} />);
 
             expect(screen.getByTestId('copy-response-button')).toBeInTheDocument();
-            expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+            expect(screen.getAllByText('Copy to clipboard')[0]).toBeInTheDocument();
         });
     });
 
@@ -288,7 +288,7 @@ describe('ReadOnlyChatArea Component', () => {
             fireEvent.click(copyButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Copied!')).toBeInTheDocument();
+                expect(screen.getAllByText('Copied!')[0]).toBeInTheDocument();
             });
         });
 
@@ -302,13 +302,13 @@ describe('ReadOnlyChatArea Component', () => {
             await fireEvent.click(copyButton);
 
             // Wait for copied state
-            expect(await screen.findByText('Copied!')).toBeInTheDocument();
+            expect(await screen.findAllByText('Copied!').then(els => els[0])).toBeInTheDocument();
 
             // Fast-forward 2 seconds
             await vi.advanceTimersByTimeAsync(2000);
 
             // Should revert back to original text
-            expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+            expect(await screen.findAllByText('Copy to clipboard').then(els => els[0])).toBeInTheDocument();
 
             vi.useRealTimers();
         });
@@ -356,13 +356,15 @@ describe('ReadOnlyChatArea Component', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper aria labels for copy button', () => {
+        it('has proper accessibility attributes for copy button', () => {
             const message = createMockMessage({ sender: 'bot' });
 
             render(<ReadOnlyChatArea messages={[message]} />);
 
             const copyButton = screen.getByTestId('copy-response-button');
             expect(copyButton).toBeInTheDocument();
+            expect(copyButton).toHaveAttribute('aria-live', 'polite');
+            expect(copyButton).not.toHaveAttribute('aria-label');
         });
 
         it('thinking panel summary is accessible via keyboard', () => {
