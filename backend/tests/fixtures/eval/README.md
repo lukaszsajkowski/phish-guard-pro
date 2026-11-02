@@ -40,3 +40,8 @@ Labels are written by the fixture author and must not be trusted until reviewed.
 `ambiguous`. Because the generator and the reviewer are both Claude models and agreement
 was perfect, the set may be easier than real traffic. Treat fixture accuracy as an upper
 bound and rely on Supabase/shadow data for realism.
+
+One row, `pl-ceo-03`, was later marked `ambiguous` by the task reviewer (it keeps
+`reviewed: true` and its review object). The email has no wire, urgency or impersonation
+cue, so under the criteria it reads as `not_phishing` as plausibly as `ceo_fraud`. It was
+not rewritten, to avoid a new blind review round, and is excluded from the gate.

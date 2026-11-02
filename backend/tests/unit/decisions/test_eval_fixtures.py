@@ -38,6 +38,14 @@ def test_fixtures_reviewed():
 
     for r in rows:
         assert r["reviewed"] or r["ambiguous"], r["id"]
-        if r["review"] is not None:
-            assert r["review"]["label_b"] in valid
+        review = r["review"]
+        assert isinstance(review, dict), r["id"]
+        assert set(review) == {"label_b", "label_c", "reviewer_model"}, r["id"]
+        assert review["label_b"] in valid, r["id"]
+        assert review["label_c"] is None or review["label_c"] in valid, r["id"]
+        assert review["reviewer_model"], r["id"]
+        if not r["ambiguous"]:
+            assert review["label_b"] == r["gold"] or review["label_c"] == r["gold"], r[
+                "id"
+            ]
     assert sum(r["ambiguous"] for r in rows) <= 0.1 * len(rows)
