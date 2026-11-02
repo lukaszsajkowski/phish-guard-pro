@@ -7,7 +7,7 @@ import { DashboardSkeleton } from "@/components/app/LoadingSkeletons";
 import { toast } from "sonner";
 import { createClient, User } from "@supabase/supabase-js";
 import { EmailInput } from "@/components/app/email-input";
-import { ClassificationResult, type AttackType } from "@/components/app/ClassificationResult";
+import { ClassificationResult, type AttackType, type DecisionSource } from "@/components/app/ClassificationResult";
 import { ApiError } from "@/components/app/ApiError";
 import { AppHeader } from "@/components/app/AppHeader";
 import { AuthenticatedLayout } from "@/components/app/AuthenticatedLayout";
@@ -55,6 +55,7 @@ function DashboardContent() {
         confidence: number;
         reasoning: string;
         persona?: Persona;
+        decisionSource?: DecisionSource;
     } | null>(null);
     const [extractedIOCs, setExtractedIOCs] = useState<ExtractedIOC[]>([]);
     const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
@@ -235,7 +236,8 @@ function DashboardContent() {
                 attackType: data.attack_type as AttackType,
                 confidence: data.confidence,
                 reasoning: data.reasoning,
-                persona: data.persona
+                persona: data.persona,
+                decisionSource: data.decision_source ?? undefined,
             });
             if (data.risk_score) {
                 setRiskScore(data.risk_score);
@@ -834,6 +836,7 @@ function DashboardContent() {
                 confidence: data.confidence,
                 reasoning: '', // Not stored, but not essential for restoration
                 persona: data.persona,
+                decisionSource: data.decision_source ?? undefined,
             });
 
             // Restore original email content (for display purposes)
@@ -1052,6 +1055,7 @@ function DashboardContent() {
                                                             attackType={classificationResult.attackType}
                                                             confidence={classificationResult.confidence}
                                                             reasoning={classificationResult.reasoning}
+                                                            decisionSource={classificationResult.decisionSource}
                                                         />
                                                         {classificationResult.persona && (
                                                             <PersonaCard persona={classificationResult.persona} />

@@ -19,6 +19,15 @@ export interface ClassificationResultProps {
     attackType: AttackType
     confidence: number
     reasoning: string
+    decisionSource?: DecisionSource
+}
+
+export type DecisionSource = "llm" | "basal" | "basal_low_confidence"
+
+const DECISION_SOURCE_LABELS: Record<DecisionSource, string> = {
+    llm: "GPT-4o",
+    basal: "Basal",
+    basal_low_confidence: "Basal (low confidence)",
 }
 
 const ATTACK_TYPE_LABELS: Record<AttackType, string> = {
@@ -33,7 +42,7 @@ const ATTACK_TYPE_LABELS: Record<AttackType, string> = {
     not_phishing: "Not Phishing",
 }
 
-export function ClassificationResult({ attackType, confidence, reasoning }: ClassificationResultProps) {
+export function ClassificationResult({ attackType, confidence, reasoning, decisionSource }: ClassificationResultProps) {
     const isPhishing = attackType !== "not_phishing"
     const isLowConfidence = confidence < 30
     const isHighConfidence = confidence >= 80
@@ -51,11 +60,21 @@ export function ClassificationResult({ attackType, confidence, reasoning }: Clas
                             )}
                             {ATTACK_TYPE_LABELS[attackType]}
                         </CardTitle>
-                        <span className={`text-sm font-medium font-mono px-2 py-1 rounded-full ${isHighConfidence ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                            confidence < 50 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                            }`}>
-                            {confidence.toFixed(1)}% Confidence
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium font-mono px-2 py-1 rounded-full ${isHighConfidence ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                                confidence < 50 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                }`}>
+                                {confidence.toFixed(1)}% Confidence
+                            </span>
+                            {decisionSource && (
+                                <span
+                                    data-testid="decision-source"
+                                    className="text-sm font-medium font-mono px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                                >
+                                    {DECISION_SOURCE_LABELS[decisionSource]}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <CardDescription>
                         {isPhishing ? "Phishing Attack Detected" : "Legitimate Email Detected"}
