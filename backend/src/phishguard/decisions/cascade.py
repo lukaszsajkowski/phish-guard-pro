@@ -1,7 +1,7 @@
 """Basal -> LLM cascade for closed (single-choice) questions.
 
 Modes:
-- ``off``: only the LLM answers.
+- ``off``: only the LLM answers; no decision row is written.
 - ``shadow``: the LLM answers; Basal runs in a background task and its answer
   is only logged. The caller never waits for Basal.
 - ``live``: Basal answers when its confidence reaches the node threshold
@@ -64,6 +64,14 @@ class _LLMOutcome:
     ms: int
 
 
+def _resolve(
+    future: asyncio.Future[_LLMOutcome | None], outcome: _LLMOutcome | None
+) -> None:
+    """Hand the LLM outcome to the shadow task, unless it was cancelled."""
+    if not future.done():
+        future.set_result(outcome)
+
+
 async def drain_background_tasks() -> None:
     """Wait for all pending shadow-mode tasks (tests, eval, shutdown)."""
     while _background_tasks:
@@ -105,24 +113,18 @@ class DecisionService:
             return await self._decide_shadow(
                 question, state, session_id, llm_call, llm_answer, llm_model
             )
-        return await self._decide_off(
-            question, session_id, llm_call, llm_answer, llm_model
-        )
+        # off: no decisions row; the table only logs shadow/live decisions.
+        return await self._decide_off(llm_call, llm_answer, llm_model)
 
     # --- modes -------------------------------------------------------------
 
     async def _decide_off[T](
         self,
-        question: ChoiceQuestion,
-        session_id: str | None,
         llm_call: Callable[[], Awaitable[T]],
         llm_answer: Callable[[T], str],
         llm_model: Callable[[T], str],
     ) -> Decision[T]:
         result, outcome = await self._run_llm(llm_call, llm_answer, llm_model)
-        await self._record(
-            session_id, question, "llm", outcome.answer, None, outcome, "disabled"
-        )
         return Decision("llm", outcome.answer, None, result)
 
     async def _decide_live[T](
@@ -196,9 +198,9 @@ class DecisionService:
         try:
             result, outcome = await self._run_llm(llm_call, llm_answer, llm_model)
         except BaseException:
-            llm_future.set_result(None)
+            _resolve(llm_future, None)
             raise
-        llm_future.set_result(outcome)
+        _resolve(llm_future, outcome)
         return Decision("llm", outcome.answer, None, result)
 
     async def _shadow_task(

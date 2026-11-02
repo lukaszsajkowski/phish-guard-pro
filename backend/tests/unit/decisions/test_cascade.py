@@ -14,6 +14,7 @@ from phishguard.decisions import (
     ChoiceQuestion,
     Decision,
     DecisionService,
+    cascade,
     create_decision_service,
 )
 from phishguard.decisions.basal_client import (
@@ -108,10 +109,15 @@ async def _drain() -> AsyncIterator[None]:
 # --- off -------------------------------------------------------------------
 
 
-async def test_off_uses_only_llm_and_records_disabled():
-    rows: list[DecisionRecord] = []
+async def test_off_uses_only_llm_and_writes_no_row():
+    recorder = AsyncMock()
     basal = _basal()
-    service = _service(basal, "off", rows)
+    service = DecisionService(
+        basal=basal,
+        mode="off",
+        threshold_for=lambda node: 0.9,
+        recorder=recorder,
+    )
     llm_call = _llm()
 
     decision = await _decide(service, llm_call)
@@ -122,14 +128,7 @@ async def test_off_uses_only_llm_and_records_disabled():
     assert isinstance(decision.llm_result, FakeLLMResult)
     basal.ask_choice.assert_not_awaited()
     llm_call.assert_awaited_once()
-    assert len(rows) == 1
-    row = rows[0]
-    assert row.skip_reason == "disabled"
-    assert row.source == "llm"
-    assert row.final_answer == "nigerian_419"
-    assert row.llm_answer == "nigerian_419"
-    assert row.llm_model == "gpt-test"
-    assert row.options == ["romance_scam", "nigerian_419"]
+    recorder.assert_not_called()
 
 
 # --- live ------------------------------------------------------------------
@@ -389,10 +388,70 @@ async def test_shadow_recorder_error_never_leaks(caplog: pytest.LogCaptureFixtur
     assert "Task exception was never retrieved" not in caplog.text
 
 
+def _gated_shadow(rows: list[DecisionRecord]):
+    """Shadow service whose Basal call signals when the task parks on the LLM."""
+    basal_called = asyncio.Event()
+    basal = AsyncMock(spec=BasalClient)
+
+    def ask(*args, **kwargs) -> BasalAnswer:
+        basal_called.set()
+        return _basal_answer("romance_scam", 0.95)
+
+    basal.ask_choice.side_effect = ask
+    return _service(basal, "shadow", rows), basal_called
+
+
+def _gated_llm(error: Exception | None = None):
+    release = asyncio.Event()
+
+    async def call() -> FakeLLMResult:
+        await release.wait()
+        if error is not None:
+            raise error
+        return FakeLLMResult()
+
+    return call, release
+
+
+async def test_shadow_task_cancelled_mid_llm_decision_still_returns():
+    rows: list[DecisionRecord] = []
+    service, basal_called = _gated_shadow(rows)
+    llm_call, release = _gated_llm()
+
+    pending = asyncio.create_task(_decide(service, llm_call))
+    await basal_called.wait()  # shadow task is now parked on the LLM future
+    (shadow_task,) = cascade._background_tasks
+    shadow_task.cancel()
+    release.set()
+    decision = await pending
+
+    assert decision.source == "llm"
+    assert decision.answer == "nigerian_419"
+    assert shadow_task.cancelled()
+    assert rows == []
+
+
+async def test_shadow_task_cancelled_mid_llm_llm_error_propagates():
+    rows: list[DecisionRecord] = []
+    service, basal_called = _gated_shadow(rows)
+    error = LLMRequestError("boom")
+    llm_call, release = _gated_llm(error)
+
+    pending = asyncio.create_task(_decide(service, llm_call))
+    await basal_called.wait()
+    (shadow_task,) = cascade._background_tasks
+    shadow_task.cancel()
+    release.set()
+
+    with pytest.raises(LLMRequestError) as exc_info:
+        await pending
+    assert exc_info.value is error
+
+
 # --- recording -------------------------------------------------------------
 
 
-@pytest.mark.parametrize("mode", ["off", "shadow", "live"])
+@pytest.mark.parametrize("mode", ["shadow", "live"])
 async def test_no_row_without_session_id(mode):
     rows: list[DecisionRecord] = []
     service = _service(_basal(_basal_answer("romance_scam", 0.6)), mode, rows)
