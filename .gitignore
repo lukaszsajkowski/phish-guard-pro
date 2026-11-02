@@ -124,3 +124,6 @@ dmypy.json
 # =============================================================================
 supabase/.branches
 supabase/.temp
+
+# Eval output (US-053)
+eval-results/
