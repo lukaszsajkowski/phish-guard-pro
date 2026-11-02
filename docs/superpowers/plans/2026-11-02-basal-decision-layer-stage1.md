@@ -225,7 +225,7 @@ Behaviour (each is a test):
 - Create: `backend/tests/fixtures/eval/README.md` (schema, how to review, the "don't look at model answers while reviewing" rule)
 - Test: `backend/tests/unit/decisions/test_eval_fixtures.py`
 
-Row schema: `{"id": "pl-romance-01", "lang": "pl"|"en", "gold": <AttackType value>, "reviewed": false, "email": "...", "notes": ""}`.
+Row schema: `{"id": "pl-romance-01", "lang": "pl"|"en", "gold": <AttackType value>, "reviewed": false, "ambiguous": false, "email": "...", "notes": "", "review": null}`.
 
 Content: about 100 rows, at least 10 per `AttackType` (`not_phishing` included: real invoices, newsletters, delivery notices), about half PL and half EN, with at least 15 deliberately hard cases (CEO fraud vs fake invoice, crypto vs romance, real vs fake delivery). No real personal data: names from Faker, IBANs and BTC addresses in the official example formats.
 
@@ -233,7 +233,7 @@ Content: about 100 rows, at least 10 per `AttackType` (`not_phishing` included: 
 - [ ] **Step 2: Run** `uv run pytest tests/unit/decisions/test_eval_fixtures.py -v`. Expected: FAIL (no file).
 - [ ] **Step 3: Write the fixtures**, all with `reviewed: false`.
 - [ ] **Step 4: Run** (PASS), then commit `test(US-053): add profiler eval fixtures pending label review`.
-- [ ] **Step 5: HUMAN CHECKPOINT.** Stop and ask Łukasz to review the `gold` labels and set `reviewed: true`. He reviews before seeing any model output. Continue with Task 9 in the meantime; Task 10's gate verdict waits for this.
+- [ ] **Step 5: Blind model review** (the spec's "Fixtures" section has the full procedure). The controller (not the fixture author) dispatches a fresh Claude subagent with only `id` + `email` per row and the 9 options with their `ATTACK_TYPE_CRITERIA` descriptions. No `gold`, no `notes`, no model output. It returns `id → label`. Matches get `reviewed: true`. Mismatches go to a second fresh subagent under the same blind rules. If 2 of 3 labels agree, that label becomes `gold` with `reviewed: true`; otherwise the row gets `ambiguous: true`. Write `review: {"label_b", "label_c", "reviewer_model"}` on every row. Extend `test_fixtures_schema`: every row has `reviewed: true` or `ambiguous: true`, and `ambiguous` rows are ≤ 10% of the set (if more, rewrite those emails and review them again). Commit `test(US-053): blind model review of eval fixture labels`.
 
 ### Task 9: Eval metrics (US-053)
 
@@ -244,7 +244,7 @@ Content: about 100 rows, at least 10 per `AttackType` (`not_phishing` included: 
 
 **Interfaces:**
 - Produces:
-  - `@dataclass(frozen=True) EvalCase(id: str, source: str, reference: str, basal: BasalAnswer | None, llm_answer: str | None, llm_ms: int | None, llm_prompt_tokens: int, llm_completion_tokens: int, reviewed: bool = True)`
+  - `@dataclass(frozen=True) EvalCase(id: str, source: str, reference: str, basal: BasalAnswer | None, llm_answer: str | None, llm_ms: int | None, llm_prompt_tokens: int, llm_completion_tokens: int, reviewed: bool = True, ambiguous: bool = False)`
   - `@dataclass(frozen=True) ThresholdRow(threshold: float, coverage: float, basal_error: float, cascade_agreement: float, n_basal: int, n_total: int)`
   - `threshold_curve(cases: list[EvalCase], thresholds: list[float]) -> list[ThresholdRow]`, where `coverage` = share of cases with `basal.confidence >= t`; `basal_error` = wrong among those (0.0 when none); `cascade_agreement` = share of all cases where (Basal if covered else `llm_answer`) == `reference`
   - `pick_threshold(rows: list[ThresholdRow], max_error: float = 0.02) -> ThresholdRow | None`: lowest threshold with `basal_error <= max_error` and `n_basal >= 1`
@@ -271,14 +271,14 @@ Content: about 100 rows, at least 10 per `AttackType` (`not_phishing` included: 
 **Interfaces:**
 - Consumes: Task 9 metrics; `BasalClient` (Task 1); `ProfilerAgent.classify_with_llm` (Task 6); `ATTACK_TYPE_CRITERIA`, `PROFILER_BASAL_INSTRUCTIONS` (Task 6)
 - Produces:
-  - `load_fixture_inputs(path: Path) -> list[tuple[str, str, str, bool]]` (id, email, gold, reviewed)
+  - `load_fixture_inputs(path: Path) -> list[tuple[str, str, str, bool, bool]]` (id, email, gold, reviewed, ambiguous)
   - `load_supabase_inputs(limit: int | None) -> list[tuple[str, str, str | None]]` (session_id, email from `session_service.get_original_email`, stored attack_type)
   - `load_decision_cases() -> list[EvalCase]` (shadow rows from `decisions` where both `basal_answer` and `llm_answer` are not null; reference = `llm_answer`; no model calls)
   - `write_report(cases: list[EvalCase], out_dir: Path, meta: dict) -> None`, which writes `results.jsonl`, `report.md` and `coverage_vs_error.png`
 
 Run rules: for fixtures and supabase, every input is sent to Basal and to `classify_with_llm` (with `session_id=None`, so nothing is written to `decisions` or `llm_usage`); requests run with `asyncio.Semaphore(4)`; a Basal or LLM error for one case is recorded in that case and does not stop the run. Reference = `gold` for fixtures, the fresh GPT-4o answer for supabase (the stored `attack_type` is an extra column in `results.jsonl`). `all` = supabase + fixtures. The CLI prints the number of usable sessions.
 
-`report.md` contains: meta (date, Basal model, LLM model, sources, n per source); a threshold table 0.50–0.99 step 0.01, per source and combined; the picked threshold for `max_error=0.02`; the confusion matrices; p50/p95 latency for Basal and the LLM; LLM cost per 1000 classifications; confidence buckets; and the line **`⚠ Fixture labels not reviewed — this result does not pass gate 1.`** at the top when any fixture case has `reviewed=false`.
+`report.md` contains: meta (date, Basal model, LLM model, sources, n per source); a threshold table 0.50–0.99 step 0.01, per source and combined; the picked threshold for `max_error=0.02`; the confusion matrices; p50/p95 latency for Basal and the LLM; LLM cost per 1000 classifications; confidence buckets; and the line **`⚠ Fixture labels not reviewed — this result does not pass gate 1.`** at the top when any fixture case has `reviewed=false`. Rows with `ambiguous: true` are left out of the gate metrics and listed in their own section. The meta block states: `Fixture labels: agreement of two blind Claude reviewers, not expert review.`
 
 - [ ] **Step 1: Write failing tests:** `test_write_report_creates_files` (tmp_path, 4 synthetic cases → three files exist, `report.md` contains `"| 0.90 |"`); `test_report_warns_on_unreviewed`; `test_report_no_warning_when_all_reviewed`; `test_load_decision_cases_filters_incomplete_rows` (patched Supabase client).
 - [ ] **Step 2: Run.** Expected: FAIL.

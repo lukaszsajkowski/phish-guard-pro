@@ -155,9 +155,15 @@ Progi są per węzeł od początku, bo etap 2 (kontrola roli) dostanie ostrzejsz
 
 **Wejście:**
 - **Supabase:** wszystkie sesje z oryginalnym e-mailem (`session_service.get_original_email`), czytane kluczem service role. Liczba sesji nadających się do evalu nie jest znana; skrypt ją raportuje.
-- **Fixtures:** `backend/tests/fixtures/eval/profiler_emails.jsonl`, około 100 e-maili PL/EN z etykietą `gold`, po kilka na każdy z 9 typów, w tym trudne przypadki (granice CEO fraud / fake invoice, prawdziwe faktury, newslettery). Generowane z pomocą LLM; **etykiety przegląda ręcznie właściciel projektu (Łukasz)** i każdy wiersz dostaje pole `reviewed: true` po przeglądzie. Ten zbiór pokrywa ryzyko „za mało historycznych sesji”.
+- **Fixtures:** `backend/tests/fixtures/eval/profiler_emails.jsonl`, około 100 e-maili PL/EN z etykietą `gold`, po kilka na każdy z 9 typów, w tym trudne przypadki (granice CEO fraud / fake invoice, prawdziwe faktury, newslettery). Generowane z pomocą LLM. **Etykiety przegląda model, nie człowiek** (decyzja właściciela z 2026-11-02), w procesie „na ślepo”:
 
-Punkt przekazania: budowniczy generuje zbiór z `reviewed: false` i zatrzymuje się na przegląd. Eval na fixtures da się uruchomić wcześniej (do strojenia skryptu), ale raport oznacza wtedy wynik jako „etykiety nieprzejrzane” i taki wynik nie zalicza bramki 1. Etykiety muszą być niezależne od GPT: przy przeglądzie właściciel nie widzi odpowiedzi GPT-4o ani Basala dla danego e-maila.
+1. Generator zapisuje e-mail z zamierzoną etykietą `gold` i `reviewed: false`.
+2. Świeży subagent Claude (nie GPT, nie Basal: modele z porównania nie mogą oceniać samych siebie) dostaje sam e-mail, listę 9 typów z opisami z `ATTACK_TYPE_CRITERIA`, bez `gold` i bez odpowiedzi jakiegokolwiek modelu. Przypisuje etykietę (`label_b`).
+3. Zgodność `label_b == gold` daje `reviewed: true`.
+4. Przy niezgodności drugi, niezależny subagent na ślepo daje `label_c`. Jeśli dwie z trzech etykiet się zgadzają, ta etykieta zostaje `gold` i wiersz dostaje `reviewed: true`. W przeciwnym razie wiersz dostaje `ambiguous: true` i nie liczy się do bramki 1. Raport pokazuje go osobno.
+5. Każdy wiersz zapisuje `review: {"label_b": ..., "label_c": ... | null, "reviewer_model": ...}`.
+
+Ten zbiór pokrywa ryzyko „za mało historycznych sesji”. Raport z evalu ostrzega, gdy jakikolwiek wiersz ma `reviewed: false`, i taki wynik nie zalicza bramki 1. Ograniczenie, które raport podaje wprost: etykiety są zgodą dwóch modeli Claude, a nie oceną eksperta.
 
 **Przebieg:** dla każdego e-maila Basal (pełny rozkład) i świeże wywołanie GPT-4o z obecnym promptem Profilera. Referencja: `gold` dla fixtures, GPT-4o dla Supabase. `attack_type` zapisany w sesji to tylko dodatkowa kolumna, bo mógł pochodzić z `gpt-4o-mini` (fallback).
 
