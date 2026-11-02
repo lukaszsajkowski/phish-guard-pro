@@ -64,9 +64,31 @@ async def test_update_session_classification_writes_decision_source():
 
         await update_session_classification("s-1", _result("basal_low_confidence"))
 
-    written = table.update.call_args.args[0]
-    assert written["decision_source"] == "basal_low_confidence"
+    written = table.update.call_args_list[0].args[0]
+    assert "decision_source" not in written
     assert written["attack_confidence"] == 94.0
+    second = table.update.call_args_list[1].args[0]
+    assert second == {"decision_source": "basal_low_confidence"}
+
+
+@pytest.mark.asyncio
+async def test_decision_source_write_failure_does_not_raise():
+    client = MagicMock()
+    table = client.table.return_value
+    main_exec = MagicMock(data=[{"id": "s-1"}])
+    table.update.return_value.eq.return_value.execute.side_effect = [
+        main_exec,
+        Exception("column decision_source does not exist"),
+    ]
+    with patch(
+        "phishguard.services.session_service._get_supabase_client",
+        return_value=client,
+    ):
+        from phishguard.services.session_service import update_session_classification
+
+        await update_session_classification("s-1", _result("basal"))
+
+    assert table.update.call_count == 2
 
 
 @pytest.mark.asyncio

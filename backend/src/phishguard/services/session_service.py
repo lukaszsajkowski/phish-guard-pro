@@ -132,7 +132,6 @@ async def update_session_classification(
     update_data: dict[str, Any] = {
         "attack_type": classification_result.attack_type.value,
         "attack_confidence": classification_result.confidence,  # For US-031
-        "decision_source": classification_result.decision_source,  # US-049
     }
 
     # Add persona if present
@@ -151,6 +150,17 @@ async def update_session_classification(
 
     if not result.data or len(result.data) == 0:
         raise Exception("Failed to update session")
+
+    # US-049: best-effort and separate, so a deploy that is ahead of the
+    # migration (unknown column) never fails the classification.
+    try:
+        supabase.table("sessions").update(
+            {"decision_source": classification_result.decision_source}
+        ).eq("id", session_id).execute()
+    except Exception as e:
+        logger.warning(
+            "Could not store decision_source for session %s: %r", session_id, e
+        )
 
     logger.info(
         "Updated session %s with attack_type=%s confidence=%s",
