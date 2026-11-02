@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     basal_mode: Literal["off", "shadow", "live"] = "shadow"
     basal_threshold: float = 0.9
     basal_threshold_profiler: float | None = None
-    basal_timeout_s: float = 5.0
+    basal_timeout_s: float = 30.0
     basal_model: str = ""
 
     # Application

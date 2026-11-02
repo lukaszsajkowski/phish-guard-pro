@@ -312,3 +312,59 @@ class TestClassifyWithLLM:
 
     def test_parse_error_is_classification_error(self):
         assert issubclass(ClassificationParseError, ClassificationError)
+
+
+class TestFixRound1:
+    def test_runner_up_ignores_stray_probability_keys(self):
+        answer = BasalAnswer(
+            "romance_scam",
+            {"romance_scam": 0.90, "other": 0.08, "nigerian_419": 0.02},
+            0.90,
+            5,
+        )
+
+        assert build_basal_reasoning(answer) == (
+            "Classified locally by Basal: Romance Scam (p=0.90). "
+            "Runner-up: Nigerian 419 (p=0.02)."
+        )
+
+    def test_runner_up_omitted_when_only_stray_keys(self):
+        answer = BasalAnswer("ceo_fraud", {"ceo_fraud": 0.9, "bogus": 0.1}, 0.9, 5)
+
+        assert build_basal_reasoning(answer) == (
+            "Classified locally by Basal: CEO Fraud (p=0.90)."
+        )
+
+    @pytest.mark.asyncio
+    async def test_classify_survives_stray_probability_key(self):
+        stray = BasalAnswer(
+            "romance_scam", {"romance_scam": 0.91, "zzz_unknown": 0.09}, 0.91, 5
+        )
+        service = FakeDecisionService(Decision("basal", "romance_scam", stray, None))
+        agent = ProfilerAgent(llm_client=_llm_client(), decision_service=service)
+
+        result = await agent.classify("Hello dear")
+
+        assert result.attack_type == AttackType.ROMANCE_SCAM
+        assert result.decision_source == "basal"
+
+    @pytest.mark.asyncio
+    async def test_raising_on_usage_does_not_cause_fallback(self):
+        client = _llm_client(_response(_valid()))
+        agent = ProfilerAgent(llm_client=client, decision_service=_off_service())
+
+        def boom(_: LLMResponse) -> None:
+            raise RuntimeError("buggy callback")
+
+        result = await agent.classify_with_llm("Pay now", on_usage=boom)
+
+        assert result.attack_type == AttackType.CEO_FRAUD
+        assert client.chat_completion.await_count == 1
+
+
+def test_basal_timeout_default_is_30s(monkeypatch):
+    from phishguard.core import Settings
+
+    monkeypatch.delenv("BASAL_TIMEOUT_S", raising=False)
+
+    assert Settings(_env_file=None).basal_timeout_s == 30.0

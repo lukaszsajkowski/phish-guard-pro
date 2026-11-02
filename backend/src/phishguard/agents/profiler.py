@@ -63,7 +63,13 @@ def build_basal_reasoning(answer: BasalAnswer) -> str:
     """Template reasoning for a Basal decision (Basal writes no rationale)."""
     top = AttackType(answer.answer).display_name
     text = f"Classified locally by Basal: {top} (p={answer.confidence:.2f})."
-    runner_ups = {k: v for k, v in answer.probabilities.items() if k != answer.answer}
+    # Only keys that were asked as options; a stray key from a misconfigured
+    # server must not turn the reasoning text into a crash.
+    runner_ups = {
+        k: v
+        for k, v in answer.probabilities.items()
+        if k != answer.answer and k in ATTACK_TYPE_CRITERIA
+    }
     if runner_ups:
         key = max(runner_ups, key=runner_ups.__getitem__)
         second = AttackType(key).display_name
@@ -217,7 +223,11 @@ class ProfilerAgent:
                         int((time.perf_counter() - call_start) * 1000),
                     )
                 if on_usage is not None:
-                    on_usage(llm_response)
+                    try:
+                        on_usage(llm_response)
+                    except Exception:
+                        # A buggy callback must not count as a parse failure.
+                        logger.warning("on_usage callback failed", exc_info=True)
                 content = llm_response.content
 
                 # Track if fallback model was used
