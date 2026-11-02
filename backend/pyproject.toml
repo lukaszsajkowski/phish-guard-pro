@@ -17,6 +17,7 @@ dependencies = [
     "langgraph-checkpoint-postgres>=3.0.2",
     "psycopg[binary]>=3.3.2",
     "phonenumbers>=8.13.0",
+    "fast-langdetect>=1.1.0",
 ]
 
 [project.optional-dependencies]
