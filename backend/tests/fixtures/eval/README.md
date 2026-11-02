@@ -33,3 +33,10 @@ Labels are written by the fixture author and must not be trusted until reviewed.
 5. `review` is written on every row with `label_b`, `label_c` and `reviewer_model`.
 6. `ambiguous` rows are excluded from the gate, and must be at most 10% of the set.
    If more, rewrite those emails and review them again.
+
+## Review result (2026-11-02)
+
+99/99 agreement from one blind reviewer, so no second reviewer was needed and no row is
+`ambiguous`. Because the generator and the reviewer are both Claude models and agreement
+was perfect, the set may be easier than real traffic. Treat fixture accuracy as an upper
+bound and rely on Supabase/shadow data for realism.
