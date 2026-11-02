@@ -1144,9 +1144,11 @@ Acceptance Criteria:
 - Table `decisions` (migration, RLS: users see and create rows only for their
   own sessions) stores node, mode, options, Basal answer / probabilities /
   confidence / latency / model, threshold, skip reason (`disabled`,
-  `language`, `unavailable`, `timeout`, `below_threshold`), LLM answer /
+  `language`, `unavailable`, `timeout`, `below_threshold`; `disabled` is an
+  allowed value but is not produced, since off mode writes no row), LLM answer /
   model / latency, final answer and source (`llm`, `basal`,
   `basal_low_confidence`)
+- Decision rows are written only when a session id is set
 - Decision rows never contain the question text (no email content is stored)
 
 ### US-049: Profiler Attack Type via Cascade ✅
@@ -1163,8 +1165,11 @@ Acceptance Criteria:
 - Profiler attack type (node `profiler.attack_type`) is decided through the
   cascade; option descriptions for Basal come from the `AttackType` criteria
   and the Profiler prompt
-- Only the attack type is routed; the remaining Profiler fields (such as
-  confidence reasoning and persona hints) still come from the LLM
+- Only the attack type is routed. LLM-supplied fields (reasoning, persona
+  hints) exist only when `decision_source` is `llm` (including shadow mode).
+  When Basal answers in live mode the LLM is not called: reasoning comes from
+  a template, confidence is Basal's probability x 100, and no persona hint is
+  set
 - `ClassificationResult` carries `decision_source` (`llm`, `basal` or
   `basal_low_confidence`); the LLM-only path reports `llm`
 - `decision_source` is persisted on the session (migration adds a checked
@@ -1190,7 +1195,12 @@ Acceptance Criteria:
   logged in `decisions` (the last needs no Basal and no OpenAI key)
 - Fixture set: 99 synthetic emails (Polish and English) with attack-type
   labels reviewed blind by a model; ambiguous cases are marked as such
-- Metrics: coverage and error rate per threshold, Basal vs LLM agreement
+- Report per threshold: coverage, Basal error rate and cascade agreement
+  against a reference label (gold label for fixtures, the LLM answer for
+  supabase and decisions sources); also confusion matrices, latency
+  percentiles, confidence buckets and LLM cost
+- Outputs in `--out`: `results.jsonl`, `report.md`, `coverage_vs_error.png`
+- The one ambiguous fixture (`pl-ceo-03`) is excluded from gate metrics
 - Report written to `--out`; a missing OpenAI key or a failing call is
   recorded per case and the run continues
 - Nothing is written to Supabase by the eval (LLM calls use no session id)
@@ -1215,8 +1225,11 @@ Acceptance Criteria:
 - Table `llm_usage` (migration, indexed by session and agent) stores session
   id (nullable), agent (`profiler`, `conversation`, `eval`), model, prompt
   tokens, completion tokens and latency in ms
-- Every GPT call of the Profiler and the Conversation Agent writes a row
-- Eval calls write no row to Supabase
+- Every successful GPT call of the Profiler and the Conversation Agent made
+  with a session id writes a row; failed calls and calls without a session id
+  write nothing
+- The `eval` agent value is allowed by the table check but is not written:
+  eval calls pass no session id, so they write no row
 - A failed usage write never fails the call
 
 ### Note: Original US-050, US-051, US-052, US-054
