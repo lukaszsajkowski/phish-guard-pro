@@ -1096,6 +1096,139 @@ Acceptance Criteria:
 - First-time visitors see light mode without flash of dark mode
 - Theme initialization happens before first paint (inline script or SSR)
 
+### US-047: Basal Client and Settings ✅
+
+Title: HTTP client and configuration for the Basal decision model
+
+Description: As a developer, I want a small client for the locally hosted
+Basal model, configured through settings, so that closed (single-choice)
+decisions can be routed to it without touching the LLM path.
+
+Acceptance Criteria:
+
+- `phishguard.decisions.basal_client` sends a closed question (instructions,
+  options with descriptions, input text) to the Basal endpoint and returns the
+  chosen option, per-option probabilities, confidence, latency and model name
+- Unreachable endpoint, timeout or unexpected response raises a dedicated
+  `BasalUnavailableError`; callers decide how to degrade
+- Settings: `BASAL_URL` (empty = Basal disabled, effective mode `off`),
+  `BASAL_MODE` (`off` | `shadow` | `live`, default `shadow`),
+  `BASAL_THRESHOLD` (default 0.9), optional per-node override for the
+  Profiler (`BASAL_THRESHOLD_PROFILER`), `BASAL_TIMEOUT_S` (default 30),
+  `BASAL_MODEL`
+- With an empty `BASAL_URL` the application behaves exactly as before Basal
+
+### US-048: Decision Cascade and Decision Log ✅
+
+Title: Basal to LLM cascade with off / shadow / live modes
+
+Description: As a developer, I want a cascade that asks Basal first and falls
+back to the LLM, with every decision recorded, so that cost and quality of
+Basal can be measured before it is allowed to decide.
+
+Acceptance Criteria:
+
+- Module `phishguard.decisions` provides a cascade for closed questions
+  (`ChoiceQuestion`: node, instructions, criteria)
+- **off:** only the LLM answers; no row is written to `decisions`
+- **shadow (default):** the LLM gives the verdict; Basal runs in a background
+  task and is only logged. Basal never delays or changes the classification
+- **live:** Basal answers when confidence >= threshold (inclusive); otherwise
+  the LLM answers. If the LLM then fails and Basal had an answer, Basal's
+  answer is used with source `basal_low_confidence`
+- **Language gate:** text confidently detected as a language other than
+  Polish or English (checked per line; short or ambiguous lines pass) is not
+  sent to Basal; skip reason `language`
+- A Basal failure, a language-gate failure or a failed decision-log write
+  never fails the decision or the session
+- Table `decisions` (migration, RLS: users see and create rows only for their
+  own sessions) stores node, mode, options, Basal answer / probabilities /
+  confidence / latency / model, threshold, skip reason (`disabled`,
+  `language`, `unavailable`, `timeout`, `below_threshold`), LLM answer /
+  model / latency, final answer and source (`llm`, `basal`,
+  `basal_low_confidence`)
+- Decision rows never contain the question text (no email content is stored)
+
+### US-049: Profiler Attack Type via Cascade ✅
+
+Title: Profiler attack-type decision goes through the cascade, source visible
+end to end
+
+Description: As a user, I want the attack-type classification to use the
+cascade and to see which engine produced it, so that I can tell a Basal
+verdict from an LLM one.
+
+Acceptance Criteria:
+
+- Profiler attack type (node `profiler.attack_type`) is decided through the
+  cascade; option descriptions for Basal come from the `AttackType` criteria
+  and the Profiler prompt
+- Only the attack type is routed; the remaining Profiler fields (such as
+  confidence reasoning and persona hints) still come from the LLM
+- `ClassificationResult` carries `decision_source` (`llm`, `basal` or
+  `basal_low_confidence`); the LLM-only path reports `llm`
+- `decision_source` is persisted on the session (migration adds a checked
+  column to `sessions`), returned by the API and loaded on session restore
+- The UI shows a small source badge next to the attack-type confidence badge,
+  in the style of the existing confidence badge
+- Classification never fails because Basal is off, slow or returns something
+  unexpected
+
+### US-053: Profiler Eval CLI ✅
+
+Title: Offline eval comparing Basal and the LLM on attack-type labels
+
+Description: As the product owner, I want a repeatable eval that reports
+coverage versus error as a function of the confidence threshold, so that I
+can decide whether and when to switch Basal to `live`.
+
+Acceptance Criteria:
+
+- CLI: `python -m phishguard.decisions.eval profiler --source
+  supabase|fixtures|decisions|all --out DIR [--limit N]`
+- Sources: saved sessions from Supabase, synthetic fixtures, and rows already
+  logged in `decisions` (the last needs no Basal and no OpenAI key)
+- Fixture set: 99 synthetic emails (Polish and English) with attack-type
+  labels reviewed blind by a model; ambiguous cases are marked as such
+- Metrics: coverage and error rate per threshold, Basal vs LLM agreement
+- Report written to `--out`; a missing OpenAI key or a failing call is
+  recorded per case and the run continues
+- Nothing is written to Supabase by the eval (LLM calls use no session id)
+
+Open items (not part of the criteria above):
+
+- A full eval run with an OpenAI key has not been done yet
+- The `supabase` source has not been exercised against real saved sessions
+- Gate 1 and gate 2 (the decisions to run `live` and at which threshold)
+  belong to the product owner and depend on the eval report and shadow data
+
+### US-055: GPT Token Usage Logging ✅
+
+Title: Record token usage and latency of every GPT call
+
+Description: As the product owner, I want prompt and completion tokens and
+latency stored per call, so that the cost before and after Basal is measured
+rather than estimated.
+
+Acceptance Criteria:
+
+- Table `llm_usage` (migration, indexed by session and agent) stores session
+  id (nullable), agent (`profiler`, `conversation`, `eval`), model, prompt
+  tokens, completion tokens and latency in ms
+- Every GPT call of the Profiler and the Conversation Agent writes a row
+- Eval calls write no row to Supabase
+- A failed usage write never fails the call
+
+### Note: Original US-050, US-051, US-052, US-054
+
+The originally planned safety check, IOC assessment / next step, Decision Ops
+panel and case study are not part of stage 1. They move to stages 2-3 in
+reshaped form (see
+`docs/superpowers/specs/2026-11-02-basal-decision-layer-stage1-design.md`):
+the in-role check in stage 2, IOC-as-bait assessment in stage 3. "Next step"
+stays with the Conversation Agent, and the Decision Ops panel's role is played
+by the eval report in stage 1.
+
 ---
 
 ## 6. Success Metrics
