@@ -102,3 +102,10 @@ def test_effective_mode_off_without_url():
 def test_effective_mode_follows_mode_with_url():
     s = Settings(basal_url="http://basal.test", basal_mode="shadow")
     assert s.basal_effective_mode == "shadow"
+
+
+@pytest.mark.parametrize("bad_choice", [["x"], {"a": 1}, 5, None])
+async def test_ask_choice_raises_on_non_string_choice(bad_choice):
+    client = _client(lambda r: _ok(bad_choice))
+    with pytest.raises(BasalUnavailableError):
+        await client.ask_choice("s", "i", CRITERIA)

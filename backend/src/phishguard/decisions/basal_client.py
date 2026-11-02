@@ -78,7 +78,7 @@ class BasalClient:
         except (KeyError, ValueError, TypeError, AttributeError) as e:
             raise BasalUnavailableError(f"Invalid Basal response: {e!r}") from e
 
-        if choice not in criteria:
+        if not isinstance(choice, str) or choice not in criteria:
             raise BasalUnavailableError(f"Basal choice not in options: {choice!r}")
 
         latency_ms = int((time.perf_counter() - start) * 1000)
