@@ -104,6 +104,53 @@ class TestLLMClient:
     """Tests for LLMClient functionality."""
 
     @pytest.mark.asyncio
+    async def test_chat_completion_returns_usage(self, mock_settings, client_config):
+        """Token usage from the OpenAI response is exposed on LLMResponse."""
+        client = LLMClient(config=client_config)
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.usage.prompt_tokens = 120
+        mock_response.usage.completion_tokens = 40
+
+        with patch.object(
+            client._client.chat.completions,
+            "create",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ):
+            response = await client.chat_completion(
+                messages=[{"role": "user", "content": "Hello"}]
+            )
+
+        assert response.prompt_tokens == 120
+        assert response.completion_tokens == 40
+
+    @pytest.mark.asyncio
+    async def test_chat_completion_usage_missing_defaults_zero(
+        self, mock_settings, client_config
+    ):
+        """A response without usage yields zero token counts."""
+        client = LLMClient(config=client_config)
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Test response"
+        mock_response.usage = None
+
+        with patch.object(
+            client._client.chat.completions,
+            "create",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ):
+            response = await client.chat_completion(
+                messages=[{"role": "user", "content": "Hello"}]
+            )
+
+        assert response.prompt_tokens == 0
+        assert response.completion_tokens == 0
+
+    @pytest.mark.asyncio
     async def test_successful_completion(self, mock_settings, client_config):
         """Test successful chat completion with primary model."""
         client = LLMClient(config=client_config)

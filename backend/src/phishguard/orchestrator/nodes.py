@@ -150,6 +150,7 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         attack_type=attack_type,
         conversation_history=conversation_history if not is_first else None,
         is_first_response=is_first,
+        session_id=state.get("session_id"),
     )
 
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)

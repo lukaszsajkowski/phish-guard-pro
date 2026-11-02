@@ -1,8 +1,11 @@
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
+
 from phishguard.agents.conversation import ConversationAgent
 from phishguard.models.thinking import AgentThinking
+
 
 class TestConversationAgentParsing:
     """Unit tests for ConversationAgent response parsing logic."""
@@ -19,8 +22,8 @@ class TestConversationAgentParsing:
             "thinking": {
                 "turn_goal": "Friendly greeting",
                 "selected_tactic": "Warmth",
-                "reasoning": "Standard opening"
-            }
+                "reasoning": "Standard opening",
+            },
         }
         raw = json.dumps(data)
         content, thinking = agent._parse_structured_response(raw)
@@ -42,8 +45,8 @@ class TestConversationAgentParsing:
             "thinking": {
                 "turn_goal": "",  # Invalid: min_length=1
                 "selected_tactic": "Warmth",
-                "reasoning": "Standard opening"
-            }
+                "reasoning": "Standard opening",
+            },
         }
         raw = json.dumps(data)
         content, thinking = agent._parse_structured_response(raw)
@@ -66,7 +69,7 @@ class TestConversationAgentParsing:
             "thinking": {
                 "turn_goal": "Goal",
                 "selected_tactic": "Tactic",
-                "reasoning": "Reason"
+                "reasoning": "Reason",
             }
         }
         raw = json.dumps(data)
@@ -83,8 +86,8 @@ class TestConversationAgentParsing:
             "thinking": {
                 "turn_goal": "Goal",
                 "selected_tactic": "Tactic",
-                "reasoning": "Reason"
-            }
+                "reasoning": "Reason",
+            },
         }
         raw = f"Here is my response:\n```json\n{json.dumps(data)}\n```"
         content, thinking = agent._parse_structured_response(raw)
@@ -116,3 +119,73 @@ class TestConversationAgentParsing:
 
         assert content == raw.strip()
         assert thinking is None
+
+
+class TestConversationAgentUsageRecording:
+    """Token usage is recorded per LLM attempt when a session is known."""
+
+    @staticmethod
+    def _agent():
+        from phishguard.llm.client import LLMResponse
+
+        llm = MagicMock()
+        llm.chat_completion = AsyncMock(
+            return_value=LLMResponse(
+                content=json.dumps({"response": "Hi there"}),
+                model_used="gpt-4o",
+                prompt_tokens=120,
+                completion_tokens=40,
+            )
+        )
+        validator = MagicMock()
+        validator.validate.return_value = MagicMock(is_safe=True)
+        return ConversationAgent(llm_client=llm, validator=validator)
+
+    @staticmethod
+    def _persona():
+        from phishguard.models.persona import PersonaProfile
+
+        return MagicMock(spec=PersonaProfile)
+
+    async def _run(self, agent, **kwargs):
+        from phishguard.models.classification import AttackType
+
+        with patch(
+            "phishguard.agents.conversation.get_conversation_system_prompt",
+            return_value="sys",
+        ):
+            return await agent.generate_response(
+                persona=self._persona(),
+                email_content="hello",
+                attack_type=AttackType.NIGERIAN_419,
+                **kwargs,
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_response_records_usage(self):
+        agent = self._agent()
+        with patch(
+            "phishguard.agents.conversation.record_llm_usage",
+            new_callable=AsyncMock,
+        ) as rec:
+            await self._run(agent, session_id="s-1")
+
+        rec.assert_awaited_once()
+        args = rec.await_args
+        assert args.args[0] == "s-1"
+        assert args.args[1] == "conversation"
+        assert args.args[2] == "gpt-4o"
+        assert args.args[3] == 120
+        assert args.args[4] == 40
+        assert isinstance(args.args[5], int)
+
+    @pytest.mark.asyncio
+    async def test_generate_response_without_session_skips_usage(self):
+        agent = self._agent()
+        with patch(
+            "phishguard.agents.conversation.record_llm_usage",
+            new_callable=AsyncMock,
+        ) as rec:
+            await self._run(agent)
+
+        rec.assert_not_awaited()

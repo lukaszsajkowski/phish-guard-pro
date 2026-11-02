@@ -14,6 +14,7 @@ from phishguard.agents.prompts.conversation import (
     get_conversation_system_prompt,
     get_conversation_user_prompt,
 )
+from phishguard.decisions.recorder import record_llm_usage
 from phishguard.llm import LLMClient, LLMRequestError, create_llm_client
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import (
@@ -92,6 +93,7 @@ class ConversationAgent:
         attack_type: AttackType,
         conversation_history: list[ConversationMessage] | None = None,
         is_first_response: bool = True,
+        session_id: str | None = None,
     ) -> ResponseGenerationResult:
         """Generate a victim response in the persona's style.
 
@@ -105,6 +107,7 @@ class ConversationAgent:
             attack_type: The classified type of phishing attack.
             conversation_history: Optional list of previous messages for context.
             is_first_response: Whether this is the first response in conversation.
+            session_id: Optional session id; when set, token usage is recorded.
 
         Returns:
             ResponseGenerationResult with the generated response and metadata.
@@ -141,11 +144,21 @@ class ConversationAgent:
         while regeneration_count <= MAX_REGENERATION_ATTEMPTS:
             try:
                 # Use LLMClient for automatic retry and fallback (US-023)
+                call_start = time.perf_counter()
                 llm_response = await self._llm_client.chat_completion(
                     messages=messages,
                     temperature=CONVERSATION_TEMPERATURE,
                     max_tokens=CONVERSATION_MAX_TOKENS,
                 )
+                if session_id:
+                    await record_llm_usage(
+                        session_id,
+                        "conversation",
+                        llm_response.model_used,
+                        llm_response.prompt_tokens,
+                        llm_response.completion_tokens,
+                        int((time.perf_counter() - call_start) * 1000),
+                    )
                 content = llm_response.content
 
                 # Track if fallback model was used

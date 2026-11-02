@@ -7,7 +7,7 @@ when the primary model is unavailable (US-023, FR-039).
 
 import asyncio
 import logging
-from typing import Final
+from typing import Final, NamedTuple
 
 from openai import (
     APIConnectionError,
@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT_SECONDS: Final[float] = 30.0
 DEFAULT_MAX_RETRIES: Final[int] = 3
 DEFAULT_BASE_DELAY_SECONDS: Final[float] = 1.0
+
+
+class _Completion(NamedTuple):
+    """Content and token usage of a single completion."""
+
+    content: str
+    prompt_tokens: int
+    completion_tokens: int
 
 
 class LLMClientConfig(BaseModel):
@@ -66,6 +74,8 @@ class LLMResponse(BaseModel):
         ),
     )
     model_used: str = Field(..., description="The model that generated the response.")
+    prompt_tokens: int = Field(default=0, description="Prompt tokens billed.")
+    completion_tokens: int = Field(default=0, description="Completion tokens billed.")
 
 
 class LLMClientError(Exception):
@@ -182,14 +192,16 @@ class LLMClient:
         use_fallback_on_failure = model is None  # Only fallback if using default model
 
         try:
-            content = await self._attempt_with_retries(
+            completion = await self._attempt_with_retries(
                 messages=messages,
                 model=target_model,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
             return LLMResponse(
-                content=content,
+                content=completion.content,
+                prompt_tokens=completion.prompt_tokens,
+                completion_tokens=completion.completion_tokens,
                 used_fallback=False,
                 model_used=target_model,
             )
@@ -212,7 +224,7 @@ class LLMClient:
 
         # Try fallback model
         try:
-            content = await self._attempt_with_retries(
+            completion = await self._attempt_with_retries(
                 messages=messages,
                 model=self._config.fallback_model,
                 temperature=temperature,
@@ -223,7 +235,9 @@ class LLMClient:
                 self._config.fallback_model,
             )
             return LLMResponse(
-                content=content,
+                content=completion.content,
+                prompt_tokens=completion.prompt_tokens,
+                completion_tokens=completion.completion_tokens,
                 used_fallback=True,
                 model_used=self._config.fallback_model,
             )
@@ -239,7 +253,7 @@ class LLMClient:
         model: str,
         temperature: float,
         max_tokens: int | None,
-    ) -> str:
+    ) -> _Completion:
         """Attempt completion with exponential backoff retries.
 
         Args:
@@ -249,7 +263,7 @@ class LLMClient:
             max_tokens: Maximum tokens in response.
 
         Returns:
-            The completion content string.
+            The completion content and token usage.
 
         Raises:
             LLMConfigurationError: On authentication failure.
@@ -315,7 +329,7 @@ class LLMClient:
         model: str,
         temperature: float,
         max_tokens: int | None,
-    ) -> str:
+    ) -> _Completion:
         """Make a single completion request.
 
         Args:
@@ -325,7 +339,7 @@ class LLMClient:
             max_tokens: Maximum tokens in response.
 
         Returns:
-            The completion content string.
+            The completion content and token usage.
 
         Raises:
             LLMRequestError: If the response is empty or malformed.
@@ -348,7 +362,16 @@ class LLMClient:
         if content is None:
             raise LLMRequestError("Completion returned None content")
 
-        return content
+        usage = getattr(response, "usage", None)
+        prompt_tokens = getattr(usage, "prompt_tokens", 0)
+        completion_tokens = getattr(usage, "completion_tokens", 0)
+        return _Completion(
+            content=content,
+            prompt_tokens=prompt_tokens if isinstance(prompt_tokens, int) else 0,
+            completion_tokens=(
+                completion_tokens if isinstance(completion_tokens, int) else 0
+            ),
+        )
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
