@@ -1108,7 +1108,7 @@ Acceptance Criteria:
 
 - `phishguard.decisions.basal_client` sends a closed question (instructions,
   options with descriptions, input text) to the Basal endpoint and returns the
-  chosen option, per-option probabilities, confidence, latency and model name
+  chosen option, per-option probabilities, confidence and latency (the model label for logging comes from `BASAL_MODEL`)
 - Unreachable endpoint, timeout or unexpected response raises a dedicated
   `BasalUnavailableError`; callers decide how to degrade
 - Settings: `BASAL_URL` (empty = Basal disabled, effective mode `off`),

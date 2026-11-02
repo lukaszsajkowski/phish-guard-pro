@@ -36,8 +36,9 @@ Labels are written by the fixture author and must not be trusted until reviewed.
 
 ## Review result (2026-11-02)
 
-99/99 agreement from one blind reviewer, so no second reviewer was needed and no row is
-`ambiguous`. Because the generator and the reviewer are both Claude models and agreement
+99/99 agreement from one blind reviewer, so no second reviewer was needed and the review
+itself marked no row `ambiguous` (see `pl-ceo-03` below for a later, manual marking).
+Because the generator and the reviewer are both Claude models and agreement
 was perfect, the set may be easier than real traffic. Treat fixture accuracy as an upper
 bound and rely on Supabase/shadow data for realism.
 

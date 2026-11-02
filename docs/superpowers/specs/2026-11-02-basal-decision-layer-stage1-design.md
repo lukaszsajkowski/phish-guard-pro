@@ -140,7 +140,7 @@ Zapis decyzji nie może zablokować klasyfikacji: błąd zapisu kończy się war
 | `BASAL_MODE` | `shadow` | `off` / `shadow` / `live`; ignorowane, gdy `BASAL_URL` puste |
 | `BASAL_THRESHOLD` | `0.9` | domyślny próg (jak w autoshield) |
 | `BASAL_THRESHOLD_PROFILER` | brak | nadpisuje próg dla węzła Profilera |
-| `BASAL_TIMEOUT_S` | `5` | timeout zapytania do Basala |
+| `BASAL_TIMEOUT_S` | `30` | timeout zapytania do Basala. Domyślną wartość podniesiono do 30 s, bo lokalny Basal na MLX potrzebuje kilku sekund na wywołanie, a tryb shadow nigdy nie blokuje odpowiedzi; timeout ścieżki live trzeba ponownie przemyśleć przed przełączeniem na live. |
 | `BASAL_MODEL` | `""` | etykieta modelu do logów i raportu |
 
 Progi są per węzeł od początku, bo etap 2 (kontrola roli) dostanie ostrzejszy próg.
