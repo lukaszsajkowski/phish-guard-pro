@@ -1,6 +1,7 @@
 """Tests for the decision/usage recorder."""
 
 import logging
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -94,3 +95,16 @@ async def test_record_llm_usage_swallows_errors(
     ):
         await record_llm_usage("s", "eval", "m", 1, 1, 1)
     assert any(r.levelno == logging.WARNING for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_record_decision_runs_supabase_off_the_event_loop_thread() -> None:
+    threads: list[threading.Thread] = []
+    client = MagicMock()
+    client.table.return_value.insert.return_value.execute.side_effect = (
+        lambda: threads.append(threading.current_thread())
+    )
+    with patch(PATCH_TARGET, return_value=client):
+        await record_decision(_record())
+
+    assert threads and threads[0] is not threading.main_thread()

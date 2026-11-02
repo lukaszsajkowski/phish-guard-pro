@@ -4,12 +4,19 @@ Writes never raise: a failed write logs a warning and the caller continues.
 Decision rows never contain email text.
 """
 
+import asyncio
 import logging
 from dataclasses import asdict, dataclass
 
 from phishguard.services.session_service import _get_supabase_client
 
 logger = logging.getLogger(__name__)
+
+
+def _insert(table: str, row: dict) -> None:
+    """Synchronous Supabase insert; run via `asyncio.to_thread`."""
+    client = _get_supabase_client()
+    client.table(table).insert(row).execute()
 
 
 @dataclass
@@ -37,8 +44,7 @@ class DecisionRecord:
 async def record_decision(record: DecisionRecord) -> None:
     """Insert a row into `decisions`; swallow any error."""
     try:
-        client = _get_supabase_client()
-        client.table("decisions").insert(asdict(record)).execute()
+        await asyncio.to_thread(_insert, "decisions", asdict(record))
     except Exception as exc:
         logger.warning("Failed to record decision: %s", exc)
 
@@ -53,8 +59,9 @@ async def record_llm_usage(
 ) -> None:
     """Insert a row into `llm_usage`; swallow any error."""
     try:
-        client = _get_supabase_client()
-        client.table("llm_usage").insert(
+        await asyncio.to_thread(
+            _insert,
+            "llm_usage",
             {
                 "session_id": session_id,
                 "agent": agent,
@@ -62,7 +69,7 @@ async def record_llm_usage(
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "latency_ms": latency_ms,
-            }
-        ).execute()
+            },
+        )
     except Exception as exc:
         logger.warning("Failed to record LLM usage: %s", exc)
