@@ -6,7 +6,11 @@ from unittest.mock import MagicMock, patch
 
 from phishguard.agents.profiler import ClassificationError
 from phishguard.decisions.basal_client import BasalAnswer, BasalUnavailableError
-from phishguard.decisions.eval.__main__ import EvalInput, run_inputs
+from phishguard.decisions.eval.__main__ import (
+    EvalInput,
+    run_inputs,
+    split_supabase_reference,
+)
 from phishguard.decisions.eval.metrics import EvalCase
 from phishguard.decisions.eval.report import GATE1_WARNING, write_report
 from phishguard.decisions.eval.sources import (
@@ -286,3 +290,41 @@ async def test_run_inputs_without_profiler_records_llm_error() -> None:
 
     assert cases[0].llm_answer is None
     assert extras["ok"]["llm_error"] == "no key"
+
+
+def test_split_supabase_reference_keeps_llm_failures_unscored() -> None:
+    ok = EvalCase(
+        "s1", "supabase", "", _basal("ceo_fraud", 0.9), "fake_invoice", 500, 10, 1
+    )
+    failed = EvalCase("s2", "supabase", "", _basal("ceo_fraud", 0.9), None, None, 0, 0)
+    fixture = _case("f", "ceo_fraud", None, None)
+
+    scored, unscored = split_supabase_reference([ok, failed, fixture])
+
+    assert [c.id for c in scored] == ["s1", "f"]
+    assert scored[0].reference == "fake_invoice"
+    assert [c.id for c in unscored] == ["s2"]
+
+
+def test_report_writes_unscored_rows_but_excludes_them_from_metrics(
+    tmp_path: Path,
+) -> None:
+    scored = [_case("a", "ceo_fraud", _basal("ceo_fraud", 0.95), "ceo_fraud")]
+    unscored = [
+        EvalCase("s2", "supabase", "", _basal("fake_invoice", 0.97), None, None, 0, 0)
+    ]
+    meta = {**META, "extras": {"s2": {"llm_error": "no key"}}}
+
+    write_report(scored, tmp_path, meta, unscored=unscored)
+
+    rows = {
+        r["id"]: r
+        for r in map(json.loads, (tmp_path / "results.jsonl").read_text().splitlines())
+    }
+    assert rows["s2"]["scored"] is False
+    assert rows["s2"]["basal_answer"] == "fake_invoice"
+    assert rows["s2"]["llm_error"] == "no key"
+    assert rows["a"]["scored"] is True
+    text = (tmp_path / "report.md").read_text()
+    assert "| 0.90 | 1/1 |" in text
+    assert "- Unscored (no LLM answer, so no reference): 1" in text

@@ -179,14 +179,27 @@ def _plot(rows: list[ThresholdRow], picked: ThresholdRow | None, path: Path) -> 
     plt.close(fig)
 
 
-def write_report(cases: list[EvalCase], out_dir: Path, meta: dict) -> None:
-    """Write results.jsonl, report.md and coverage_vs_error.png into ``out_dir``."""
+def write_report(
+    cases: list[EvalCase],
+    out_dir: Path,
+    meta: dict,
+    *,
+    unscored: list[EvalCase] | None = None,
+) -> None:
+    """Write results.jsonl, report.md and coverage_vs_error.png into ``out_dir``.
+
+    ``unscored`` cases (no reference, e.g. a Supabase case whose LLM call failed)
+    are written to results.jsonl with ``scored: false`` and counted in the meta
+    block, but are left out of every metric.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     extras: dict = meta.get("extras", {})
+    unscored = unscored or []
 
     with (out_dir / "results.jsonl").open("w", encoding="utf-8") as f:
-        for c in cases:
-            f.write(json.dumps(_result_row(c, extras), ensure_ascii=False) + "\n")
+        for c, scored in [(c, True) for c in cases] + [(c, False) for c in unscored]:
+            row = {**_result_row(c, extras), "scored": scored}
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     gate = [c for c in cases if not c.ambiguous]
     ambiguous = [c for c in cases if c.ambiguous]
@@ -222,6 +235,11 @@ def write_report(cases: list[EvalCase], out_dir: Path, meta: dict) -> None:
         ),
         f"- Errors: Basal {basal_errors}, LLM {llm_errors}",
     ]
+    if unscored:
+        lines.append(
+            f"- Unscored (no LLM answer, so no reference): {len(unscored)}; "
+            "rows in results.jsonl with `scored: false`"
+        )
     if "fixtures" in meta.get("sources", []) or "fixtures" in per_source:
         lines.append(f"- {FIXTURE_LABELS_NOTE}")
     lines += [f"- Note: {n}" for n in meta.get("notes", [])]

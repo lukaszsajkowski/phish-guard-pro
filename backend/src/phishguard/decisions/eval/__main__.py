@@ -135,6 +135,27 @@ async def run_inputs(
     return cases, extras
 
 
+def split_supabase_reference(
+    cases: list[EvalCase],
+) -> tuple[list[EvalCase], list[EvalCase]]:
+    """Set each Supabase case's reference to its fresh LLM answer.
+
+    Returns ``(scored, unscored)``. A Supabase case whose LLM call failed has no
+    reference: it goes to ``unscored`` (written to results.jsonl, kept out of
+    the metrics). Other sources pass through unchanged.
+    """
+    scored: list[EvalCase] = []
+    unscored: list[EvalCase] = []
+    for c in cases:
+        if c.source != "supabase":
+            scored.append(c)
+        elif c.llm_answer is None:
+            unscored.append(c)
+        else:
+            scored.append(replace(c, reference=c.llm_answer))
+    return scored, unscored
+
+
 def _build_profiler() -> tuple[_Profiler | None, str | None]:
     from phishguard.agents.profiler import ProfilerAgent
 
@@ -169,6 +190,7 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
         ]
 
     cases: list[EvalCase] = []
+    unscored: list[EvalCase] = []
     extras: dict[str, dict] = {}
     if args.source == "decisions":
         cases = load_decision_cases()
@@ -187,17 +209,7 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
         cases, extras = await run_inputs(
             inputs, basal_client, profiler, profiler_error=profiler_error
         )
-        # Supabase reference = the fresh LLM answer; without one there is no
-        # reference, so the case is kept in results.jsonl only via extras.
-        fixed: list[EvalCase] = []
-        for c in cases:
-            if c.source == "supabase":
-                if c.llm_answer is None:
-                    notes.append(f"supabase {c.id}: no LLM answer, dropped")
-                    continue
-                c = replace(c, reference=c.llm_answer)
-            fixed.append(c)
-        cases = fixed
+        cases, unscored = split_supabase_reference(cases)
 
     meta = {
         "date": date.today().isoformat(),
@@ -208,10 +220,13 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
         "extras": extras,
     }
     out = Path(args.out)
-    write_report(cases, out, meta)
+    write_report(cases, out, meta, unscored=unscored)
     n_basal_err = sum(1 for e in extras.values() if "basal_error" in e)
     n_llm_err = sum(1 for e in extras.values() if "llm_error" in e)
-    print(f"Cases: {len(cases)}; Basal errors: {n_basal_err}; LLM errors: {n_llm_err}")
+    print(
+        f"Cases: {len(cases)} scored, {len(unscored)} unscored; "
+        f"Basal errors: {n_basal_err}; LLM errors: {n_llm_err}"
+    )
     print(f"Wrote {out / 'results.jsonl'}, {out / 'report.md'}, ")
     print(f"      {out / 'coverage_vs_error.png'}")
     return 0
