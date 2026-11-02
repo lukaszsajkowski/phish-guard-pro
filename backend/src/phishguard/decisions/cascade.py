@@ -72,10 +72,24 @@ def _resolve(
         future.set_result(outcome)
 
 
-async def drain_background_tasks() -> None:
-    """Wait for all pending shadow-mode tasks (tests, eval, shutdown)."""
-    while _background_tasks:
-        await asyncio.gather(*list(_background_tasks), return_exceptions=True)
+async def drain_background_tasks(timeout: float | None = None) -> None:
+    """Wait for all pending shadow-mode tasks (tests, eval, shutdown).
+
+    With `timeout` (seconds), tasks still running afterwards are cancelled.
+    """
+    if timeout is None:
+        while _background_tasks:
+            await asyncio.gather(*list(_background_tasks), return_exceptions=True)
+        return
+
+    pending = list(_background_tasks)
+    if not pending:
+        return
+    _, still_running = await asyncio.wait(pending, timeout=timeout)
+    for task in still_running:
+        task.cancel()
+    if still_running:
+        await asyncio.gather(*still_running, return_exceptions=True)
 
 
 class DecisionService:

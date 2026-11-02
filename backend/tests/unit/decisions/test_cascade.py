@@ -501,3 +501,40 @@ def test_create_decision_service_live_with_url():
     assert isinstance(service.basal, BasalClient)
     assert service.threshold_for("profiler.attack_type") == 0.95
     assert service.threshold_for("other.node") == 0.8
+
+
+async def test_drain_with_timeout_cancels_stuck_tasks():
+    from phishguard.decisions import cascade
+
+    async def stuck() -> None:
+        await asyncio.sleep(60)
+
+    task = asyncio.create_task(stuck())
+    cascade._background_tasks.add(task)
+    task.add_done_callback(cascade._background_tasks.discard)
+
+    start = time.perf_counter()
+    await drain_background_tasks(timeout=0.05)
+
+    assert time.perf_counter() - start < 1
+    assert task.cancelled()
+    assert not cascade._background_tasks
+
+
+async def test_drain_with_timeout_waits_for_tasks_that_finish_in_time():
+    from phishguard.decisions import cascade
+
+    done = asyncio.Event()
+
+    async def quick() -> None:
+        await asyncio.sleep(0.02)
+        done.set()
+
+    task = asyncio.create_task(quick())
+    cascade._background_tasks.add(task)
+    task.add_done_callback(cascade._background_tasks.discard)
+
+    await drain_background_tasks(timeout=5)
+
+    assert done.is_set()
+    assert not task.cancelled()

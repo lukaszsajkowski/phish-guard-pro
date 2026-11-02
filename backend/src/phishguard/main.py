@@ -19,6 +19,7 @@ from phishguard.api.routers.response import router as response_router
 from phishguard.api.routers.session import router as session_router
 from phishguard.core import get_settings
 from phishguard.core.retry import RateLimitError, RetryExhaustedError
+from phishguard.decisions.cascade import drain_background_tasks
 from phishguard.models.error_models import (
     ApiErrorResponse,
     ErrorCode,
@@ -35,7 +36,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.debug:
         print("🛡️ PhishGuard Pro API starting in DEBUG mode")
     yield
-    # Shutdown
+    # Shutdown: let pending Basal shadow rows finish (bounded), then cancel.
+    try:
+        await drain_background_tasks(timeout=settings.basal_timeout_s + 5)
+    except Exception:
+        logger.warning("Draining Basal shadow tasks failed", exc_info=True)
     print("🛡️ PhishGuard Pro API shutting down")
 
 
