@@ -65,3 +65,14 @@ def test_threshold_falls_back_to_global():
 def test_in_role_threshold_out_of_range_rejected():
     with pytest.raises(ValueError):
         make_settings(basal_threshold_in_role=1.5)
+
+
+@pytest.mark.parametrize(
+    "var", ["BASAL_MODE_IN_ROLE", "BASAL_THRESHOLD_IN_ROLE", "BASAL_MODE_PROFILER"]
+)
+def test_empty_per_node_env_falls_back_to_none(monkeypatch, var):
+    monkeypatch.setenv(var, "")
+
+    settings = Settings(_env_file=None)
+
+    assert getattr(settings, var.lower()) is None
