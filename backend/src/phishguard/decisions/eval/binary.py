@@ -206,11 +206,17 @@ def write_binary_report(cases: list[BinaryCase], out_dir: Path, meta: dict) -> N
     (out_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def _fmt_conf(conf: object) -> str:
+    return "n/a" if conf is None else f"{float(conf):.2f}"  # type: ignore[arg-type]
+
+
 def write_decisions_report(rows: list[dict], out_dir: Path, meta: dict) -> None:
     """Write the report for real ``response.in_role`` decisions (manual review).
 
     Each row is a ``decisions`` row plus ``content`` (the reply text, fetched by
-    ``message_id``; may be None if the message is gone).
+    ``message_id``; may be None if the message is gone). Rows with
+    ``superseded`` set were decided on an earlier version of an edited reply:
+    they are counted but never shown for review, only listed without text.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "results.jsonl").write_text(
@@ -236,19 +242,40 @@ def write_decisions_report(rows: list[dict], out_dir: Path, meta: dict) -> None:
         "## breaks_role rows for manual review",
         "",
     ]
-    flagged = [r for r in rows if r.get("basal_answer") == POSITIVE]
+    flagged = [
+        r for r in rows if r.get("basal_answer") == POSITIVE and not r.get("superseded")
+    ]
     if not flagged:
         lines.append("None.")
     for r in flagged:
         conf = r.get("basal_confidence")
+        if not r.get("message_id"):
+            text = "(no message linked)"
+        else:
+            text = r.get("content") or "(reply text unavailable)"
         lines += [
             f"### {r.get('message_id')}",
             "",
-            f"- Confidence: {conf if conf is None else f'{float(conf):.2f}'}; "
+            f"- Confidence: {_fmt_conf(conf)}; "
             f"threshold: {r.get('threshold')}; mode: {r.get('mode')}",
             "",
-            "> "
-            + (r.get("content") or "(reply text unavailable)").replace("\n", "\n> "),
+            "> " + text.replace("\n", "\n> "),
             "",
         ]
+    superseded = [r for r in rows if r.get("superseded")]
+    if superseded:
+        lines += [
+            "## Superseded decisions (reply later edited)",
+            "",
+            "Decided on an earlier version of the text; current text not shown "
+            "for review.",
+            "",
+        ]
+        for r in superseded:
+            lines.append(
+                f"- {r.get('id')} | {r.get('created_at')} | "
+                f"{r.get('basal_answer') or 'none'} | "
+                f"{_fmt_conf(r.get('basal_confidence'))}"
+            )
+        lines.append("")
     (out_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")

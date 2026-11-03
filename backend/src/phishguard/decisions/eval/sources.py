@@ -138,7 +138,10 @@ def load_in_role_decisions() -> list[dict]:
 
     The reply is fetched by ``message_id`` from ``messages`` (service role);
     ``decisions`` never stores it. ``content`` is None when the message is gone.
-    No model is called.
+    ``messages.content`` is edited in place, so only the latest decision per
+    message (by ``created_at``) can be paired with the current text; earlier
+    rows get ``superseded=True`` and ``content=None``. Rows without a
+    ``message_id`` are never superseded. No model is called.
     """
     client = _get_supabase_client()
     rows = (
@@ -162,4 +165,18 @@ def load_in_role_decisions() -> list[dict]:
             or []
         )
         contents.update({str(m["id"]): m["content"] for m in msgs})
-    return [{**r, "content": contents.get(str(r.get("message_id")))} for r in rows]
+    # Order by created_at ourselves; the last row per message is the latest.
+    rows = sorted(rows, key=lambda r: str(r.get("created_at") or ""))
+    latest_idx = {r["message_id"]: i for i, r in enumerate(rows) if r.get("message_id")}
+    out: list[dict] = []
+    for i, r in enumerate(rows):
+        mid = r.get("message_id")
+        superseded = bool(mid) and latest_idx[mid] != i
+        out.append(
+            {
+                **r,
+                "superseded": superseded,
+                "content": None if superseded else contents.get(str(mid)),
+            }
+        )
+    return out
