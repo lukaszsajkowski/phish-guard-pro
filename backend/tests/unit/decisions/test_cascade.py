@@ -545,6 +545,7 @@ def test_create_decision_service_resolves_mode_per_node():
         basal_url="http://basal.test/ask",
         basal_mode="live",
         basal_mode_profiler="off",
+        basal_mode_in_role=None,
     )
 
     profiler = create_decision_service(settings)
