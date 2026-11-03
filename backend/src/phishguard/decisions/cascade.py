@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 Mode = Literal["off", "shadow", "live"]
 Source = Literal["llm", "basal", "basal_low_confidence"]
+SignalSource = Literal["basal", "regex", "none"]
 Recorder = Callable[[DecisionRecord], Awaitable[None]]
 
 # Strong references to running shadow tasks so the GC does not collect them.
@@ -55,6 +56,15 @@ class Decision[T]:
     answer: str
     basal: BasalAnswer | None
     llm_result: T | None
+
+
+@dataclass(frozen=True)
+class SignalDecision:
+    """Outcome of a signal decision (Basal next to a deterministic reference)."""
+
+    source: SignalSource
+    answer: str | None
+    basal: BasalAnswer | None
 
 
 @dataclass(frozen=True)
@@ -129,6 +139,117 @@ class DecisionService:
             )
         # off: no decisions row; the table only logs shadow/live decisions.
         return await self._decide_off(llm_call, llm_answer, llm_model)
+
+    async def decide_signal(
+        self,
+        question: ChoiceQuestion,
+        state: str,
+        session_id: str | None,
+        message_id: str | None = None,
+        reference_kind: Literal["regex"] | None = None,
+        reference_answer: str | None = None,
+    ) -> SignalDecision:
+        """Run Basal next to a deterministic reference (no LLM fallback).
+
+        - The reference result is ``SignalDecision("regex", reference_answer,
+          None)`` when `reference_answer` is not None, else
+          ``SignalDecision("none", None, None)``.
+        - ``off``: return the reference result; no Basal call; no row.
+        - ``shadow``: return the reference result immediately; when
+          `session_id` and a recorder exist, a background task (registered in
+          ``_background_tasks``) asks Basal and writes the row.
+          ``below_threshold`` is set as in the Profiler's shadow task.
+        - ``live``: await Basal; at or above the node threshold return
+          ``SignalDecision("basal", ...)``; otherwise the reference result with
+          the Basal answer attached in ``basal``. The row is written before
+          returning.
+        - Rows carry ``llm_*`` as null; ``source`` is the returned source in
+          ``live`` and the reference source in ``shadow``.
+        - Never raises: a Basal error, language-gate rejection or recorder
+          error is logged and yields the reference result.
+        """
+        reference = (
+            SignalDecision("regex", reference_answer, None)
+            if reference_answer is not None
+            else SignalDecision("none", None, None)
+        )
+        if self.mode == "off" or self.basal is None:
+            return reference
+
+        if self.mode == "shadow":
+            if session_id is None or self._recorder is None:
+                return reference
+            task = asyncio.create_task(
+                self._signal_shadow_task(
+                    question,
+                    state,
+                    session_id,
+                    message_id,
+                    reference_kind,
+                    reference,
+                )
+            )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+            return reference
+
+        try:
+            basal, skip_reason = await self._ask_basal(question, state)
+            if basal is not None and basal.confidence >= self.threshold_for(
+                question.node
+            ):
+                result = SignalDecision("basal", basal.answer, basal)
+            else:
+                result = SignalDecision(reference.source, reference.answer, basal)
+                skip_reason = skip_reason or "below_threshold"
+            await self._record(
+                session_id,
+                question,
+                result.source,
+                result.answer or "",
+                basal,
+                None,
+                None if result.source == "basal" else skip_reason,
+                message_id=message_id,
+                reference_kind=reference_kind,
+                reference_answer=reference_answer,
+            )
+            return result
+        except Exception:
+            logger.warning(
+                "Signal decision failed for %s", question.node, exc_info=True
+            )
+            return reference
+
+    async def _signal_shadow_task(
+        self,
+        question: ChoiceQuestion,
+        state: str,
+        session_id: str,
+        message_id: str | None,
+        reference_kind: Literal["regex"] | None,
+        reference: SignalDecision,
+    ) -> None:
+        try:
+            basal, skip_reason = await self._ask_basal(question, state)
+            if basal is not None and basal.confidence < self.threshold_for(
+                question.node
+            ):
+                skip_reason = "below_threshold"
+            await self._record(
+                session_id,
+                question,
+                reference.source,
+                reference.answer or "",
+                basal,
+                None,
+                skip_reason,
+                message_id=message_id,
+                reference_kind=reference_kind,
+                reference_answer=reference.answer,
+            )
+        except Exception:
+            logger.warning("Shadow signal task failed", exc_info=True)
 
     # --- modes -------------------------------------------------------------
 
@@ -304,7 +425,7 @@ class DecisionService:
         self,
         session_id: str | None,
         question: ChoiceQuestion,
-        source: Source,
+        source: Source | SignalSource,
         final_answer: str,
         basal: BasalAnswer | None,
         llm: _LLMOutcome | None,
