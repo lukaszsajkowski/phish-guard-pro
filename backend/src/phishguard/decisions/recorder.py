@@ -39,6 +39,9 @@ class DecisionRecord:
     llm_answer: str | None = None
     llm_model: str | None = None
     llm_ms: int | None = None
+    message_id: str | None = None
+    reference_kind: str | None = None
+    reference_answer: str | None = None
 
 
 async def record_decision(record: DecisionRecord) -> None:

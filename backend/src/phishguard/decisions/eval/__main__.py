@@ -3,6 +3,10 @@
 Usage:
     python -m phishguard.decisions.eval profiler \
         --source supabase|fixtures|decisions|all --out DIR [--limit N]
+    python -m phishguard.decisions.eval in-role \
+        --source fixtures|decisions --out DIR [--limit N]   # Basal in-role (US-050)
+    python -m phishguard.decisions.eval in-role-samples \
+        --out FILE [--per-type N]   # real replies for the in-role eval set (US-050)
 
 Needs ``BASAL_URL`` (e.g. ``http://127.0.0.1:8011/v1/systemone``) for every
 source except ``decisions``, and ``OPENAI_API_KEY`` for the LLM side. A missing
@@ -12,8 +16,10 @@ written to Supabase (the LLM is called with ``session_id=None``).
 
 import argparse
 import asyncio
+import json
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
@@ -25,14 +31,23 @@ from phishguard.agents.prompts.profiler_basal import (
 )
 from phishguard.core import get_settings
 from phishguard.decisions.basal_client import BasalAnswer, BasalClient
+from phishguard.decisions.eval.binary import (
+    BinaryCase,
+    write_binary_report,
+    write_decisions_report,
+)
 from phishguard.decisions.eval.metrics import EvalCase
 from phishguard.decisions.eval.report import write_report
 from phishguard.decisions.eval.sources import (
     FIXTURES_PATH,
+    IN_ROLE_FIXTURES_PATH,
     load_decision_cases,
     load_fixture_inputs,
+    load_in_role_decisions,
+    load_in_role_fixtures,
     load_supabase_inputs,
 )
+from phishguard.decisions.language import detect_pl_en
 from phishguard.llm.client import LLMResponse
 
 CONCURRENCY = 4
@@ -232,6 +247,177 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _pick_in_role_sources(
+    fixtures: Path, per_type: int
+) -> list[tuple[str, str, str, str]]:
+    """Pick ``(id, lang, attack_type, email)``, ``per_type`` per attack type.
+
+    Reviewed, non-ambiguous, not ``not_phishing``; half pl and half en where
+    the fixtures allow, topped up from the other language otherwise.
+    """
+    langs = {
+        r["id"]: r["lang"]
+        for r in map(json.loads, fixtures.read_text(encoding="utf-8").splitlines())
+    }
+    pools: dict[str, dict[str, list[tuple[str, str]]]] = {}
+    for fid, email, gold, reviewed, ambiguous in load_fixture_inputs(fixtures):
+        if gold == "not_phishing" or not reviewed or ambiguous:
+            continue
+        pools.setdefault(gold, {"pl": [], "en": []})[langs[fid]].append((fid, email))
+
+    picks: list[tuple[str, str, str, str]] = []
+    for gold in sorted(pools):
+        pl, en = pools[gold]["pl"], pools[gold]["en"]
+        n_pl = min(len(pl), per_type // 2)
+        n_en = min(len(en), per_type - n_pl)
+        n_pl = min(len(pl), per_type - n_en)
+        chosen = [(f, "pl", e) for f, e in pl[:n_pl]] + [
+            (f, "en", e) for f, e in en[:n_en]
+        ]
+        picks += [(f, lang, gold, e) for f, lang, e in chosen]
+    return picks
+
+
+async def _in_role_samples(args: argparse.Namespace) -> int:
+    """Generate first replies with the real agent as in-role candidates.
+
+    ``gold`` is the placeholder ``in_role`` until the blind label review.
+    Nothing is written to Supabase (``session_id=None``).
+    """
+    from phishguard.agents.conversation import ConversationAgent
+    from phishguard.agents.persona_engine import PersonaEngine
+    from phishguard.models.classification import AttackType
+
+    picks = _pick_in_role_sources(Path(args.fixtures), args.per_type)
+    agent = ConversationAgent()
+    engine = PersonaEngine()
+    sem = asyncio.Semaphore(CONCURRENCY)
+
+    async def one(fid: str, lang: str, gold: str, email: str) -> dict | None:
+        attack = AttackType(gold)
+        persona = engine.select_persona(attack)
+        async with sem:
+            try:
+                result = await agent.generate_response(
+                    persona=persona,
+                    email_content=email,
+                    attack_type=attack,
+                    is_first_response=True,
+                    session_id=None,
+                )
+            except Exception as e:  # recorded, the run goes on
+                print(f"{fid}: {_err(e)}", file=sys.stderr)
+                return None
+        return {
+            "id": f"real-{fid}",
+            # Language of the reply, not of the source email: the agent often
+            # answers Polish emails in English. Fall back to the email's.
+            "lang": detect_pl_en(result.content) or lang,
+            "gold": "in_role",
+            "synthetic": False,
+            "persona": {
+                "persona_type": persona.persona_type.value,
+                "age": persona.age,
+                "style_description": persona.style_description,
+            },
+            "response": result.content,
+            "reviewed": False,
+            "ambiguous": False,
+            "review": None,
+            "notes": f"real reply to {gold} email {fid}; gold is a placeholder",
+        }
+
+    rows = [r for r in await asyncio.gather(*(one(*p) for p in picks)) if r]
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+        encoding="utf-8",
+    )
+    print(f"Wrote {len(rows)}/{len(picks)} rows to {out}")
+    for lang, n in sorted(Counter(r["lang"] for r in rows).items()):
+        print(f"  reply language {lang}: {n}")
+    return 0
+
+
+async def _run_in_role_fixtures(
+    rows: list[dict], basal_client: _Basal
+) -> tuple[list[BinaryCase], dict[str, dict]]:
+    """Ask Basal about every row, one request at a time (the server is serial)."""
+    from phishguard.agents.prompts.in_role_basal import (
+        IN_ROLE_CRITERIA,
+        IN_ROLE_INSTRUCTIONS,
+    )
+    from phishguard.models.persona import PersonaProfile, PersonaType
+    from phishguard.services.in_role_check import build_in_role_state
+
+    sem = asyncio.Semaphore(1)
+    extras: dict[str, dict] = {}
+
+    async def one(row: dict) -> BinaryCase:
+        p = row["persona"]
+        # name and background are required by the model but not used in the state
+        persona = PersonaProfile(
+            persona_type=PersonaType(p["persona_type"]),
+            name="Eval Persona",
+            age=p["age"],
+            style_description=p["style_description"],
+            background="Eval persona background",
+        )
+        state = build_in_role_state(persona, row["response"])
+        basal: BasalAnswer | None = None
+        async with sem:
+            try:
+                basal = await basal_client.ask_choice(
+                    state, IN_ROLE_INSTRUCTIONS, IN_ROLE_CRITERIA
+                )
+            except Exception as e:  # recorded per case, never stops the run
+                extras[row["id"]] = {"basal_error": _err(e)}
+        return BinaryCase(
+            id=row["id"],
+            gold=row["gold"],
+            basal=basal,
+            lang=row["lang"],
+            synthetic=bool(row["synthetic"]),
+            ambiguous=bool(row.get("ambiguous", False)),
+        )
+
+    cases = [await one(r) for r in rows]
+    return cases, extras
+
+
+async def _in_role_eval(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    out = Path(args.out)
+    meta: dict[str, Any] = {
+        "date": date.today().isoformat(),
+        "basal_model": settings.basal_model or "n/a (BASAL_MODEL not set)",
+    }
+    if args.source == "decisions":
+        rows = await asyncio.to_thread(load_in_role_decisions)
+        if args.limit is not None:
+            rows = rows[: args.limit]
+        write_decisions_report(rows, out, meta)
+        print(f"In-role decisions: {len(rows)}")
+        print(f"Wrote {out / 'results.jsonl'}, {out / 'report.md'}")
+        return 0
+
+    if not settings.basal_url:
+        print("BASAL_URL is not set.", file=sys.stderr)
+        return 2
+    fixture_rows = load_in_role_fixtures(Path(args.fixtures))
+    if args.limit is not None:
+        fixture_rows = fixture_rows[: args.limit]
+    print(f"In-role fixture cases: {len(fixture_rows)}")
+    basal_client = BasalClient(settings.basal_url, settings.basal_timeout_s)
+    cases, extras = await _run_in_role_fixtures(fixture_rows, basal_client)
+    meta["extras"] = extras
+    write_binary_report(cases, out, meta)
+    print(f"Cases: {len(cases)}; Basal errors: {len(extras)}")
+    print(f"Wrote {out / 'results.jsonl'}, {out / 'report.md'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m phishguard.decisions.eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -244,7 +430,24 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", required=True, help="Output directory")
     p.add_argument("--limit", type=int, default=None, help="Max cases per source")
     p.add_argument("--fixtures", default=str(FIXTURES_PATH), help=argparse.SUPPRESS)
+    q = sub.add_parser("in-role", help="Basal in-role check on a labelled set")
+    q.add_argument("--source", choices=["fixtures", "decisions"], required=True)
+    q.add_argument("--out", required=True, help="Output directory")
+    q.add_argument("--limit", type=int, default=None, help="Max cases")
+    q.add_argument(
+        "--fixtures", default=str(IN_ROLE_FIXTURES_PATH), help=argparse.SUPPRESS
+    )
+    r = sub.add_parser(
+        "in-role-samples", help="Generate real replies for the in-role eval set"
+    )
+    r.add_argument("--out", required=True, help="Output JSONL file")
+    r.add_argument("--per-type", type=int, default=8, help="Replies per attack type")
+    r.add_argument("--fixtures", default=str(FIXTURES_PATH), help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.command == "in-role":
+        return asyncio.run(_in_role_eval(args))
+    if args.command == "in-role-samples":
+        return asyncio.run(_in_role_samples(args))
     return asyncio.run(_profiler_eval(args))
 
 

@@ -15,6 +15,7 @@ from phishguard.services.session_service import (
 )
 
 PROFILER_NODE = "profiler.attack_type"
+IN_ROLE_NODE = "response.in_role"
 
 # backend/tests/fixtures/eval/profiler_emails.jsonl
 FIXTURES_PATH = (
@@ -24,6 +25,17 @@ FIXTURES_PATH = (
     / "eval"
     / "profiler_emails.jsonl"
 )
+
+IN_ROLE_FIXTURES_PATH = FIXTURES_PATH.with_name("in_role_responses.jsonl")
+
+
+def load_in_role_fixtures(path: Path = IN_ROLE_FIXTURES_PATH) -> list[dict]:
+    """Read in-role fixture rows (see tests/fixtures/eval/README.md)."""
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def load_fixture_inputs(path: Path) -> list[tuple[str, str, str, bool, bool]]:
@@ -119,3 +131,52 @@ def load_decision_cases() -> list[EvalCase]:
             )
         )
     return cases
+
+
+def load_in_role_decisions() -> list[dict]:
+    """``response.in_role`` decisions with their reply text, for manual review.
+
+    The reply is fetched by ``message_id`` from ``messages`` (service role);
+    ``decisions`` never stores it. ``content`` is None when the message is gone.
+    ``messages.content`` is edited in place, so only the latest decision per
+    message (by ``created_at``) can be paired with the current text; earlier
+    rows get ``superseded=True`` and ``content=None``. Rows without a
+    ``message_id`` are never superseded. No model is called.
+    """
+    client = _get_supabase_client()
+    rows = (
+        client.table("decisions")
+        .select("*")
+        .eq("node", IN_ROLE_NODE)
+        .order("created_at")
+        .execute()
+        .data
+        or []
+    )
+    ids = sorted({r["message_id"] for r in rows if r.get("message_id")})
+    contents: dict[str, str] = {}
+    for i in range(0, len(ids), 100):
+        msgs = (
+            client.table("messages")
+            .select("id, content")
+            .in_("id", ids[i : i + 100])
+            .execute()
+            .data
+            or []
+        )
+        contents.update({str(m["id"]): m["content"] for m in msgs})
+    # Order by created_at ourselves; the last row per message is the latest.
+    rows = sorted(rows, key=lambda r: str(r.get("created_at") or ""))
+    latest_idx = {r["message_id"]: i for i, r in enumerate(rows) if r.get("message_id")}
+    out: list[dict] = []
+    for i, r in enumerate(rows):
+        mid = r.get("message_id")
+        superseded = bool(mid) and latest_idx[mid] != i
+        out.append(
+            {
+                **r,
+                "superseded": superseded,
+                "content": None if superseded else contents.get(str(mid)),
+            }
+        )
+    return out

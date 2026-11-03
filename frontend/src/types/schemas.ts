@@ -21,6 +21,11 @@ export interface AgentThinking {
     reasoning: string;
 }
 
+export interface InRoleWarning {
+    message: string;
+    confidence: number;
+}
+
 export interface ResponseGenerationResult {
     content: string;
     generation_time_ms: number;
@@ -29,6 +34,7 @@ export interface ResponseGenerationResult {
     used_fallback_model: boolean;
     thinking?: AgentThinking;
     message_id: string;
+    in_role_warning?: InRoleWarning | null;
 }
 
 export interface ChatMessage {
@@ -37,6 +43,7 @@ export interface ChatMessage {
     content: string;
     timestamp: Date;
     thinking?: AgentThinking;
+    inRoleWarning?: InRoleWarning | null;
 }
 
 export interface ExtractedIOC {

@@ -50,6 +50,34 @@ async def test_record_decision_inserts_row() -> None:
 
 
 @pytest.mark.asyncio
+async def test_record_decision_sends_new_fields() -> None:
+    client = MagicMock()
+    record = _record()
+    record.message_id = "m-1"
+    record.reference_kind = "regex"
+    record.reference_answer = "in_role"
+    with patch(PATCH_TARGET, return_value=client):
+        await record_decision(record)
+
+    row = client.table.return_value.insert.call_args.args[0]
+    assert row["message_id"] == "m-1"
+    assert row["reference_kind"] == "regex"
+    assert row["reference_answer"] == "in_role"
+
+
+@pytest.mark.asyncio
+async def test_record_decision_new_fields_default_to_none() -> None:
+    client = MagicMock()
+    with patch(PATCH_TARGET, return_value=client):
+        await record_decision(_record())
+
+    row = client.table.return_value.insert.call_args.args[0]
+    assert row["message_id"] is None
+    assert row["reference_kind"] is None
+    assert row["reference_answer"] is None
+
+
+@pytest.mark.asyncio
 async def test_record_decision_swallows_errors(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

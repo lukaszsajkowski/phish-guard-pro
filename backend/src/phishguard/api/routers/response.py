@@ -10,15 +10,34 @@ from phishguard.agents.conversation import ResponseGenerationError
 from phishguard.api.dependencies import get_current_user_id
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import MessageSender
+from phishguard.models.in_role import InRoleWarning
 from phishguard.models.persona import PersonaProfile, PersonaType
 from phishguard.models.thinking import AgentThinking
 from phishguard.orchestrator import create_continuation_graph, get_checkpointer
 from phishguard.safety import OutputValidator, detect_unmasking
 from phishguard.services import session_service
+from phishguard.services.in_role_check import check_in_role
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/response", tags=["response"])
+
+
+def _parse_persona(persona_data: dict | None) -> PersonaProfile | None:
+    """Build a PersonaProfile from stored session data.
+
+    Returns None when there is no persona. Raises KeyError/ValueError when the
+    stored data cannot be parsed.
+    """
+    if not persona_data:
+        return None
+    return PersonaProfile(
+        persona_type=PersonaType(persona_data["persona_type"]),
+        name=persona_data["name"],
+        age=persona_data["age"],
+        style_description=persona_data["style_description"],
+        background=persona_data["background"],
+    )
 
 
 class ResponseGenerationRequest(BaseModel):
@@ -67,6 +86,9 @@ class ResponseGenerationResponse(BaseModel):
     unmasking_confidence: float = Field(
         0.0, description="Confidence level of unmasking detection"
     )
+    in_role_warning: InRoleWarning | None = Field(
+        None, description="Basal warning that the reply may break the persona's role"
+    )
 
 
 class ResponseValidationRequest(BaseModel):
@@ -88,6 +110,9 @@ class ResponseValidationResponse(BaseModel):
     is_safe: bool = Field(..., description="Whether the content passed safety checks")
     violations: list[str] = Field(
         default_factory=list, description="List of violation descriptions if unsafe"
+    )
+    in_role_warning: InRoleWarning | None = Field(
+        None, description="Basal warning that the content may break the persona's role"
     )
 
 
@@ -154,25 +179,19 @@ async def generate_response(
         )
 
     # Build persona profile
-    if not persona_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Session has no persona assigned",
-        )
-
     try:
-        persona = PersonaProfile(
-            persona_type=PersonaType(persona_data["persona_type"]),
-            name=persona_data["name"],
-            age=persona_data["age"],
-            style_description=persona_data["style_description"],
-            background=persona_data["background"],
-        )
+        persona = _parse_persona(persona_data)
     except (KeyError, ValueError) as e:
         logger.error("Failed to parse persona data: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to parse stored persona data",
+        )
+
+    if persona is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session has no persona assigned",
         )
 
     # Get original email content
@@ -342,6 +361,11 @@ async def generate_response(
                     unmasking_confidence,
                 )
 
+        # Basal in-role check, after IOC persistence: warning only, never fails
+        in_role_warning = await check_in_role(
+            persona, response_content, request.session_id, message_id
+        )
+
         return ResponseGenerationResponse(
             content=response_content,
             generation_time_ms=generation_time_ms,
@@ -358,6 +382,7 @@ async def generate_response(
             unmasking_detected=unmasking_detected,
             unmasking_phrases=unmasking_phrases,
             unmasking_confidence=unmasking_confidence,
+            in_role_warning=in_role_warning,
         )
 
     except ResponseGenerationError as e:
@@ -434,6 +459,8 @@ async def validate_response(
         f"{v.violation_type.value}: {v.description}" for v in result.violations
     ]
 
+    in_role_warning: InRoleWarning | None = None
+
     # If content is safe, persist the changes to the database
     if result.is_safe:
         try:
@@ -453,6 +480,17 @@ async def validate_response(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to save edited content",
             )
+
+        # Basal in-role check only for content that passed the PII check
+        try:
+            persona = _parse_persona(session.get("persona"))
+        except (KeyError, ValueError) as e:
+            logger.warning("Skipping in-role check, bad persona data: %s", e)
+            persona = None
+        if persona is not None:
+            in_role_warning = await check_in_role(
+                persona, request.content, request.session_id, request.message_id
+            )
     else:
         logger.info(
             "Validated edited content for session %s (user %s): safe=%s, violations=%d",
@@ -465,6 +503,7 @@ async def validate_response(
     return ResponseValidationResponse(
         is_safe=result.is_safe,
         violations=violation_descriptions,
+        in_role_warning=in_role_warning,
     )
 
 

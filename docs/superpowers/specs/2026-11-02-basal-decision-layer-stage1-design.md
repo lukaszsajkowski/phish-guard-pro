@@ -199,3 +199,13 @@ Numeracja kontynuuje `.ai/prd.md` (ostatnie: US-045/046). Etap 1 = US-047 (klien
 - Biblioteka do mockowania HTTP w testach (zgodnie z tym, co już jest w `pyproject.toml`).
 - Treść opisów opcji dla Basala (z docstringów `AttackType` i promptu Profilera).
 - Wygląd etykiety źródła w UI, w stylu istniejącego badge’a pewności.
+
+## Wyniki (2026-11-03)
+
+| Bramka | Dane | Wynik |
+|---|---|---|
+| 1 (fixtures) | 98 syntetycznych e-maili PL/EN, etykiety dwóch modeli Claude | **zaliczona**: próg 0,70, pokrycie 93,9%, błąd 0%, zgodność kaskady 98% |
+| 2 (shadow) | 29 prawdziwych e-maili (korpus Nazario `phishing-2025`, CC BY 4.0) | **niezaliczona**: zgodność z gpt-5.1 13/28, przy progu 0,70 błąd ~48%; 13/28 phishingów Basal uznał za `not_phishing` |
+
+- Opóźnienie: ~8 s na żądanie (M1 Pro, MLX, model `max`) wobec ~1,6 s dla gpt-5.1.
+- Decyzja: Profiler zostaje na GPT. Syntetyczny zbiór zawyżył wynik, więc bramka 1 nie przewidziała bramki 2. Basal przechodzi do decyzji, które dziś podejmują regexy lub nikt (etap 2).

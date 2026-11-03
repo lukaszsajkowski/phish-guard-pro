@@ -290,6 +290,31 @@ async def test_shadow_verdict_is_llm_even_with_confident_basal():
     assert row.basal_answer == "romance_scam"
     assert row.llm_answer == "nigerian_419"
     assert row.skip_reason is None
+    assert row.reference_kind == "llm"
+    assert row.reference_answer == "nigerian_419"
+    assert row.message_id is None
+
+
+async def test_shadow_llm_failure_has_llm_reference_without_answer():
+    rows: list[DecisionRecord] = []
+    service = _service(_basal(), "shadow", rows)
+
+    with pytest.raises(LLMRequestError):
+        await _decide(service, _llm(error=LLMRequestError("boom")))
+    await drain_background_tasks()
+
+    assert rows[0].reference_kind == "llm"
+    assert rows[0].reference_answer is None
+
+
+async def test_live_rows_carry_llm_reference():
+    rows: list[DecisionRecord] = []
+    service = _service(_basal(_basal_answer("romance_scam", 0.5)), "live", rows)
+
+    await _decide(service, _llm())
+
+    assert rows[0].reference_kind == "llm"
+    assert rows[0].reference_answer == "nigerian_419"
 
 
 async def test_shadow_does_not_wait_for_basal():
@@ -481,7 +506,14 @@ async def test_no_row_without_recorder(mode):
 
 
 def test_create_decision_service_off_without_url():
-    service = create_decision_service(Settings(basal_url="", basal_mode="live"))
+    service = create_decision_service(
+        Settings(
+            basal_url="",
+            basal_mode="live",
+            basal_mode_profiler=None,
+            basal_mode_in_role=None,
+        )
+    )
 
     assert service.mode == "off"
     assert service.basal is None
@@ -491,8 +523,11 @@ def test_create_decision_service_live_with_url():
     settings = Settings(
         basal_url="http://basal.test/ask",
         basal_mode="live",
+        basal_mode_profiler=None,
+        basal_mode_in_role=None,
         basal_threshold=0.8,
         basal_threshold_profiler=0.95,
+        basal_threshold_in_role=None,
     )
 
     service = create_decision_service(settings)
@@ -538,3 +573,20 @@ async def test_drain_with_timeout_waits_for_tasks_that_finish_in_time():
 
     assert done.is_set()
     assert not task.cancelled()
+
+
+def test_create_decision_service_resolves_mode_per_node():
+    settings = Settings(
+        basal_url="http://basal.test/ask",
+        basal_mode="live",
+        basal_mode_profiler="off",
+        basal_mode_in_role=None,
+    )
+
+    profiler = create_decision_service(settings)
+    in_role = create_decision_service(settings, node="response.in_role")
+
+    assert profiler.mode == "off"
+    assert profiler.basal is None
+    assert in_role.mode == "live"
+    assert isinstance(in_role.basal, BasalClient)

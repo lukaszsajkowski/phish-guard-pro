@@ -18,6 +18,7 @@ import { SessionLimitDialog } from "@/components/dashboard/SessionLimitDialog";
 import { UnmaskingDialog } from "@/components/dashboard/UnmaskingDialog";
 import { EndSessionDialog } from "@/components/dashboard/EndSessionDialog";
 import { SessionSummary } from "@/components/dashboard/SessionSummary";
+import { applyInRoleWarning } from "@/lib/inRoleWarning";
 import { Persona, ChatMessage, ExtractedIOC, TimelineEvent, RiskScoreBreakdown, AgentThinking } from "@/types/schemas";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -344,6 +345,7 @@ function DashboardContent() {
                 content: data.content,
                 timestamp: new Date(),
                 thinking: data.thinking,
+                inRoleWarning: data.in_role_warning ?? null,
             };
 
             setMessages(prev => [...prev, newMessage]);
@@ -434,10 +436,14 @@ function DashboardContent() {
 
         // Content is safe - update the message in local state
         setMessages(prev =>
-            prev.map(msg =>
-                msg.id === messageId
-                    ? { ...msg, content: newContent }
-                    : msg
+            applyInRoleWarning(
+                prev.map(msg =>
+                    msg.id === messageId
+                        ? { ...msg, content: newContent }
+                        : msg
+                ),
+                messageId,
+                data.in_role_warning ?? null
             )
         );
     };
@@ -501,6 +507,7 @@ function DashboardContent() {
                 content: data.content,
                 timestamp: new Date(),
                 thinking: data.thinking,
+                inRoleWarning: data.in_role_warning ?? null,
             };
 
             setMessages(prev => [...prev, scammerChatMessage, botMessage]);
