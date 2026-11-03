@@ -3,6 +3,8 @@
 Usage:
     python -m phishguard.decisions.eval profiler \
         --source supabase|fixtures|decisions|all --out DIR [--limit N]
+    python -m phishguard.decisions.eval in-role-samples \
+        --out FILE [--per-type N]   # real replies for the in-role eval set (US-050)
 
 Needs ``BASAL_URL`` (e.g. ``http://127.0.0.1:8011/v1/systemone``) for every
 source except ``decisions``, and ``OPENAI_API_KEY`` for the LLM side. A missing
@@ -12,8 +14,10 @@ written to Supabase (the LLM is called with ``session_id=None``).
 
 import argparse
 import asyncio
+import json
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
@@ -232,6 +236,98 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _pick_in_role_sources(
+    fixtures: Path, per_type: int
+) -> list[tuple[str, str, str, str]]:
+    """Pick ``(id, lang, attack_type, email)``, ``per_type`` per attack type.
+
+    Reviewed, non-ambiguous, not ``not_phishing``; half pl and half en where
+    the fixtures allow, topped up from the other language otherwise.
+    """
+    langs = {
+        r["id"]: r["lang"]
+        for r in map(json.loads, fixtures.read_text(encoding="utf-8").splitlines())
+    }
+    pools: dict[str, dict[str, list[tuple[str, str]]]] = {}
+    for fid, email, gold, reviewed, ambiguous in load_fixture_inputs(fixtures):
+        if gold == "not_phishing" or not reviewed or ambiguous:
+            continue
+        pools.setdefault(gold, {"pl": [], "en": []})[langs[fid]].append((fid, email))
+
+    picks: list[tuple[str, str, str, str]] = []
+    for gold in sorted(pools):
+        pl, en = pools[gold]["pl"], pools[gold]["en"]
+        n_pl = min(len(pl), per_type // 2)
+        n_en = min(len(en), per_type - n_pl)
+        n_pl = min(len(pl), per_type - n_en)
+        chosen = [(f, "pl", e) for f, e in pl[:n_pl]] + [
+            (f, "en", e) for f, e in en[:n_en]
+        ]
+        picks += [(f, lang, gold, e) for f, lang, e in chosen]
+    return picks
+
+
+async def _in_role_samples(args: argparse.Namespace) -> int:
+    """Generate first replies with the real agent as in-role candidates.
+
+    ``gold`` is the placeholder ``in_role`` until the blind label review.
+    Nothing is written to Supabase (``session_id=None``).
+    """
+    from phishguard.agents.conversation import ConversationAgent
+    from phishguard.agents.persona_engine import PersonaEngine
+    from phishguard.models.classification import AttackType
+
+    picks = _pick_in_role_sources(Path(args.fixtures), args.per_type)
+    agent = ConversationAgent()
+    engine = PersonaEngine()
+    sem = asyncio.Semaphore(CONCURRENCY)
+
+    async def one(fid: str, lang: str, gold: str, email: str) -> dict | None:
+        attack = AttackType(gold)
+        persona = engine.select_persona(attack)
+        async with sem:
+            try:
+                result = await agent.generate_response(
+                    persona=persona,
+                    email_content=email,
+                    attack_type=attack,
+                    is_first_response=True,
+                    session_id=None,
+                )
+            except Exception as e:  # recorded, the run goes on
+                print(f"{fid}: {_err(e)}", file=sys.stderr)
+                return None
+        return {
+            "id": f"real-{fid}",
+            "lang": lang,
+            "gold": "in_role",
+            "synthetic": False,
+            "persona": {
+                "persona_type": persona.persona_type.value,
+                "age": persona.age,
+                "style_description": persona.style_description,
+            },
+            "response": result.content,
+            "reviewed": False,
+            "ambiguous": False,
+            "review": None,
+            "notes": f"real reply to {gold} email {fid}; gold is a placeholder",
+        }
+
+    rows = [r for r in await asyncio.gather(*(one(*p) for p in picks)) if r]
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+        encoding="utf-8",
+    )
+    counts = Counter((p[2], p[1]) for p in picks)
+    print(f"Wrote {len(rows)}/{len(picks)} rows to {out}")
+    for (gold, lang), n in sorted(counts.items()):
+        print(f"  {gold} {lang}: {n}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m phishguard.decisions.eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -244,7 +340,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", required=True, help="Output directory")
     p.add_argument("--limit", type=int, default=None, help="Max cases per source")
     p.add_argument("--fixtures", default=str(FIXTURES_PATH), help=argparse.SUPPRESS)
+    r = sub.add_parser(
+        "in-role-samples", help="Generate real replies for the in-role eval set"
+    )
+    r.add_argument("--out", required=True, help="Output JSONL file")
+    r.add_argument("--per-type", type=int, default=8, help="Replies per attack type")
+    r.add_argument("--fixtures", default=str(FIXTURES_PATH), help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.command == "in-role-samples":
+        return asyncio.run(_in_role_samples(args))
     return asyncio.run(_profiler_eval(args))
 
 
