@@ -93,5 +93,6 @@ Same blind rule as the profiler set. Fresh Claude reviewers see only `id`, `pers
 3 labels decide, otherwise `ambiguous: true`. `review` is written on every row. Ambiguous
 rows are excluded from the gate and must be at most 10% of the set.
 
-Status: pending. Until review is done `test_in_role_fixtures_reviewed` is an expected
-failure (xfail, strict) and no row is `reviewed`.
+Review result: 124/124 agreement from one blind reviewer (Claude Sonnet, anonymized ids), so
+no second reviewer was needed and no row is `ambiguous`. All 64 real replies are labelled
+`in_role`, so `breaks_role` recall is measured only on the synthetic rows.

@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "eval" / "in_role_responses.jsonl"
 GOLD = {"in_role", "breaks_role"}
 
@@ -31,10 +29,19 @@ def test_in_role_fixtures_schema():
     assert sum(r["gold"] == "in_role" for r in synth) >= 10
 
 
-@pytest.mark.xfail(strict=True, reason="pending blind review")
 def test_in_role_fixtures_reviewed():
     rows = _rows()
 
     for r in rows:
         assert r["reviewed"] or r["ambiguous"], r["id"]
+        review = r["review"]
+        assert isinstance(review, dict), r["id"]
+        assert set(review) == {"label_b", "label_c", "reviewer_model"}, r["id"]
+        assert review["label_b"] in GOLD, r["id"]
+        assert review["label_c"] is None or review["label_c"] in GOLD, r["id"]
+        assert review["reviewer_model"], r["id"]
+        if not r["ambiguous"]:
+            assert review["label_b"] == r["gold"] or review["label_c"] == r["gold"], r[
+                "id"
+            ]
     assert sum(r["ambiguous"] for r in rows) <= 0.1 * len(rows)
