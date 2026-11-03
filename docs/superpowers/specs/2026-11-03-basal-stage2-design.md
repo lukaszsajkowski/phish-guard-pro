@@ -169,3 +169,11 @@ Pierwotne US-050 (kontrola bezpieczeństwa) wraca jako `response.in_role`. Nowe 
 - Treść opisów opcji dla Basala (z docstringów detektorów i promptu Conversation Agenta).
 - Format stanu dla `in_role` (jak podać personę Basalowi).
 - Wygląd ostrzeżeń w UI w ramach istniejących komponentów.
+
+## Wyniki etapu 2 — pierwszy eval in-role (2026-11-03)
+
+- Zbiór: 124 przypadki (64 prawdziwe odpowiedzi agenta, 60 syntetycznych), fixtures.
+- Bramka (recall `breaks_role` ≥ 90% przy fałszywych alarmach ≤ 10%) **niezaliczona**: recall 52,1% przy progu 0,50, 37,5% przy 0,70, 27,1% przy 0,90; fałszywe alarmy 0% przy każdym progu.
+- Wg zachowania przy 0,50: przyznaje się do bycia AI 7/8, wychodzi z wieku/stylu 7/8, moralizuje 5/8, wspomina o scamie/policji 4/8, odmawia 2/8, ton asystenta 0/8.
+- Opóźnienie Basala p50 3,5 s.
+- `response.in_role` zostaje w `shadow`, dopóki bramka nie zostanie zaliczona.

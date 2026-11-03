@@ -1232,15 +1232,64 @@ Acceptance Criteria:
   eval calls pass no session id, so they write no row
 - A failed usage write never fails the call
 
+### US-056: Per-node Basal mode and signal mode ✅
+
+Title: Per-node Basal mode and signal mode
+
+Description: As the product owner, I want each Basal decision node to run in
+its own mode, and a signal mode that compares Basal with the existing
+reference, so that Basal is switched on per node only after its own data
+supports it.
+
+Acceptance Criteria:
+
+- Settings `BASAL_MODE_PROFILER`, `BASAL_MODE_IN_ROLE` and
+  `BASAL_THRESHOLD_IN_ROLE` resolve per node, with a fallback to the global
+  mode and threshold
+- `decisions` stores `message_id`, `reference_kind` and `reference_answer`;
+  the `source` column also accepts `regex` and `none`
+- `DecisionService.decide_signal()` in mode `off` returns the reference only;
+  in `shadow` returns the reference, runs Basal in the background and writes a
+  row; in `live` returns Basal at or above the threshold, else the reference
+- `decide_signal()` never raises: a Basal or write failure falls back to the
+  reference
+
+### US-050: Persona in-role check (Basal) ✅
+
+Title: Warn when a generated reply breaks the persona's role
+
+Description: As an analyst, I want a warning when the agent's reply stops
+sounding like the persona (admits being an AI, mentions scam or police,
+moralizes, refuses, uses an assistant tone), so that I review it before
+sending it to the attacker.
+
+Acceptance Criteria:
+
+- Node `response.in_role` with options `in_role` and `breaks_role`;
+  `check_in_role()` runs in `/api/v1/response/generate` and
+  `/api/v1/response/validate`
+- Content that fails the PII check is not sent to the in-role check; a session
+  without a persona returns a null warning
+- The UI shows an amber notice under bot messages: "This reply may break the
+  persona's role. Review it before sending. (Basal, p=0.87)"
+- The notice is a warning only: copy and send stay enabled; it clears when an
+  edit makes the reply in-role
+- Eval: `python -m phishguard.decisions.eval in-role --source fixtures|decisions`;
+  sample generator `in-role-samples`; 124-row blind-reviewed fixture set
+- Switching `response.in_role` to `live` is pending its gate, which the first
+  eval (2026-11-03) did not meet: on 124 fixture cases no threshold reaches
+  recall of `breaks_role` >= 90% with false alarms <= 10% (recall 52.1% at
+  0.50, 37.5% at 0.70, 27.1% at 0.90; false alarms 0% at every threshold)
+
 ### Note: Original US-050, US-051, US-052, US-054
 
 The originally planned safety check, IOC assessment / next step, Decision Ops
-panel and case study are not part of stage 1. They move to stages 2-3 in
-reshaped form (see
-`docs/superpowers/specs/2026-11-02-basal-decision-layer-stage1-design.md`):
-the in-role check in stage 2, IOC-as-bait assessment in stage 3. "Next step"
-stays with the Conversation Agent, and the Decision Ops panel's role is played
-by the eval report in stage 1.
+panel and case study are not part of stage 1. US-050 is now the in-role check
+(stage 2, above). US-051 (IOC-as-bait assessment) stays in stage 3. "Next
+step" stays with the Conversation Agent, and the Decision Ops panel's role is
+played by the eval report. Unmasking and urgency detection through Basal get
+their own US in the phase C plan (see
+`docs/superpowers/specs/2026-11-03-basal-stage2-design.md`).
 
 ---
 
