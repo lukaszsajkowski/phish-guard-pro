@@ -127,3 +127,6 @@ supabase/.temp
 
 # Eval output (US-053)
 eval-results/
+
+# Claude Code worktrees
+.claude/worktrees/
