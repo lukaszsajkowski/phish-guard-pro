@@ -288,6 +288,20 @@ export function ChatMessage({
                     </details>
                 )}
 
+                {/* In-role warning (US-050) - advisory only, never disables copy/send */}
+                {isBot && !isEditing && message.inRoleWarning && (
+                    <div
+                        role="status"
+                        data-testid="in-role-warning"
+                        className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400"
+                    >
+                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span>
+                            {message.inRoleWarning.message} (Basal, p={message.inRoleWarning.confidence.toFixed(2)})
+                        </span>
+                    </div>
+                )}
+
                 {/* Action buttons for bot messages - only show when not editing */}
                 {isBot && !isEditing && (
                     <div className="mt-3 flex items-center gap-3">
