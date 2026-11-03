@@ -80,7 +80,7 @@ def generate_mocks() -> Iterator[dict]:
         history.return_value = []
         add_bot.return_value = "bot-msg-1"
         info.return_value = {"turn_count": 1, "turn_limit": 20, "is_at_limit": False}
-        yield {"get_session": get_session}
+        yield {"get_session": get_session, "graph": graph}
 
 
 @pytest.fixture
@@ -118,6 +118,29 @@ class TestGenerateInRole:
         args = check.await_args.args
         assert args[0].name == "Margaret"
         assert args[1:] == ("Oh dear, tell me more!", "sess-1", "bot-msg-1")
+
+    def test_iocs_saved_before_in_role_check(
+        self, client: TestClient, check: AsyncMock, generate_mocks: dict
+    ) -> None:
+        generate_mocks["graph"].ainvoke.return_value = {
+            "current_response": "Oh dear!",
+            "generation_time_ms": 12,
+            "is_safe": True,
+            "regeneration_count": 0,
+            "extracted_iocs": [{"type": "url", "value": "http://x.test"}],
+        }
+        order: list[str] = []
+        check.side_effect = lambda *a, **k: order.append("check")
+        with patch(
+            f"{ROUTER}.session_service.save_extracted_iocs",
+            new_callable=AsyncMock,
+        ) as save:
+            save.side_effect = lambda *a, **k: order.append("save")
+
+            response = client.post("/api/v1/response/generate", json=GENERATE_BODY)
+
+        assert response.status_code == 200
+        assert order == ["save", "check"]
 
     def test_no_warning_when_check_returns_none(
         self, client: TestClient, check: AsyncMock, generate_mocks: dict

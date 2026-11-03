@@ -311,11 +311,6 @@ async def generate_response(
             generation_time_ms=generation_time_ms,
         )
 
-        # Basal in-role check: warning only, never fails the request
-        in_role_warning = await check_in_role(
-            persona, response_content, request.session_id, message_id
-        )
-
         # Persist IOCs if extracted
         if extracted_iocs:
             await session_service.save_extracted_iocs(
@@ -365,6 +360,11 @@ async def generate_response(
                     unmasking_phrases,
                     unmasking_confidence,
                 )
+
+        # Basal in-role check, after IOC persistence: warning only, never fails
+        in_role_warning = await check_in_role(
+            persona, response_content, request.session_id, message_id
+        )
 
         return ResponseGenerationResponse(
             content=response_content,
