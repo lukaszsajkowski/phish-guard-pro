@@ -155,7 +155,14 @@ class DecisionService:
 
         if basal is not None and basal.confidence >= threshold:
             await self._record(
-                session_id, question, "basal", basal.answer, basal, None, None
+                session_id,
+                question,
+                "basal",
+                basal.answer,
+                basal,
+                None,
+                None,
+                reference_kind="llm",
             )
             return Decision("basal", basal.answer, basal, None)
 
@@ -178,11 +185,20 @@ class DecisionService:
                 basal,
                 None,
                 skip_reason,
+                reference_kind="llm",
             )
             return Decision("basal_low_confidence", basal.answer, basal, None)
 
         await self._record(
-            session_id, question, "llm", outcome.answer, basal, outcome, skip_reason
+            session_id,
+            question,
+            "llm",
+            outcome.answer,
+            basal,
+            outcome,
+            skip_reason,
+            reference_kind="llm",
+            reference_answer=outcome.answer,
         )
         return Decision("llm", outcome.answer, basal, result)
 
@@ -233,7 +249,15 @@ class DecisionService:
                 skip_reason = "below_threshold"
             final_answer = outcome.answer if outcome is not None else ""
             await self._record(
-                session_id, question, "llm", final_answer, basal, outcome, skip_reason
+                session_id,
+                question,
+                "llm",
+                final_answer,
+                basal,
+                outcome,
+                skip_reason,
+                reference_kind="llm",
+                reference_answer=outcome.answer if outcome is not None else None,
             )
         except Exception:
             logger.warning("Shadow decision task failed", exc_info=True)
@@ -285,6 +309,10 @@ class DecisionService:
         basal: BasalAnswer | None,
         llm: _LLMOutcome | None,
         skip_reason: str | None,
+        *,
+        message_id: str | None = None,
+        reference_kind: str | None = None,
+        reference_answer: str | None = None,
     ) -> None:
         """Write one decision row; never raises, no-op without session/recorder."""
         if session_id is None or self._recorder is None:
@@ -306,6 +334,9 @@ class DecisionService:
             llm_answer=llm.answer if llm else None,
             llm_model=llm.model if llm else None,
             llm_ms=llm.ms if llm else None,
+            message_id=message_id,
+            reference_kind=reference_kind,
+            reference_answer=reference_answer,
         )
         try:
             await self._recorder(record)

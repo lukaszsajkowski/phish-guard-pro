@@ -290,6 +290,31 @@ async def test_shadow_verdict_is_llm_even_with_confident_basal():
     assert row.basal_answer == "romance_scam"
     assert row.llm_answer == "nigerian_419"
     assert row.skip_reason is None
+    assert row.reference_kind == "llm"
+    assert row.reference_answer == "nigerian_419"
+    assert row.message_id is None
+
+
+async def test_shadow_llm_failure_has_llm_reference_without_answer():
+    rows: list[DecisionRecord] = []
+    service = _service(_basal(), "shadow", rows)
+
+    with pytest.raises(LLMRequestError):
+        await _decide(service, _llm(error=LLMRequestError("boom")))
+    await drain_background_tasks()
+
+    assert rows[0].reference_kind == "llm"
+    assert rows[0].reference_answer is None
+
+
+async def test_live_rows_carry_llm_reference():
+    rows: list[DecisionRecord] = []
+    service = _service(_basal(_basal_answer("romance_scam", 0.5)), "live", rows)
+
+    await _decide(service, _llm())
+
+    assert rows[0].reference_kind == "llm"
+    assert rows[0].reference_answer == "nigerian_419"
 
 
 async def test_shadow_does_not_wait_for_basal():
