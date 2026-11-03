@@ -72,10 +72,16 @@ in-role eval run, not by the profiler eval above.
 
 - **Real rows (64).** `python -m phishguard.decisions.eval in-role-samples --out
   tests/fixtures/eval/in_role_responses.jsonl --per-type 8` takes reviewed, non-ambiguous
-  profiler fixtures except `not_phishing` (8 attack types, 4 pl and 4 en each), picks a
+  profiler fixtures except `not_phishing` (8 attack types, 4 pl and 4 en source emails each), picks a
   persona with `PersonaEngine`, and generates the first reply with the real
   `ConversationAgent` (`session_id=None`, nothing is written to the database). `gold` is
-  the placeholder `in_role` until review. Language follows the source email.
+  the placeholder `in_role` until review. `lang` is detected on the reply text
+  (fast-langdetect, `phishguard.decisions.language.detect_pl_en`), not taken from the
+  source email; the `pl`/`en` in a `real-` id is the source email's language. Real rows
+  are 13 pl and 51 en: the agent often answers Polish emails in English, so Polish real
+  replies are few. (The first version copied the email's language; 19 rows were corrected
+  in place without regenerating, so the label review still stands.) A test checks every
+  row's `lang` against the same detector.
 - **Synthetic rows (60).** Written by hand, no real personal data. 48 `breaks_role`, 8 for
   each behaviour in `IN_ROLE_CRITERIA["breaks_role"]` (admits to being an AI, refuses to
   continue, moralizes, mentions a scam/police/CERT, assistant tone, speaks against the

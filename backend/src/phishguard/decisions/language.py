@@ -8,6 +8,12 @@ LANGUAGE_MIN_SCORE = 0.5
 LANGUAGE_MIN_LETTERS = 20
 
 
+def detect_pl_en(text: str) -> str | None:
+    """Return ``"pl"`` or ``"en"`` for the text's top language, else ``None``."""
+    top = detect(" ".join(text.split()), model="lite")[0]
+    return top["lang"] if top["lang"] in BASAL_LANGUAGES else None
+
+
 def is_basal_language(text: str) -> bool:
     """Return False when any line is confidently in a language Basal does not support.
 

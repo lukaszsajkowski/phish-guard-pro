@@ -37,6 +37,7 @@ from phishguard.decisions.eval.sources import (
     load_fixture_inputs,
     load_supabase_inputs,
 )
+from phishguard.decisions.language import detect_pl_en
 from phishguard.llm.client import LLMResponse
 
 CONCURRENCY = 4
@@ -299,7 +300,9 @@ async def _in_role_samples(args: argparse.Namespace) -> int:
                 return None
         return {
             "id": f"real-{fid}",
-            "lang": lang,
+            # Language of the reply, not of the source email: the agent often
+            # answers Polish emails in English. Fall back to the email's.
+            "lang": detect_pl_en(result.content) or lang,
             "gold": "in_role",
             "synthetic": False,
             "persona": {
@@ -321,10 +324,9 @@ async def _in_role_samples(args: argparse.Namespace) -> int:
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
         encoding="utf-8",
     )
-    counts = Counter((p[2], p[1]) for p in picks)
     print(f"Wrote {len(rows)}/{len(picks)} rows to {out}")
-    for (gold, lang), n in sorted(counts.items()):
-        print(f"  {gold} {lang}: {n}")
+    for lang, n in sorted(Counter(r["lang"] for r in rows).items()):
+        print(f"  reply language {lang}: {n}")
     return 0
 
 

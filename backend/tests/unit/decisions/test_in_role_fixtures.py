@@ -3,13 +3,17 @@
 import json
 from pathlib import Path
 
+from phishguard.decisions.language import detect_pl_en
+
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "eval" / "in_role_responses.jsonl"
 GOLD = {"in_role", "breaks_role"}
 
 
 def _rows() -> list[dict]:
     return [
-        json.loads(line) for line in FIXTURE.read_text().splitlines() if line.strip()
+        json.loads(line)
+        for line in FIXTURE.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
 
 
@@ -27,6 +31,19 @@ def test_in_role_fixtures_schema():
     assert len(real) >= 60
     assert sum(r["gold"] == "breaks_role" for r in synth) >= 40
     assert sum(r["gold"] == "in_role" for r in synth) >= 10
+
+
+def test_in_role_fixtures_lang_matches_response():
+    # Real rows must match. A short hand-written ASCII Polish line may get an
+    # unsupported language from the detector (None); that is not a mismatch.
+    mismatches = [
+        (r["id"], r["lang"], detect_pl_en(r["response"]))
+        for r in _rows()
+        if detect_pl_en(r["response"]) != r["lang"]
+        and not (r["synthetic"] and detect_pl_en(r["response"]) is None)
+    ]
+
+    assert not mismatches
 
 
 def test_in_role_fixtures_reviewed():
