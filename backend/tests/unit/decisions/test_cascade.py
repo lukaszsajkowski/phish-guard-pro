@@ -538,3 +538,19 @@ async def test_drain_with_timeout_waits_for_tasks_that_finish_in_time():
 
     assert done.is_set()
     assert not task.cancelled()
+
+
+def test_create_decision_service_resolves_mode_per_node():
+    settings = Settings(
+        basal_url="http://basal.test/ask",
+        basal_mode="live",
+        basal_mode_profiler="off",
+    )
+
+    profiler = create_decision_service(settings)
+    in_role = create_decision_service(settings, node="response.in_role")
+
+    assert profiler.mode == "off"
+    assert profiler.basal is None
+    assert in_role.mode == "live"
+    assert isinstance(in_role.basal, BasalClient)

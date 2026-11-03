@@ -104,7 +104,9 @@ class ProfilerAgent:
                 built from settings (empty BASAL_URL means LLM only).
         """
         self._llm_client = llm_client or create_llm_client()
-        self._decision_service = decision_service or create_decision_service()
+        self._decision_service = decision_service or create_decision_service(
+            node=PROFILER_NODE
+        )
 
     async def classify(
         self, email_content: str, session_id: str | None = None

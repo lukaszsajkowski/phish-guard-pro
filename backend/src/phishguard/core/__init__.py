@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     basal_mode: Literal["off", "shadow", "live"] = "shadow"
     basal_threshold: float = Field(default=0.9, ge=0, le=1)
     basal_threshold_profiler: float | None = Field(default=None, ge=0, le=1)
+    basal_threshold_in_role: float | None = Field(default=None, ge=0, le=1)
+    basal_mode_profiler: Literal["off", "shadow", "live"] | None = None
+    basal_mode_in_role: Literal["off", "shadow", "live"] | None = None
     basal_timeout_s: float = 30.0
     basal_model: str = ""
 
@@ -57,14 +60,26 @@ class Settings(BaseSettings):
 
     @property
     def basal_effective_mode(self) -> Literal["off", "shadow", "live"]:
-        """Basal mode, forced to "off" when no Basal URL is configured."""
-        return self.basal_mode if self.basal_url else "off"
+        """Profiler Basal mode (kept for existing callers)."""
+        return self.basal_mode_for("profiler.attack_type")
+
+    def basal_mode_for(self, node: str) -> Literal["off", "shadow", "live"]:
+        """Basal mode for a decision node; "off" when no Basal URL is set."""
+        if not self.basal_url:
+            return "off"
+        override = {
+            "profiler.attack_type": self.basal_mode_profiler,
+            "response.in_role": self.basal_mode_in_role,
+        }.get(node)
+        return override if override is not None else self.basal_mode
 
     def basal_threshold_for(self, node: str) -> float:
         """Confidence threshold for a decision node."""
-        if node == "profiler.attack_type" and self.basal_threshold_profiler is not None:
-            return self.basal_threshold_profiler
-        return self.basal_threshold
+        override = {
+            "profiler.attack_type": self.basal_threshold_profiler,
+            "response.in_role": self.basal_threshold_in_role,
+        }.get(node)
+        return override if override is not None else self.basal_threshold
 
 
 @lru_cache

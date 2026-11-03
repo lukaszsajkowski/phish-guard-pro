@@ -313,10 +313,12 @@ class DecisionService:
             logger.warning("Failed to record decision", exc_info=True)
 
 
-def create_decision_service(settings: Settings | None = None) -> DecisionService:
-    """Build a DecisionService from settings (empty BASAL_URL means off)."""
+def create_decision_service(
+    settings: Settings | None = None, *, node: str = "profiler.attack_type"
+) -> DecisionService:
+    """Build a DecisionService for a node (empty BASAL_URL means off)."""
     settings = settings or get_settings()
-    mode = settings.basal_effective_mode
+    mode = settings.basal_mode_for(node)
     basal = (
         BasalClient(settings.basal_url, settings.basal_timeout_s)
         if mode != "off"
