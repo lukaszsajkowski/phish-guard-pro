@@ -85,22 +85,43 @@ async def test_ask_choice_raises_when_choice_not_in_criteria():
 
 
 def test_settings_threshold_for_node():
-    s = Settings(basal_threshold=0.9, basal_threshold_profiler=0.95)
+    s = Settings(
+        basal_threshold=0.9,
+        basal_threshold_profiler=0.95,
+        basal_threshold_in_role=None,
+    )
     assert s.basal_threshold_for("profiler.attack_type") == 0.95
     assert s.basal_threshold_for("other.node") == 0.9
 
 
 def test_settings_threshold_profiler_falls_back_to_default():
-    s = Settings(basal_threshold=0.9, basal_threshold_profiler=None)
+    s = Settings(
+        basal_threshold=0.9,
+        basal_threshold_profiler=None,
+        basal_threshold_in_role=None,
+    )
     assert s.basal_threshold_for("profiler.attack_type") == 0.9
 
 
 def test_effective_mode_off_without_url():
-    assert Settings(basal_url="", basal_mode="live").basal_effective_mode == "off"
+    assert (
+        Settings(
+            basal_url="",
+            basal_mode="live",
+            basal_mode_profiler=None,
+            basal_mode_in_role=None,
+        ).basal_effective_mode
+        == "off"
+    )
 
 
 def test_effective_mode_follows_mode_with_url():
-    s = Settings(basal_url="http://basal.test", basal_mode="shadow")
+    s = Settings(
+        basal_url="http://basal.test",
+        basal_mode="shadow",
+        basal_mode_profiler=None,
+        basal_mode_in_role=None,
+    )
     assert s.basal_effective_mode == "shadow"
 
 

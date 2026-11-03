@@ -506,7 +506,14 @@ async def test_no_row_without_recorder(mode):
 
 
 def test_create_decision_service_off_without_url():
-    service = create_decision_service(Settings(basal_url="", basal_mode="live"))
+    service = create_decision_service(
+        Settings(
+            basal_url="",
+            basal_mode="live",
+            basal_mode_profiler=None,
+            basal_mode_in_role=None,
+        )
+    )
 
     assert service.mode == "off"
     assert service.basal is None
@@ -516,8 +523,11 @@ def test_create_decision_service_live_with_url():
     settings = Settings(
         basal_url="http://basal.test/ask",
         basal_mode="live",
+        basal_mode_profiler=None,
+        basal_mode_in_role=None,
         basal_threshold=0.8,
         basal_threshold_profiler=0.95,
+        basal_threshold_in_role=None,
     )
 
     service = create_decision_service(settings)
