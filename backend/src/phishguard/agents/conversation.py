@@ -14,11 +14,13 @@ from phishguard.agents.prompts.conversation import (
     get_conversation_system_prompt,
     get_conversation_user_prompt,
 )
+from phishguard.decisions.language import detect_pl_en
 from phishguard.decisions.recorder import record_llm_usage
 from phishguard.llm import LLMClient, LLMRequestError, create_llm_client
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import (
     ConversationMessage,
+    MessageSender,
     ResponseGenerationResult,
 )
 from phishguard.models.persona import PersonaProfile
@@ -31,6 +33,29 @@ logger = logging.getLogger(__name__)
 CONVERSATION_TEMPERATURE: Final[float] = 0.8
 CONVERSATION_MAX_TOKENS: Final[int] = 500
 MAX_REGENERATION_ATTEMPTS: Final[int] = 3
+
+
+def _detect_reply_language(
+    email_content: str, history: list[ConversationMessage] | None
+) -> str | None:
+    """Return "pl"/"en" for the scammer's latest message, else None.
+
+    The latest scammer message is the last scammer entry in `history`, or
+    `email_content` when there is none. Detection failures return None.
+    """
+    latest = next(
+        (
+            m.content
+            for m in reversed(history or [])
+            if m.sender == MessageSender.SCAMMER
+        ),
+        email_content,
+    )
+    try:
+        return detect_pl_en(latest)
+    except Exception:
+        logger.warning("Reply language detection failed", exc_info=True)
+        return None
 
 
 class ResponseGenerationError(Exception):
@@ -129,6 +154,7 @@ class ConversationAgent:
             email_content=email_content,
             conversation_history=self._format_history(conversation_history),
             is_first_response=is_first_response,
+            reply_language=_detect_reply_language(email_content, conversation_history),
         )
 
         messages = [

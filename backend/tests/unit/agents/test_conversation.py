@@ -189,3 +189,90 @@ class TestConversationAgentUsageRecording:
             await self._run(agent)
 
         rec.assert_not_awaited()
+
+
+class TestConversationAgentReplyLanguage:
+    """The reply is written in the language of the scammer's latest message."""
+
+    PL_EMAIL = (
+        "Dzień dobry, wygrał Pan nagrodę w loterii. Aby ją odebrać, prosimy "
+        "o przelew opłaty manipulacyjnej na wskazane konto bankowe."
+    )
+    EN_EMAIL = (
+        "Hello, you have won a prize in our lottery. To claim it, please send "
+        "the processing fee to the bank account below."
+    )
+
+    @staticmethod
+    def _agent():
+        from phishguard.llm.client import LLMResponse
+
+        llm = MagicMock()
+        llm.chat_completion = AsyncMock(
+            return_value=LLMResponse(
+                content=json.dumps({"response": "ok"}),
+                model_used="gpt-4o",
+                prompt_tokens=1,
+                completion_tokens=1,
+            )
+        )
+        validator = MagicMock()
+        validator.validate.return_value = MagicMock(is_safe=True)
+        return ConversationAgent(llm_client=llm, validator=validator), llm
+
+    async def _user_prompt(self, email_content, history=None):
+        from phishguard.models.classification import AttackType
+        from phishguard.models.persona import PersonaProfile
+
+        agent, llm = self._agent()
+        with patch(
+            "phishguard.agents.conversation.get_conversation_system_prompt",
+            return_value="sys",
+        ):
+            await agent.generate_response(
+                persona=MagicMock(spec=PersonaProfile),
+                email_content=email_content,
+                attack_type=AttackType.LOTTERY_PRIZE,
+                conversation_history=history,
+                is_first_response=history is None,
+            )
+        messages = llm.chat_completion.await_args.kwargs["messages"]
+        return messages[-1]["content"]
+
+    @pytest.mark.asyncio
+    async def test_polish_email_asks_for_polish_reply(self):
+        prompt = await self._user_prompt(self.PL_EMAIL)
+
+        assert 'Write the "response" field in Polish' in prompt
+
+    @pytest.mark.asyncio
+    async def test_english_email_asks_for_english_reply(self):
+        prompt = await self._user_prompt(self.EN_EMAIL)
+
+        assert 'Write the "response" field in English' in prompt
+
+    @pytest.mark.asyncio
+    async def test_follow_up_uses_latest_scammer_message_language(self):
+        from phishguard.models.conversation import ConversationMessage, MessageSender
+
+        history = [
+            ConversationMessage(
+                sender=MessageSender.BOT, content="Oh my, really?", turn_number=1
+            ),
+            ConversationMessage(
+                sender=MessageSender.SCAMMER, content=self.PL_EMAIL, turn_number=2
+            ),
+        ]
+
+        prompt = await self._user_prompt(self.EN_EMAIL, history)
+
+        assert 'Write the "response" field in Polish' in prompt
+
+    @pytest.mark.asyncio
+    async def test_unknown_language_asks_to_match_the_scammer(self):
+        prompt = await self._user_prompt(
+            "Guten Tag, Sie haben in unserer Lotterie einen Preis gewonnen. "
+            "Bitte senden Sie die Bearbeitungsgebühr."
+        )
+
+        assert "same language as the scammer's latest message" in prompt

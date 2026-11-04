@@ -255,10 +255,33 @@ def get_conversation_system_prompt(
 
 
 def get_conversation_user_prompt(
+REPLY_LANGUAGE_NAMES = {"pl": "Polish", "en": "English"}
+
+
+def get_reply_language_instruction(reply_language: str | None) -> str:
+    """Return the instruction that pins the language of the victim's reply.
+
+    Args:
+        reply_language: ISO code of the scammer's latest message ("pl"/"en"),
+            or None when it is unknown or another language.
+    """
+    name = REPLY_LANGUAGE_NAMES.get(reply_language or "")
+    if name:
+        return (
+            f'Write the "response" field in {name}, the language the scammer '
+            'writes in. Keep the "thinking" field in English.'
+        )
+    return (
+        'Write the "response" field in the same language as the scammer\'s '
+        'latest message. Keep the "thinking" field in English.'
+    )
+
+
     email_content: str,
     conversation_history: list[dict[str, str]] | None = None,
     is_first_response: bool = True,
 ) -> str:
+    reply_language: str | None = None,
     """Format the user prompt for generating a response.
 
     Creates the prompt that contains the scammer's message to respond to,
@@ -270,6 +293,8 @@ def get_conversation_user_prompt(
             Each dict should have 'sender' and 'content' keys.
         is_first_response: Whether this is the first response in the conversation.
 
+        reply_language: Language code of the scammer's latest message; selects
+            the language instruction (see `get_reply_language_instruction`).
     Returns:
         Formatted user prompt string for the LLM.
 
@@ -282,6 +307,8 @@ def get_conversation_user_prompt(
         True
     """
     if is_first_response:
+    language_instruction = get_reply_language_instruction(reply_language)
+
         return f"""\
 Generate your first response to the following phishing email. Remember to stay in character as your assigned persona.
 
@@ -289,7 +316,9 @@ Generate your first response to the following phishing email. Remember to stay i
 {email_content}
 </SCAMMER_EMAIL>
 
-Write your response as the victim. Show interest but don't agree to anything immediately. Ask a question or two to keep the conversation going.\
+Write your response as the victim. Show interest but don't agree to anything immediately. Ask a question or two to keep the conversation going.
+
+{language_instruction}\
 """
 
     # Build conversation context for follow-up responses
@@ -315,5 +344,7 @@ The scammer just sent this new message:
 {email_content}
 </SCAMMER_MESSAGE>
 
-Generate your next response as the victim. Continue to engage, ask questions, and try to extract more details about their operation.\
+Generate your next response as the victim. Continue to engage, ask questions, and try to extract more details about their operation.
+
+{language_instruction}\
 """
