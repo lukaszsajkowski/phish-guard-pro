@@ -12,6 +12,7 @@ export type AttackType =
     | "lottery_prize"
     | "crypto_investment"
     | "delivery_scam"
+    | "credential_phishing"
     | "not_phishing";
 
 export type SessionStatus = "active" | "archived";

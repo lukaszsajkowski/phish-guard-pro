@@ -44,6 +44,7 @@ export const ATTACK_TYPE_LABELS: Record<string, string> = {
   lottery_prize: "Lottery/Prize Scam",
   crypto_investment: "Crypto Investment Scam",
   delivery_scam: "Delivery Scam",
+  credential_phishing: "Credential Phishing",
   not_phishing: "Not Phishing",
 };
 
@@ -63,6 +64,7 @@ export const ATTACK_TYPE_COLORS: Record<string, string> = {
   lottery_prize: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   crypto_investment: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   delivery_scam: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
+  credential_phishing: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
   not_phishing: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
 };
 

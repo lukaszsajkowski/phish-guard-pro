@@ -195,6 +195,7 @@ ATTACK_TYPE_CONTEXT: dict[AttackType, str] = {
     AttackType.LOTTERY_PRIZE: "This is lottery/prize fraud. Express excitement about winning, ask how to claim the prize, show concern about fees but remain hopeful.",
     AttackType.CRYPTO_INVESTMENT: "This is crypto investment fraud. Show interest in the returns, ask about the platform, express FOMO about missing the opportunity.",
     AttackType.DELIVERY_SCAM: "This is delivery fraud. Act confused about what package, ask for tracking details, concerned about missing something important.",
+    AttackType.CREDENTIAL_PHISHING: "This is credential phishing. Act willing to sort out the account but have trouble with the link: it does not load, asks for something unexpected, or your work laptop blocks it. Ask for another link, a phone number, or someone who can help you log in. Never type or share any password or code.",
     AttackType.NOT_PHISHING: "This may not be a scam, but engage cautiously. Ask clarifying questions and gather more information.",
 }
 
@@ -254,7 +255,6 @@ def get_conversation_system_prompt(
 """
 
 
-def get_conversation_user_prompt(
 REPLY_LANGUAGE_NAMES = {"pl": "Polish", "en": "English"}
 
 
@@ -277,11 +277,12 @@ def get_reply_language_instruction(reply_language: str | None) -> str:
     )
 
 
+def get_conversation_user_prompt(
     email_content: str,
     conversation_history: list[dict[str, str]] | None = None,
     is_first_response: bool = True,
-) -> str:
     reply_language: str | None = None,
+) -> str:
     """Format the user prompt for generating a response.
 
     Creates the prompt that contains the scammer's message to respond to,
@@ -292,9 +293,9 @@ def get_reply_language_instruction(reply_language: str | None) -> str:
         conversation_history: Optional list of previous messages for context.
             Each dict should have 'sender' and 'content' keys.
         is_first_response: Whether this is the first response in the conversation.
-
         reply_language: Language code of the scammer's latest message; selects
             the language instruction (see `get_reply_language_instruction`).
+
     Returns:
         Formatted user prompt string for the LLM.
 
@@ -306,9 +307,9 @@ def get_reply_language_instruction(reply_language: str | None) -> str:
         >>> "first response" in prompt.lower()
         True
     """
-    if is_first_response:
     language_instruction = get_reply_language_instruction(reply_language)
 
+    if is_first_response:
         return f"""\
 Generate your first response to the following phishing email. Remember to stay in character as your assigned persona.
 

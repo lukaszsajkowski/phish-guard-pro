@@ -37,7 +37,8 @@ ATTACK_TYPE_CRITERIA: dict[str, str] = {
     "tech_support": (
         "Fake technical support or security alert scam: claims of virus "
         "infection, account compromise or suspicious activity, urges immediate "
-        "action, may include fake error codes or phone numbers."
+        "action, may include fake error codes or phone numbers; not a request "
+        "to log in through a link (that is credential_phishing)."
     ),
     "lottery_prize": (
         "Fake lottery win or prize notification: claims the recipient won a "
@@ -53,6 +54,13 @@ ATTACK_TYPE_CRITERIA: dict[str, str] = {
         "Fake delivery, shipping or customs notification: failed package "
         "delivery, customs fees or tracking updates required, impersonates "
         "carriers like FedEx, UPS or DHL."
+    ),
+    "credential_phishing": (
+        "Lure to a fake login or verification page to steal credentials: asks "
+        "the recipient to log in, verify an account, confirm a password or "
+        "enter a one-time code through a link, attachment or form, using "
+        "account suspension, full mailbox, password expiry, unusual sign-in or "
+        "shared-document pretexts."
     ),
     "not_phishing": (
         "Content determined to be legitimate (not a phishing attempt): normal "

@@ -24,6 +24,7 @@ ATTACK_PERSONA_MAPPING: Final[dict[AttackType, PersonaType]] = {
     AttackType.LOTTERY_PRIZE: PersonaType.GREEDY_INVESTOR,
     AttackType.CRYPTO_INVESTMENT: PersonaType.GREEDY_INVESTOR,
     AttackType.DELIVERY_SCAM: PersonaType.CONFUSED_STUDENT,
+    AttackType.CREDENTIAL_PHISHING: PersonaType.STRESSED_MANAGER,
     AttackType.NOT_PHISHING: PersonaType.CONFUSED_STUDENT,  # Fallback
 }
 

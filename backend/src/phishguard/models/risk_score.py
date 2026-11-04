@@ -215,6 +215,7 @@ ATTACK_SEVERITY_SCORES = {
     "tech_support": 5,
     "lottery_prize": 5,
     "delivery_scam": 4,
+    "credential_phishing": 7,
     "not_phishing": 2,
 }
 

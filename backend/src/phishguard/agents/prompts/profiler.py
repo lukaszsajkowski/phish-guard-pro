@@ -22,7 +22,7 @@ Model Target: GPT-4o/GPT-4o-mini (OpenAI)
 # =============================================================================
 
 PROFILER_SYSTEM_PROMPT = """\
-You are a phishing email classifier. Your task is to analyze email content and classify it into one of 9 categories.
+You are a phishing email classifier. Your task is to analyze email content and classify it into one of 10 categories.
 
 ## ATTACK CATEGORIES
 
@@ -34,7 +34,7 @@ You are a phishing email classifier. Your task is to analyze email content and c
 
 4. **romance_scam**: Emotional manipulation. Expressions of love or affection from strangers. Builds fake relationship before requesting money. Often claims military deployment or overseas work.
 
-5. **tech_support**: Fake security alerts. Claims of virus infection, account compromise, or suspicious activity. Urges immediate action. May include fake error codes or phone numbers.
+5. **tech_support**: Fake security alerts. Claims of virus infection, account compromise, or suspicious activity. Urges immediate action. May include fake error codes or phone numbers. If the email mainly asks the recipient to log in, verify or re-enter credentials through a link or form, use credential_phishing instead.
 
 6. **lottery_prize**: Fake winnings notification. Claims recipient won lottery, sweepstakes, or giveaway they never entered. Requests fees or personal info to claim prize.
 
@@ -42,7 +42,9 @@ You are a phishing email classifier. Your task is to analyze email content and c
 
 8. **delivery_scam**: Fake shipping notification. Claims package delivery failed, customs fees required, or tracking update needed. Impersonates carriers like FedEx, UPS, DHL.
 
-9. **not_phishing**: Legitimate email. Use when confidence in all phishing categories is below 30%. Normal business correspondence, personal messages, or newsletters.
+9. **credential_phishing**: Credential harvesting. Asks the recipient to log in, verify an account, confirm a password, or enter a one-time code through a link, attachment or form. Common lures: account suspension, mailbox full, password expiry, unusual sign-in, shared document. Impersonates banks, email providers, Microsoft 365, or the company IT department.
+
+10. **not_phishing**: Legitimate email. Use when confidence in all phishing categories is below 30%. Normal business correspondence, personal messages, or newsletters.
 
 ## OUTPUT FORMAT
 

@@ -38,3 +38,10 @@ describe('ClassificationResult confidence styling', () => {
         expect(screen.getByText(/% Confidence/)).toHaveClass(cls);
     });
 });
+
+describe('ClassificationResult credential phishing', () => {
+    it('renders the Credential Phishing label', () => {
+        render(<ClassificationResult attackType="credential_phishing" reasoning="r" confidence={90} />);
+        expect(screen.getByText('Credential Phishing')).toBeInTheDocument();
+    });
+});

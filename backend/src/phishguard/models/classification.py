@@ -28,6 +28,7 @@ class AttackType(str, Enum):
         LOTTERY_PRIZE: Fake lottery or prize notifications.
         CRYPTO_INVESTMENT: Cryptocurrency investment fraud.
         DELIVERY_SCAM: Fake delivery or shipping notifications.
+        CREDENTIAL_PHISHING: Fake login or account verification pages.
         NOT_PHISHING: Content determined to be legitimate.
     """
 
@@ -55,6 +56,9 @@ class AttackType(str, Enum):
     DELIVERY_SCAM = "delivery_scam"
     """Fake delivery, shipping, or customs notification."""
 
+    CREDENTIAL_PHISHING = "credential_phishing"
+    """Lure to a fake login or verification page to steal credentials."""
+
     NOT_PHISHING = "not_phishing"
     """Content determined to be legitimate (not a phishing attempt)."""
 
@@ -80,6 +84,7 @@ class AttackType(str, Enum):
             AttackType.LOTTERY_PRIZE: "Lottery/Prize",
             AttackType.CRYPTO_INVESTMENT: "Crypto Investment",
             AttackType.DELIVERY_SCAM: "Delivery Scam",
+            AttackType.CREDENTIAL_PHISHING: "Credential Phishing",
             AttackType.NOT_PHISHING: "Not Phishing",
         }
         return display_names[self]

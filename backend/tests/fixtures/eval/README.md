@@ -11,7 +11,7 @@ are `example.*`.
 |-------------|---------|
 | `id`        | unique, e.g. `pl-rom-01` (`<lang>-<label>-<nn>`) |
 | `lang`      | `pl` or `en` |
-| `gold`      | one of the nine `AttackType` values |
+| `gold`      | one of the `AttackType` values (nine at the 2026-11-02 review) |
 | `reviewed`  | `true` once the gold label passed blind review |
 | `ambiguous` | `true` if blind review could not agree on one label; excluded from the gate |
 | `email`     | the email text |
@@ -46,6 +46,16 @@ One row, `pl-ceo-03`, was later marked `ambiguous` by the task reviewer (it keep
 `reviewed: true` and its review object). The email has no wire, urgency or impersonation
 cue, so under the criteria it reads as `not_phishing` as plausibly as `ceo_fraud`. It was
 not rewritten, to avoid a new blind review round, and is excluded from the gate.
+
+## Pending: re-review for `credential_phishing` (2026-11-04)
+
+`credential_phishing` was added as a tenth `AttackType` after this review. The labels above
+were reviewed against nine options, so the set needs a new blind review against all ten
+before its accuracy numbers are compared with earlier runs. Live GPT checks on 2026-11-04
+moved five `tech_support` rows to `credential_phishing`: `pl-tech-02`, `pl-tech-03`,
+`pl-tech-05`, `en-tech-02` and `en-tech-05`. `en-inv-05` (an invoice with a "sign in to
+download" step) is a likely borderline case. Until the re-review, those rows count as
+errors in the profiler eval.
 
 # In-role eval samples (US-050)
 

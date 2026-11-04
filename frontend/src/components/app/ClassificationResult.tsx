@@ -13,6 +13,7 @@ export type AttackType =
     | "lottery_prize"
     | "crypto_investment"
     | "delivery_scam"
+    | "credential_phishing"
     | "not_phishing"
 
 export interface ClassificationResultProps {
@@ -39,6 +40,7 @@ const ATTACK_TYPE_LABELS: Record<AttackType, string> = {
     lottery_prize: "Lottery/Prize",
     crypto_investment: "Crypto Investment",
     delivery_scam: "Delivery Scam",
+    credential_phishing: "Credential Phishing",
     not_phishing: "Not Phishing",
 }
 
