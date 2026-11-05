@@ -4,18 +4,34 @@ updates:
     directory: /backend
     schedule:
       interval: monthly
+    ignore:
+      # Major upgrades are done deliberately in their own PRs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 3
     groups:
       backend:
+        applies-to: version-updates
+        patterns: ["*"]
+      backend-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: monthly
+    ignore:
+      # Major upgrades are done deliberately in their own PRs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 3
     groups:
       frontend:
+        applies-to: version-updates
+        patterns: ["*"]
+      frontend-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: github-actions
@@ -25,4 +41,8 @@ updates:
     open-pull-requests-limit: 3
     groups:
       actions:
+        applies-to: version-updates
+        patterns: ["*"]
+      actions-security:
+        applies-to: security-updates
         patterns: ["*"]
