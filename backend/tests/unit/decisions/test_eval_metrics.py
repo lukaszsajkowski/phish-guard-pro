@@ -127,3 +127,11 @@ def test_llm_cost_usd():
 def test_llm_cost_unknown_model():
     with pytest.raises(KeyError, match="gpt-5-unknown"):
         llm_cost_usd(1, 1, "gpt-5-unknown")
+
+
+def test_ollama_default_models_are_priced_at_zero():
+    from phishguard.decisions.eval.metrics import llm_cost_usd
+    from phishguard.llm import PROVIDER_DEFAULT_MODELS
+
+    for model in PROVIDER_DEFAULT_MODELS["ollama"]:
+        assert llm_cost_usd(1_000, 1_000, model) == 0.0

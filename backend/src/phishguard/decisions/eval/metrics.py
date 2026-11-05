@@ -8,12 +8,17 @@ from typing import Literal
 
 from phishguard.decisions.basal_client import BasalAnswer
 
-# USD per 1M tokens as (input, output). Last known OpenAI list prices; no web
-# access when written (2026-11-02), so they MUST be checked against
-# https://openai.com/api/pricing before the numbers are relied upon.
+# USD per 1M tokens as (input, output). OpenAI entries are last known list
+# prices (2026-11-02) and MUST be checked against https://openai.com/api/pricing
+# before the numbers are relied upon. Local Ollama models cost nothing.
+# Not yet priced (2026-11-05, pricing page not readable by automation):
+# gpt-6-luna, gpt-5.4-mini, claude-sonnet-5-5, claude-haiku-5-5. Cost reports
+# for those models raise "Unknown model" until they are added here.
 PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
+    "qwen3:8b": (0.0, 0.0),
+    "qwen3:4b": (0.0, 0.0),
 }
 
 
