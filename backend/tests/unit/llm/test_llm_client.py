@@ -18,6 +18,7 @@ from phishguard.llm.client import (
     LLMResponse,
     create_llm_client,
 )
+from phishguard.llm.providers import ProviderConnectionError
 
 
 @pytest.fixture
@@ -114,7 +115,7 @@ class TestLLMClient:
         mock_response.usage.completion_tokens = 40
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             return_value=mock_response,
@@ -138,7 +139,7 @@ class TestLLMClient:
         mock_response.usage = None
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             return_value=mock_response,
@@ -161,7 +162,7 @@ class TestLLMClient:
         mock_response.choices[0].message.content = "Test response"
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             return_value=mock_response,
@@ -198,7 +199,7 @@ class TestLLMClient:
             return mock_response
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             side_effect=mock_create,
         ):
@@ -233,7 +234,7 @@ class TestLLMClient:
             return mock_response
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             side_effect=mock_create,
         ):
@@ -252,7 +253,7 @@ class TestLLMClient:
         mock_resp.status_code = 400
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             side_effect=APIStatusError(
@@ -274,7 +275,7 @@ class TestLLMClient:
         client = LLMClient(config=client_config)
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             side_effect=AuthenticationError(
@@ -296,7 +297,7 @@ class TestLLMClient:
         client = LLMClient(config=client_config)
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             side_effect=RateLimitError(
@@ -319,7 +320,7 @@ class TestLLMClient:
         client = LLMClient(config=client_config)
 
         with patch.object(
-            client._client.chat.completions,
+            client._provider._client.chat.completions,
             "create",
             new_callable=AsyncMock,
             side_effect=RateLimitError(
@@ -333,6 +334,28 @@ class TestLLMClient:
                     messages=[{"role": "user", "content": "Hello"}],
                     model="specific-model",  # Explicit model
                 )
+
+
+class TestProviderInjection:
+    """LLMClient retry/fallback with an injected provider."""
+
+    @pytest.mark.asyncio
+    async def test_unreachable_provider_retries_then_falls_back_then_fails(
+        self, mock_settings, client_config
+    ):
+        """Connection refused (e.g. Ollama not running) ends in LLMRequestError."""
+        provider = AsyncMock()
+        provider.complete.side_effect = ProviderConnectionError("refused")
+        client = LLMClient(config=client_config, provider=provider)
+
+        with pytest.raises(LLMRequestError) as exc_info:
+            await client.chat_completion(
+                messages=[{"role": "user", "content": "Hello"}]
+            )
+
+        assert "Both primary" in str(exc_info.value)
+        models = [c.kwargs["model"] for c in provider.complete.call_args_list]
+        assert models == ["gpt-4o", "gpt-4o", "gpt-4o-mini", "gpt-4o-mini"]
 
 
 class TestCreateLLMClient:

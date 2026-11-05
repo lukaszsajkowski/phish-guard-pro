@@ -7,32 +7,28 @@ when the primary model is unavailable (US-023, FR-039).
 
 import asyncio
 import logging
-from typing import Final, NamedTuple
+from typing import Final
 
-from openai import (
-    APIConnectionError,
-    AsyncOpenAI,
-    AuthenticationError,
-    RateLimitError,
-)
-from openai._exceptions import APIStatusError
 from pydantic import BaseModel, ConfigDict, Field
 
 from phishguard.core import get_settings
+from phishguard.llm.providers import (
+    ChatProvider,
+    Completion,
+    OpenAICompatibleProvider,
+    ProviderAuthError,
+    ProviderClientError,
+    ProviderConnectionError,
+    ProviderEmptyResponseError,
+    ProviderRateLimitError,
+    ProviderServerError,
+)
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS: Final[float] = 30.0
 DEFAULT_MAX_RETRIES: Final[int] = 3
 DEFAULT_BASE_DELAY_SECONDS: Final[float] = 1.0
-
-
-class _Completion(NamedTuple):
-    """Content and token usage of a single completion."""
-
-    content: str
-    prompt_tokens: int
-    completion_tokens: int
 
 
 class LLMClientConfig(BaseModel):
@@ -113,6 +109,7 @@ class LLMClient:
         self,
         config: LLMClientConfig | None = None,
         api_key: str | None = None,
+        provider: ChatProvider | None = None,
     ) -> None:
         """Initialize the LLM client.
 
@@ -120,6 +117,7 @@ class LLMClient:
             config: Optional client configuration. If not provided,
                 uses settings from environment.
             api_key: Optional API key override.
+            provider: Optional provider instance (used by tests).
 
         Raises:
             LLMConfigurationError: If no API key is available.
@@ -134,6 +132,10 @@ class LLMClient:
             )
         self._config = config
 
+        if provider is not None:
+            self._provider: ChatProvider = provider
+            return
+
         resolved_api_key = api_key or settings.openai_api_key
         if not resolved_api_key:
             raise LLMConfigurationError(
@@ -141,9 +143,9 @@ class LLMClient:
                 "variable or pass api_key parameter."
             )
 
-        self._client = AsyncOpenAI(
+        self._provider = OpenAICompatibleProvider(
             api_key=resolved_api_key,
-            timeout=self._config.timeout_seconds,
+            timeout_seconds=self._config.timeout_seconds,
         )
 
     @property
@@ -205,15 +207,16 @@ class LLMClient:
                 used_fallback=False,
                 model_used=target_model,
             )
-        except (RateLimitError, APIStatusError, APIConnectionError) as e:
+        except ProviderClientError as e:
+            # Client errors (4xx other than 429) are not retried and never fall back
+            raise LLMRequestError(f"Client error: {e}") from e
+        except (
+            ProviderRateLimitError,
+            ProviderServerError,
+            ProviderConnectionError,
+        ) as e:
             if not use_fallback_on_failure:
                 raise LLMRequestError(f"Request failed: {e}") from e
-
-            # Don't fallback on client errors (4xx) EXCEPT rate limits (429)
-            # RateLimitError is a subclass of APIStatusError with status 429
-            if isinstance(e, APIStatusError) and not isinstance(e, RateLimitError):
-                if e.status_code < 500:
-                    raise LLMRequestError(f"Client error: {e}") from e
 
             logger.warning(
                 "Primary model %s failed after retries, falling back to %s. Error: %s",
@@ -253,7 +256,7 @@ class LLMClient:
         model: str,
         temperature: float,
         max_tokens: int | None,
-    ) -> _Completion:
+    ) -> Completion:
         """Attempt completion with exponential backoff retries.
 
         Args:
@@ -267,9 +270,10 @@ class LLMClient:
 
         Raises:
             LLMConfigurationError: On authentication failure.
-            RateLimitError: If rate limited after all retries.
-            APIStatusError: On server errors after all retries.
-            APIConnectionError: On connection errors after all retries.
+            ProviderRateLimitError: If rate limited after all retries.
+            ProviderServerError: On server errors after all retries.
+            ProviderConnectionError: On connection errors after all retries.
+            ProviderClientError: On non-retriable 4xx errors.
         """
         last_exception: Exception | None = None
 
@@ -281,10 +285,12 @@ class LLMClient:
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-            except AuthenticationError as e:
+            except ProviderAuthError as e:
                 # Auth errors are not retriable
                 raise LLMConfigurationError("Invalid OpenAI API key.") from e
-            except APIConnectionError as e:
+            except ProviderEmptyResponseError as e:
+                raise LLMRequestError(str(e)) from e
+            except ProviderConnectionError as e:
                 last_exception = e
                 logger.warning(
                     "Connection error on attempt %d/%d: %s",
@@ -292,7 +298,7 @@ class LLMClient:
                     self._config.max_retries,
                     e,
                 )
-            except RateLimitError as e:
+            except ProviderRateLimitError as e:
                 last_exception = e
                 logger.warning(
                     "Rate limit on attempt %d/%d: %s",
@@ -300,18 +306,14 @@ class LLMClient:
                     self._config.max_retries,
                     e,
                 )
-            except APIStatusError as e:
-                if e.status_code >= 500:
-                    last_exception = e
-                    logger.warning(
-                        "Server error %d on attempt %d/%d",
-                        e.status_code,
-                        attempt + 1,
-                        self._config.max_retries,
-                    )
-                else:
-                    # Client errors (4xx) are not retriable
-                    raise
+            except ProviderServerError as e:
+                last_exception = e
+                logger.warning(
+                    "Server error %d on attempt %d/%d",
+                    e.status_code,
+                    attempt + 1,
+                    self._config.max_retries,
+                )
 
             # Exponential backoff before next attempt
             if attempt < self._config.max_retries - 1:
@@ -329,53 +331,18 @@ class LLMClient:
         model: str,
         temperature: float,
         max_tokens: int | None,
-    ) -> _Completion:
-        """Make a single completion request.
-
-        Args:
-            messages: List of message dictionaries.
-            model: Model to use.
-            temperature: Sampling temperature.
-            max_tokens: Maximum tokens in response.
-
-        Returns:
-            The completion content and token usage.
-
-        Raises:
-            LLMRequestError: If the response is empty or malformed.
-        """
-        kwargs: dict = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-        }
-        if max_tokens is not None:
-            # Newer models (o1, etc.) use max_completion_tokens instead of max_tokens
-            kwargs["max_completion_tokens"] = max_tokens
-
-        response = await self._client.chat.completions.create(**kwargs)
-
-        if not response.choices:
-            raise LLMRequestError("No completion choices returned")
-
-        content = response.choices[0].message.content
-        if content is None:
-            raise LLMRequestError("Completion returned None content")
-
-        usage = getattr(response, "usage", None)
-        prompt_tokens = getattr(usage, "prompt_tokens", 0)
-        completion_tokens = getattr(usage, "completion_tokens", 0)
-        return _Completion(
-            content=content,
-            prompt_tokens=prompt_tokens if isinstance(prompt_tokens, int) else 0,
-            completion_tokens=(
-                completion_tokens if isinstance(completion_tokens, int) else 0
-            ),
+    ) -> Completion:
+        """Make a single completion request through the provider."""
+        return await self._provider.complete(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     async def close(self) -> None:
-        """Close the underlying HTTP client."""
-        await self._client.close()
+        """Close the underlying provider client."""
+        await self._provider.close()
 
     async def __aenter__(self) -> "LLMClient":
         """Async context manager entry."""
