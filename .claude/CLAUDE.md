@@ -11,7 +11,7 @@ PhishGuard Pro is an AI-powered Active Defense system against phishing. It engag
 **Monorepo with three main components:**
 
 - **frontend/** - Next.js 16 (React 19, Tailwind CSS v4, shadcn/ui, Vercel AI SDK)
-- **backend/** - FastAPI with LangGraph orchestration, LangChain-OpenAI, Pydantic
+- **backend/** - FastAPI with LangGraph orchestration, switchable LLM provider (OpenAI, Anthropic, Ollama), Pydantic
 - **supabase/** - Database migrations (Postgres with RLS, pgvector for RAG)
 
 **Agent Workflow (LangGraph):**
