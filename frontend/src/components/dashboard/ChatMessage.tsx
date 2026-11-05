@@ -308,16 +308,20 @@ export function ChatMessage({
                             onClick={handleCopy}
                             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                             data-testid="copy-response-button"
+                            aria-live="polite"
                         >
+                            <span className="sr-only">
+                                {copied ? "Copied!" : "Copy to clipboard"}
+                            </span>
                             {copied ? (
                                 <>
-                                    <Check className="w-3.5 h-3.5 text-green-500" />
-                                    <span className="text-green-500">Copied!</span>
+                                    <Check className="w-3.5 h-3.5 text-green-500" aria-hidden="true" />
+                                    <span className="text-green-500" aria-hidden="true">Copied!</span>
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="w-3.5 h-3.5" />
-                                    <span>Copy to clipboard</span>
+                                    <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+                                    <span aria-hidden="true">Copy to clipboard</span>
                                 </>
                             )}
                         </button>

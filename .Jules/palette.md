@@ -1,0 +1,3 @@
+## 2024-11-05 - Dynamic Accessible Copy Buttons
+**Learning:** For dynamic icon-only copy buttons that visually change state (e.g. Copy icon to Check icon) to indicate success, static `aria-label` or `title` attributes are insufficient and often misleading after interaction. Standard visual cues alone do not update screen readers about the success state.
+**Action:** Instead of just a static `aria-label`, use `aria-live="polite"` on the button element and a visually hidden `<span className="sr-only">` inside it whose text dynamically updates from "Copy to clipboard" to "Copied!". Ensure the visible SVG icons have `aria-hidden="true"` so they are not announced.
