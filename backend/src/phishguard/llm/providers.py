@@ -158,6 +158,9 @@ class OpenAICompatibleProvider:
 
 ANTHROPIC_DEFAULT_MAX_TOKENS = 1024
 
+# Ollama ignores the key, but the OpenAI SDK requires a non-empty one.
+OLLAMA_PLACEHOLDER_API_KEY = "ollama"
+
 
 class AnthropicProvider:
     """Anthropic Messages API.
@@ -220,3 +223,21 @@ class AnthropicProvider:
 
     async def close(self) -> None:
         await self._client.close()
+
+
+def build_provider(
+    provider: str,
+    api_key: str,
+    timeout_seconds: float,
+    ollama_base_url: str,
+) -> ChatProvider:
+    """Create the adapter for a configured provider name."""
+    if provider == "anthropic":
+        return AnthropicProvider(api_key=api_key, timeout_seconds=timeout_seconds)
+    if provider == "ollama":
+        return OpenAICompatibleProvider(
+            api_key=api_key or OLLAMA_PLACEHOLDER_API_KEY,
+            timeout_seconds=timeout_seconds,
+            base_url=ollama_base_url,
+        )
+    return OpenAICompatibleProvider(api_key=api_key, timeout_seconds=timeout_seconds)

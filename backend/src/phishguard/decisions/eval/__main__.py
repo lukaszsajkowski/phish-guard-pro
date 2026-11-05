@@ -48,7 +48,7 @@ from phishguard.decisions.eval.sources import (
     load_supabase_inputs,
 )
 from phishguard.decisions.language import detect_pl_en
-from phishguard.llm.client import LLMResponse
+from phishguard.llm.client import LLMResponse, config_from_settings
 
 CONCURRENCY = 4
 
@@ -229,7 +229,7 @@ async def _profiler_eval(args: argparse.Namespace) -> int:
     meta = {
         "date": date.today().isoformat(),
         "basal_model": settings.basal_model or "n/a (BASAL_MODEL not set)",
-        "llm_model": settings.openai_primary_model,
+        "llm_model": config_from_settings(settings).primary_model,
         "sources": sources,
         "notes": notes,
         "extras": extras,

@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,10 +28,21 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_db_url: str = ""  # Direct PostgreSQL connection URL for checkpointing
 
-    # OpenAI
+    # LLM provider. Empty model names mean "use the provider's default".
+    # OPENAI_PRIMARY_MODEL / OPENAI_FALLBACK_MODEL are still read for
+    # backwards compatibility with existing .env files.
+    llm_provider: Literal["openai", "anthropic", "ollama"] = "openai"
+    llm_primary_model: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLM_PRIMARY_MODEL", "OPENAI_PRIMARY_MODEL"),
+    )
+    llm_fallback_model: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLM_FALLBACK_MODEL", "OPENAI_FALLBACK_MODEL"),
+    )
     openai_api_key: str = ""
-    openai_primary_model: str = "gpt-4o"
-    openai_fallback_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434/v1"
 
     # IOC Enrichment API keys (optional — enrichment degrades gracefully when absent)
     bitcoinabuse_api_key: str = ""

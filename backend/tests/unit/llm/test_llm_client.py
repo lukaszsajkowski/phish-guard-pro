@@ -11,6 +11,7 @@ from openai import AuthenticationError, RateLimitError
 from openai._exceptions import APIStatusError
 
 from phishguard.llm.client import (
+    PROVIDER_DEFAULT_MODELS,
     LLMClient,
     LLMClientConfig,
     LLMConfigurationError,
@@ -18,7 +19,11 @@ from phishguard.llm.client import (
     LLMResponse,
     create_llm_client,
 )
-from phishguard.llm.providers import ProviderConnectionError
+from phishguard.llm.providers import (
+    AnthropicProvider,
+    OpenAICompatibleProvider,
+    ProviderConnectionError,
+)
 
 
 @pytest.fixture
@@ -27,8 +32,11 @@ def mock_settings():
     with patch("phishguard.llm.client.get_settings") as mock:
         settings = MagicMock()
         settings.openai_api_key = "test-api-key"
-        settings.openai_primary_model = "gpt-4o"
-        settings.openai_fallback_model = "gpt-4o-mini"
+        settings.anthropic_api_key = ""
+        settings.llm_provider = "openai"
+        settings.llm_primary_model = "gpt-4o"
+        settings.llm_fallback_model = "gpt-4o-mini"
+        settings.ollama_base_url = "http://localhost:11434/v1"
         mock.return_value = settings
         yield settings
 
@@ -51,8 +59,9 @@ class TestLLMClientConfig:
     def test_default_values(self):
         """Test default configuration values."""
         config = LLMClientConfig()
-        assert config.primary_model == "gpt-4o"
-        assert config.fallback_model == "gpt-4o-mini"
+        assert config.provider == "openai"
+        assert config.primary_model == "gpt-6-luna"
+        assert config.fallback_model == "gpt-5.4-mini"
         assert config.max_retries == 3
         assert config.timeout_seconds == 30.0
 
@@ -381,8 +390,49 @@ class TestCreateLLMClient:
         with patch("phishguard.llm.client.get_settings") as mock:
             mock.return_value = MagicMock(
                 openai_api_key="",
-                openai_primary_model="gpt-4o",
-                openai_fallback_model="gpt-4o-mini",
+                llm_provider="openai",
+                llm_primary_model="",
+                llm_fallback_model="",
             )
             with pytest.raises(LLMConfigurationError):
                 LLMClient()
+
+
+class TestProviderSelection:
+    """create_llm_client picks provider, key and default models from settings."""
+
+    @pytest.mark.parametrize("provider", ["openai", "anthropic", "ollama"])
+    def test_defaults_per_provider(self, mock_settings, provider):
+        mock_settings.llm_provider = provider
+        mock_settings.llm_primary_model = ""
+        mock_settings.llm_fallback_model = ""
+        mock_settings.anthropic_api_key = "anthropic-key"
+        client = create_llm_client()
+        assert (client.primary_model, client.fallback_model) == (
+            PROVIDER_DEFAULT_MODELS[provider]
+        )
+
+    def test_openai_defaults_are_gpt_6_luna(self):
+        assert PROVIDER_DEFAULT_MODELS["openai"][0] == "gpt-6-luna"
+
+    def test_anthropic_without_key_raises_named_error(self, mock_settings):
+        mock_settings.llm_provider = "anthropic"
+        mock_settings.anthropic_api_key = ""
+        with pytest.raises(LLMConfigurationError) as exc_info:
+            create_llm_client()
+        assert "ANTHROPIC_API_KEY" in str(exc_info.value)
+
+    def test_anthropic_uses_anthropic_provider(self, mock_settings):
+        mock_settings.llm_provider = "anthropic"
+        mock_settings.anthropic_api_key = "anthropic-key"
+        client = create_llm_client()
+        assert isinstance(client._provider, AnthropicProvider)
+
+    def test_ollama_needs_no_key_and_uses_base_url(self, mock_settings):
+        mock_settings.llm_provider = "ollama"
+        mock_settings.openai_api_key = ""
+        client = create_llm_client()
+        assert isinstance(client._provider, OpenAICompatibleProvider)
+        assert str(client._provider._client.base_url).startswith(
+            "http://localhost:11434/v1"
+        )

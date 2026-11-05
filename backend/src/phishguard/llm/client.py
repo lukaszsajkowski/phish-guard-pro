@@ -7,7 +7,7 @@ when the primary model is unavailable (US-023, FR-039).
 
 import asyncio
 import logging
-from typing import Final
+from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,13 +15,13 @@ from phishguard.core import get_settings
 from phishguard.llm.providers import (
     ChatProvider,
     Completion,
-    OpenAICompatibleProvider,
     ProviderAuthError,
     ProviderClientError,
     ProviderConnectionError,
     ProviderEmptyResponseError,
     ProviderRateLimitError,
     ProviderServerError,
+    build_provider,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,13 +30,30 @@ DEFAULT_TIMEOUT_SECONDS: Final[float] = 30.0
 DEFAULT_MAX_RETRIES: Final[int] = 3
 DEFAULT_BASE_DELAY_SECONDS: Final[float] = 1.0
 
+ProviderName = Literal["openai", "anthropic", "ollama"]
+
+# (primary, fallback) used when LLM_PRIMARY_MODEL / LLM_FALLBACK_MODEL are empty.
+PROVIDER_DEFAULT_MODELS: Final[dict[str, tuple[str, str]]] = {
+    "openai": ("gpt-6-luna", "gpt-5.4-mini"),
+    "anthropic": ("claude-sonnet-5-5", "claude-haiku-5-5"),
+    "ollama": ("qwen3:8b", "qwen3:4b"),
+}
+
+# Environment variable holding each provider's API key (None: no key needed).
+_PROVIDER_KEY_ENV: Final[dict[str, str | None]] = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "ollama": None,
+}
+
 
 class LLMClientConfig(BaseModel):
     """Configuration for the LLM client.
 
     Attributes:
-        primary_model: Main model to use (e.g., gpt-4o).
-        fallback_model: Cheaper model for graceful degradation (e.g., gpt-4o-mini).
+        provider: LLM provider ("openai", "anthropic" or "ollama").
+        primary_model: Main model to use (e.g., gpt-6-luna).
+        fallback_model: Cheaper model for graceful degradation.
         timeout_seconds: Request timeout in seconds.
         max_retries: Maximum retry attempts before falling back.
         base_delay_seconds: Base delay for exponential backoff.
@@ -44,8 +61,9 @@ class LLMClientConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    primary_model: str = Field(default="gpt-4o")
-    fallback_model: str = Field(default="gpt-4o-mini")
+    provider: ProviderName = Field(default="openai")
+    primary_model: str = Field(default=PROVIDER_DEFAULT_MODELS["openai"][0])
+    fallback_model: str = Field(default=PROVIDER_DEFAULT_MODELS["openai"][1])
     timeout_seconds: float = Field(default=DEFAULT_TIMEOUT_SECONDS, ge=1.0, le=300.0)
     max_retries: int = Field(default=DEFAULT_MAX_RETRIES, ge=1, le=10)
     base_delay_seconds: float = Field(default=DEFAULT_BASE_DELAY_SECONDS, ge=0.1)
@@ -126,26 +144,18 @@ class LLMClient:
 
         # Build config from settings if not provided
         if config is None:
-            config = LLMClientConfig(
-                primary_model=settings.openai_primary_model,
-                fallback_model=settings.openai_fallback_model,
-            )
+            config = config_from_settings(settings)
         self._config = config
 
         if provider is not None:
             self._provider: ChatProvider = provider
             return
 
-        resolved_api_key = api_key or settings.openai_api_key
-        if not resolved_api_key:
-            raise LLMConfigurationError(
-                "OpenAI API key not provided. Set OPENAI_API_KEY environment "
-                "variable or pass api_key parameter."
-            )
-
-        self._provider = OpenAICompatibleProvider(
-            api_key=resolved_api_key,
-            timeout_seconds=self._config.timeout_seconds,
+        self._provider = build_provider(
+            config.provider,
+            api_key=_resolve_api_key(config.provider, api_key, settings),
+            timeout_seconds=config.timeout_seconds,
+            ollama_base_url=settings.ollama_base_url,
         )
 
     @property
@@ -373,9 +383,44 @@ def create_llm_client(
         Configured LLMClient instance.
     """
     settings = get_settings()
-    config = LLMClientConfig(
-        primary_model=primary_model or settings.openai_primary_model,
-        fallback_model=fallback_model or settings.openai_fallback_model,
+    config = config_from_settings(
+        settings,
+        primary_model=primary_model,
+        fallback_model=fallback_model,
         timeout_seconds=timeout_seconds,
     )
     return LLMClient(config=config, api_key=api_key)
+
+
+def config_from_settings(
+    settings,
+    primary_model: str | None = None,
+    fallback_model: str | None = None,
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+) -> LLMClientConfig:
+    """Build a config from settings; empty model names use provider defaults."""
+    provider = settings.llm_provider
+    default_primary, default_fallback = PROVIDER_DEFAULT_MODELS[provider]
+    return LLMClientConfig(
+        provider=provider,
+        primary_model=primary_model or settings.llm_primary_model or default_primary,
+        fallback_model=fallback_model
+        or settings.llm_fallback_model
+        or default_fallback,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def _resolve_api_key(provider: str, override: str | None, settings) -> str:
+    """Return the API key for a provider or raise if a required key is missing."""
+    env_name = _PROVIDER_KEY_ENV[provider]
+    if env_name is None:
+        return override or ""
+    key = override or getattr(settings, env_name.lower(), "")
+    if not key:
+        label = "OpenAI" if provider == "openai" else "Anthropic"
+        raise LLMConfigurationError(
+            f"{label} API key not provided. Set {env_name} environment "
+            "variable or pass api_key parameter."
+        )
+    return key
