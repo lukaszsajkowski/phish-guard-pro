@@ -8,6 +8,7 @@ logic does not depend on any vendor SDK.
 import logging
 from typing import NamedTuple, Protocol
 
+import anthropic
 from openai import (
     APIConnectionError,
     APIStatusError,
@@ -149,6 +150,72 @@ class OpenAICompatibleProvider:
             content=content,
             prompt_tokens=_int_or_zero(getattr(usage, "prompt_tokens", 0)),
             completion_tokens=_int_or_zero(getattr(usage, "completion_tokens", 0)),
+        )
+
+    async def close(self) -> None:
+        await self._client.close()
+
+
+ANTHROPIC_DEFAULT_MAX_TOKENS = 1024
+
+
+class AnthropicProvider:
+    """Anthropic Messages API.
+
+    System messages are moved to the ``system`` parameter. ``temperature``
+    is not sent: the Messages API in the current SDK no longer accepts it.
+    """
+
+    def __init__(self, api_key: str, timeout_seconds: float) -> None:
+        self._client = anthropic.AsyncAnthropic(
+            api_key=api_key, timeout=timeout_seconds
+        )
+
+    async def complete(
+        self,
+        messages: list[dict[str, str]],
+        model: str,
+        temperature: float,
+        max_tokens: int | None,
+    ) -> Completion:
+        system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+        chat = [
+            {"role": m["role"], "content": m["content"]}
+            for m in messages
+            if m["role"] != "system"
+        ]
+        kwargs: dict = {
+            "model": model,
+            "messages": chat,
+            "max_tokens": max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS,
+        }
+        if system:
+            kwargs["system"] = system
+
+        a = anthropic
+        try:
+            response = await self._client.messages.create(**kwargs)
+        except a.AuthenticationError as e:
+            raise ProviderAuthError(str(e)) from e
+        except a.RateLimitError as e:
+            raise ProviderRateLimitError(str(e)) from e
+        except a.APIConnectionError as e:
+            raise ProviderConnectionError(str(e)) from e
+        except a.APIStatusError as e:
+            if e.status_code >= 500:
+                raise ProviderServerError(str(e), e.status_code) from e
+            raise ProviderClientError(str(e), e.status_code) from e
+
+        content = "".join(
+            block.text for block in response.content if block.type == "text"
+        )
+        if not content:
+            raise ProviderEmptyResponseError("Completion returned no text content")
+        usage = getattr(response, "usage", None)
+        return Completion(
+            content=content,
+            prompt_tokens=_int_or_zero(getattr(usage, "input_tokens", 0)),
+            completion_tokens=_int_or_zero(getattr(usage, "output_tokens", 0)),
         )
 
     async def close(self) -> None:

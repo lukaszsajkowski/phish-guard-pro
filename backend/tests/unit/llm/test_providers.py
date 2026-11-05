@@ -146,3 +146,99 @@ def test_base_url_is_passed_to_sdk():
         api_key="ollama", timeout_seconds=5.0, base_url="http://localhost:11434/v1"
     )
     assert str(provider._client.base_url).startswith("http://localhost:11434/v1")
+
+
+# ---------------------------------------------------------------------------
+# Anthropic
+# ---------------------------------------------------------------------------
+
+import anthropic  # noqa: E402
+
+from phishguard.llm.providers import (  # noqa: E402
+    ANTHROPIC_DEFAULT_MAX_TOKENS,
+    AnthropicProvider,
+)
+
+
+def _anthropic_ok(*texts: str, input_tokens: int = 10, output_tokens: int = 5):
+    resp = MagicMock()
+    resp.content = [MagicMock(type="text", text=t) for t in texts]
+    resp.usage.input_tokens = input_tokens
+    resp.usage.output_tokens = output_tokens
+    return resp
+
+
+@pytest.fixture
+def anthropic_provider() -> AnthropicProvider:
+    return AnthropicProvider(api_key="test-key", timeout_seconds=5.0)
+
+
+def _mock_messages(provider: AnthropicProvider, **kwargs) -> AsyncMock:
+    mock = AsyncMock(**kwargs)
+    provider._client.messages.create = mock
+    return mock
+
+
+async def test_anthropic_system_messages_go_to_system_param(anthropic_provider):
+    create = _mock_messages(anthropic_provider, return_value=_anthropic_ok("ok"))
+    await anthropic_provider.complete(
+        [
+            {"role": "system", "content": "A"},
+            {"role": "system", "content": "B"},
+            {"role": "user", "content": "hi"},
+        ],
+        "claude-x",
+        0.7,
+        200,
+    )
+    kwargs = create.call_args.kwargs
+    assert kwargs["system"] == "A\n\nB"
+    assert kwargs["messages"] == [{"role": "user", "content": "hi"}]
+    assert kwargs["max_tokens"] == 200
+    assert "temperature" not in kwargs
+
+
+async def test_anthropic_omits_system_when_absent(anthropic_provider):
+    create = _mock_messages(anthropic_provider, return_value=_anthropic_ok("ok"))
+    await anthropic_provider.complete(MESSAGES, "claude-x", 0.7, None)
+    assert "system" not in create.call_args.kwargs
+
+
+async def test_anthropic_default_max_tokens(anthropic_provider):
+    create = _mock_messages(anthropic_provider, return_value=_anthropic_ok("ok"))
+    await anthropic_provider.complete(MESSAGES, "claude-x", 0.7, None)
+    assert create.call_args.kwargs["max_tokens"] == ANTHROPIC_DEFAULT_MAX_TOKENS == 1024
+
+
+async def test_anthropic_joins_text_blocks_and_usage(anthropic_provider):
+    _mock_messages(anthropic_provider, return_value=_anthropic_ok("a", "b"))
+    result = await anthropic_provider.complete(MESSAGES, "claude-x", 0.7, None)
+    assert result == Completion("ab", 10, 5)
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (
+            anthropic.RateLimitError("slow", response=_response(429), body=None),
+            ProviderRateLimitError,
+        ),
+        (
+            anthropic.APIStatusError("overloaded", response=_response(529), body=None),
+            ProviderServerError,
+        ),
+        (
+            anthropic.BadRequestError("bad", response=_response(400), body=None),
+            ProviderClientError,
+        ),
+        (anthropic.APIConnectionError(request=_REQUEST), ProviderConnectionError),
+        (
+            anthropic.AuthenticationError("nope", response=_response(401), body=None),
+            ProviderAuthError,
+        ),
+    ],
+)
+async def test_anthropic_error_mapping(anthropic_provider, error, expected):
+    _mock_messages(anthropic_provider, side_effect=error)
+    with pytest.raises(expected):
+        await anthropic_provider.complete(MESSAGES, "claude-x", 0.7, None)
