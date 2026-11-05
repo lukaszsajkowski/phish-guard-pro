@@ -7,6 +7,10 @@ updates:
     open-pull-requests-limit: 3
     groups:
       backend:
+        applies-to: version-updates
+        patterns: ["*"]
+      backend-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: npm
@@ -16,6 +20,10 @@ updates:
     open-pull-requests-limit: 3
     groups:
       frontend:
+        applies-to: version-updates
+        patterns: ["*"]
+      frontend-security:
+        applies-to: security-updates
         patterns: ["*"]
 
   - package-ecosystem: github-actions
@@ -25,4 +33,8 @@ updates:
     open-pull-requests-limit: 3
     groups:
       actions:
+        applies-to: version-updates
+        patterns: ["*"]
+      actions-security:
+        applies-to: security-updates
         patterns: ["*"]
