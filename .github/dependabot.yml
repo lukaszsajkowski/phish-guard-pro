@@ -4,6 +4,10 @@ updates:
     directory: /backend
     schedule:
       interval: monthly
+    ignore:
+      # Major upgrades are done deliberately in their own PRs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 3
     groups:
       backend:
@@ -17,6 +21,10 @@ updates:
     directory: /frontend
     schedule:
       interval: monthly
+    ignore:
+      # Major upgrades are done deliberately in their own PRs.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 3
     groups:
       frontend:
