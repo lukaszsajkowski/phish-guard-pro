@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Process rules for coding agents (branches, PRs, quality gate, commits, safety) live in `AGENTS.md`.
+
 ## Project Overview
 
 PhishGuard Pro is an AI-powered Active Defense system against phishing. It engages attackers in believable conversation, wastes their time (tarpitting), and extracts Indicators of Compromise (IOCs: crypto wallets, IBANs, phone numbers, URLs).

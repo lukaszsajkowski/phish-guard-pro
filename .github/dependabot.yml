@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      backend:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      frontend:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
