@@ -36,6 +36,8 @@ def mock_settings():
         settings.llm_provider = "openai"
         settings.llm_primary_model = "gpt-4o"
         settings.llm_fallback_model = "gpt-4o-mini"
+        settings.openai_primary_model = ""
+        settings.openai_fallback_model = ""
         settings.ollama_base_url = "http://localhost:11434/v1"
         mock.return_value = settings
         yield settings
@@ -298,7 +300,7 @@ class TestLLMClient:
                     messages=[{"role": "user", "content": "Hello"}]
                 )
 
-        assert "Invalid OpenAI API key" in str(exc_info.value)
+        assert "OPENAI_API_KEY" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_both_models_fail(self, mock_settings, client_config):
@@ -393,6 +395,8 @@ class TestCreateLLMClient:
                 llm_provider="openai",
                 llm_primary_model="",
                 llm_fallback_model="",
+                openai_primary_model="",
+                openai_fallback_model="",
             )
             with pytest.raises(LLMConfigurationError):
                 LLMClient()
@@ -436,3 +440,22 @@ class TestProviderSelection:
         assert str(client._provider._client.base_url).startswith(
             "http://localhost:11434/v1"
         )
+
+
+class TestFinalReviewFixes:
+    @pytest.mark.asyncio
+    async def test_auth_error_names_the_configured_provider_key(self, mock_settings):
+        from phishguard.llm.providers import ProviderAuthError
+
+        provider = AsyncMock()
+        provider.complete.side_effect = ProviderAuthError("401")
+        client = LLMClient(
+            config=LLMClientConfig(provider="anthropic", base_delay_seconds=0.1),
+            provider=provider,
+        )
+        with pytest.raises(LLMConfigurationError) as exc_info:
+            await client.chat_completion(
+                messages=[{"role": "user", "content": "Hello"}]
+            )
+        assert "ANTHROPIC_API_KEY" in str(exc_info.value)
+        assert "OpenAI" not in str(exc_info.value)

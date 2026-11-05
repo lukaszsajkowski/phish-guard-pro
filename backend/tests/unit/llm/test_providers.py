@@ -53,6 +53,15 @@ def _temperature_rejected() -> BadRequestError:
     )
 
 
+@pytest.fixture(autouse=True)
+def _reset_temperature_memory():
+    from phishguard.llm import providers
+
+    providers._NO_TEMPERATURE_MODELS.clear()
+    yield
+    providers._NO_TEMPERATURE_MODELS.clear()
+
+
 @pytest.fixture
 def provider() -> OpenAICompatibleProvider:
     return OpenAICompatibleProvider(api_key="test-key", timeout_seconds=5.0)
@@ -242,3 +251,34 @@ async def test_anthropic_error_mapping(anthropic_provider, error, expected):
     _mock_messages(anthropic_provider, side_effect=error)
     with pytest.raises(expected):
         await anthropic_provider.complete(MESSAGES, "claude-x", 0.7, None)
+
+
+# ---------------------------------------------------------------------------
+# Final review fixes
+# ---------------------------------------------------------------------------
+
+
+async def test_temperature_omission_survives_new_provider_instances():
+    """Agents build a new client per call; the learned omission must persist."""
+    first = OpenAICompatibleProvider(api_key="k", timeout_seconds=5.0)
+    _mock_create(first, side_effect=[_temperature_rejected(), _ok()])
+    await first.complete(MESSAGES, "gpt-shared-reasoning", 0.7, None)
+
+    second = OpenAICompatibleProvider(api_key="k", timeout_seconds=5.0)
+    create = _mock_create(second, return_value=_ok())
+    await second.complete(MESSAGES, "gpt-shared-reasoning", 0.7, None)
+    assert create.call_count == 1
+    assert "temperature" not in create.call_args.kwargs
+
+
+async def test_temperature_omission_is_scoped_to_base_url():
+    first = OpenAICompatibleProvider(api_key="k", timeout_seconds=5.0)
+    _mock_create(first, side_effect=[_temperature_rejected(), _ok()])
+    await first.complete(MESSAGES, "same-name-model", 0.7, None)
+
+    local = OpenAICompatibleProvider(
+        api_key="k", timeout_seconds=5.0, base_url="http://localhost:11434/v1"
+    )
+    create = _mock_create(local, return_value=_ok())
+    await local.complete(MESSAGES, "same-name-model", 0.7, None)
+    assert create.call_args.kwargs["temperature"] == 0.7

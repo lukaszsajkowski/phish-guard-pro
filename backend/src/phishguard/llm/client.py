@@ -297,7 +297,10 @@ class LLMClient:
                 )
             except ProviderAuthError as e:
                 # Auth errors are not retriable
-                raise LLMConfigurationError("Invalid OpenAI API key.") from e
+                raise LLMConfigurationError(
+                    f"API key rejected by {self._config.provider}. Check "
+                    f"{_PROVIDER_KEY_ENV[self._config.provider] or 'the server'}."
+                ) from e
             except ProviderEmptyResponseError as e:
                 raise LLMRequestError(str(e)) from e
             except ProviderConnectionError as e:
@@ -401,11 +404,18 @@ def config_from_settings(
     """Build a config from settings; empty model names use provider defaults."""
     provider = settings.llm_provider
     default_primary, default_fallback = PROVIDER_DEFAULT_MODELS[provider]
+    # Legacy OPENAI_* model names only make sense for the OpenAI provider.
+    legacy_primary = settings.openai_primary_model if provider == "openai" else ""
+    legacy_fallback = settings.openai_fallback_model if provider == "openai" else ""
     return LLMClientConfig(
         provider=provider,
-        primary_model=primary_model or settings.llm_primary_model or default_primary,
+        primary_model=primary_model
+        or settings.llm_primary_model
+        or legacy_primary
+        or default_primary,
         fallback_model=fallback_model
         or settings.llm_fallback_model
+        or legacy_fallback
         or default_fallback,
         timeout_seconds=timeout_seconds,
     )

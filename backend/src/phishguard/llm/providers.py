@@ -20,6 +20,10 @@ from openai import (
 
 logger = logging.getLogger(__name__)
 
+# (base_url, model) pairs known to reject `temperature`. Module-level because
+# agents build a new client per call; the lesson must outlive one instance.
+_NO_TEMPERATURE_MODELS: set[tuple[str, str]] = set()
+
 
 class Completion(NamedTuple):
     """Content and token usage of a single completion."""
@@ -103,7 +107,6 @@ class OpenAICompatibleProvider:
         self._client = AsyncOpenAI(
             api_key=api_key, timeout=timeout_seconds, base_url=base_url
         )
-        self._no_temperature_models: set[str] = set()
 
     async def complete(
         self,
@@ -112,8 +115,9 @@ class OpenAICompatibleProvider:
         temperature: float,
         max_tokens: int | None,
     ) -> Completion:
+        key = (str(self._client.base_url), model)
         kwargs: dict = {"model": model, "messages": messages}
-        if model not in self._no_temperature_models:
+        if key not in _NO_TEMPERATURE_MODELS:
             kwargs["temperature"] = temperature
         if max_tokens is not None:
             kwargs["max_completion_tokens"] = max_tokens
@@ -125,7 +129,7 @@ class OpenAICompatibleProvider:
                 if "temperature" not in kwargs or not _is_temperature_rejection(e):
                     raise
                 logger.info("Model %s rejects temperature; omitting it", model)
-                self._no_temperature_models.add(model)
+                _NO_TEMPERATURE_MODELS.add(key)
                 kwargs.pop("temperature")
                 response = await self._client.chat.completions.create(**kwargs)
         except AuthenticationError as e:

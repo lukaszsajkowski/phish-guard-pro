@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AliasChoices, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,17 +29,13 @@ class Settings(BaseSettings):
     supabase_db_url: str = ""  # Direct PostgreSQL connection URL for checkpointing
 
     # LLM provider. Empty model names mean "use the provider's default".
-    # OPENAI_PRIMARY_MODEL / OPENAI_FALLBACK_MODEL are still read for
-    # backwards compatibility with existing .env files.
     llm_provider: Literal["openai", "anthropic", "ollama"] = "openai"
-    llm_primary_model: str = Field(
-        default="",
-        validation_alias=AliasChoices("LLM_PRIMARY_MODEL", "OPENAI_PRIMARY_MODEL"),
-    )
-    llm_fallback_model: str = Field(
-        default="",
-        validation_alias=AliasChoices("LLM_FALLBACK_MODEL", "OPENAI_FALLBACK_MODEL"),
-    )
+    llm_primary_model: str = ""
+    llm_fallback_model: str = ""
+    # Legacy names from existing .env files; used only when llm_provider is
+    # "openai" and LLM_PRIMARY_MODEL / LLM_FALLBACK_MODEL are empty.
+    openai_primary_model: str = ""
+    openai_fallback_model: str = ""
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434/v1"
