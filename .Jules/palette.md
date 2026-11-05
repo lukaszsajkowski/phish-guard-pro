@@ -1,0 +1,3 @@
+## 2024-11-06 - Dynamic Text Accessibility for Copy Buttons
+**Learning:** Adding a static `aria-label` to a button whose visible inner text changes dynamically (e.g., "Copy" -> "Copied!") overrides the state change for screen readers. They will only read the static label and ignore the dynamic update. Also, SVG icons inside the button can cause duplicate announcements.
+**Action:** When a button's visible text or state changes dynamically, remove the static `aria-label` and apply `aria-live="polite"` to the button so the dynamic visible text is correctly announced by screen readers. Apply `aria-hidden="true"` to accompanying visual elements like SVGs to prevent duplicate or confusing announcements.
