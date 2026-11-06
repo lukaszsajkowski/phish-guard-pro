@@ -1,94 +1,139 @@
-# Faza 0: porządki w repozytorium
+# Phase 0: Repository hygiene
 
-Data: 2026-11-05. Faza 0 mapy drogowej projektu.
+Date: 2026-11-05. Phase 0 of the project roadmap.
 
-## Po co
+## Why
 
-Repo jest publiczne. Kto na nie wchodzi, najpierw widzi stronę główną (opis, tematy, licencja, release) i liczbę otwartych PR-ów. Kto czyta dalej, ocenia zielone checki w CI, skanowanie sekretów, proces PR i aktualne, konfigurowalne modele.
+The repository is public. A visitor first sees the front page: description, topics, licence, releases, and the number of open PRs. A reader who goes further looks at:
+- green CI checks;
+- secret scanning;
+- the PR process;
+- current, configurable models.
 
-Dziś oba obrazy są złe: 138 otwartych, niemal identycznych PR-ów od agenta, brak CI, brak opisu i licencji, domyślny model z 2024 roku.
+Today both pictures are poor:
+- 138 open, near-identical PRs from an agent;
+- no CI;
+- no description and no licence;
+- a default model from 2024.
 
-## Stan wyjściowy (sprawdzony 2026-11-05)
+## Starting point (checked 2026-11-05)
 
-- 138 otwartych PR-ów, wszystkie z konta właściciela (Jules działa w jego imieniu). 134 mają tytuł „🎨 Palette…”, 4 pozostałe też dotyczą a11y/tooltipów. Daty: od 2026-04-15 do 2026-11-05; Jules nadal otwiera nowe codziennie.
-- Brak `.github/`, zero workflow w Actions. Zmergowany przez PR tylko 1; praca trafia na `main` bezpośrednio.
-- Opis repo pusty, brak tematów, brak pliku `LICENSE` (README deklaruje MIT w sekcji „License”), brak release'ów, brak `SECURITY.md`, `AGENTS.md`, `CHANGELOG.md`.
-- LLM: `backend/src/phishguard/llm/client.py` używa bezpośrednio `openai.AsyncOpenAI` (nie LangChain; zależność `langchain-openai` w `pyproject.toml` nie jest importowana w `src/`). Domyślne modele `gpt-4o` / `gpt-4o-mini` w `core/__init__.py:33-34`, `llm/client.py:51-52` i `.env.example` (`OPENAI_PRIMARY_MODEL`, `OPENAI_FALLBACK_MODEL`). Ceny tylko dla gpt-4o wpisane na sztywno w `decisions/eval/metrics.py:15-16`. Wołający: `agents/conversation.py`, `agents/profiler.py`.
-- Playwright E2E startuje `npm run dev` i zakłada działający backend z Supabase i kluczem OpenAI.
+- **Open PRs.**
+  - 138 open PRs, all from the owner's account (Jules acts on the owner's behalf).
+  - 134 are titled "🎨 Palette…", and the other 4 are also about a11y and tooltips.
+  - They date from 2026-04-15 to 2026-11-05, and Jules still opens new ones daily.
+- **CI and process.** No `.github/` directory and no Actions workflows. Only 1 change was ever merged through a PR; work lands on `main` directly.
+- **Repository metadata.**
+  - The description is empty and there are no topics.
+  - There is no `LICENSE` file, although the README declares MIT in its "License" section.
+  - There are no releases and no `SECURITY.md`, `AGENTS.md` or `CHANGELOG.md`.
+- **LLM.**
+  - `backend/src/phishguard/llm/client.py` uses `openai.AsyncOpenAI` directly, not LangChain. The `langchain-openai` dependency in `pyproject.toml` is not imported anywhere in `src/`.
+  - Default models are `gpt-4o` / `gpt-4o-mini`, set in `core/__init__.py:33-34`, `llm/client.py:51-52` and `.env.example` (`OPENAI_PRIMARY_MODEL`, `OPENAI_FALLBACK_MODEL`).
+  - Prices exist only for gpt-4o, hard-coded in `decisions/eval/metrics.py:15-16`.
+  - Callers: `agents/conversation.py` and `agents/profiler.py`.
+- **E2E tests.** Playwright starts `npm run dev` and assumes a running backend with Supabase and an OpenAI key.
 
-## Cele
+## Goals
 
-1. Zakładka Pull requests jest czysta, a Jules już nie otwiera nowych PR-ów.
-2. Każda zmiana na `main` przechodzi przez PR z zielonymi checkami.
-3. Strona główna repo ma opis, tematy, licencję i release `v0.1.0`.
-4. Dostawcę i model LLM wybiera się w konfiguracji; domyślny model jest aktualny.
+1. The Pull requests tab is clean, and Jules no longer opens new PRs.
+2. Every change to `main` goes through a PR with green checks.
+3. The repository front page has a description, topics, a licence and a `v0.1.0` release.
+4. The LLM provider and model are chosen in configuration, and the default model is current.
 
-## Poza zakresem (decyzje właściciela)
+## Out of scope (owner decisions)
 
-- **Publiczne demo i Docker Compose** (punkt 0.5 mapy drogowej) wypadają.
-- **README bez przebudowy** w tej fazie: bez nowych sekcji, bez badge'y, bez sekcji o pracy z agentami. Dozwolone (i wymagane) są **poprawki faktów**, które zdezaktualizuje 0.4: domyślne modele i zmienne środowiskowe (README.md:155-157), „LangChain-OpenAI” w stacku (README.md:15). To samo dotyczy `.claude/CLAUDE.md`.
-- Jules nie jest konfigurowany „w ryzach”, tylko wyłączony.
+- **Public demo and Docker Compose** (roadmap item 0.5) are dropped.
+- **No README overhaul** in this phase: no new sections, no badges, no section on working with agents.
+  - **Factual fixes** that 0.4 makes outdated are allowed, and required:
+    - default models and environment variables (README.md:155-157);
+    - "LangChain-OpenAI" in the stack list (README.md:15).
+  - The same applies to `.claude/CLAUDE.md`.
+- Jules is not "kept in check"; it is switched off.
 
-## Anty-cele
+## Anti-goals
 
-- Utrata sensownych poprawek a11y przy masowym zamykaniu PR-ów.
-- CI, które jest czerwone albo wymaga sekretów, przez co blokuje każdy PR. Lepiej mniej checków, ale wiarygodnie zielonych.
-- Zmiana dostawcy LLM, która zmienia zachowanie aplikacji przy domyślnej konfiguracji poza samą wymianą modelu.
+- Losing worthwhile a11y fixes while mass-closing PRs.
+- CI that is red or needs secrets and therefore blocks every PR. Fewer checks that are reliably green are better.
+- An LLM provider change that alters application behaviour under the default configuration beyond the model swap itself.
 
-## Zakres
+## Scope
 
-### 0.1 Jules i PR-y
+### 0.1 Jules and PRs
 
-- **Wyłączenie Jules**: robi to właściciel ręcznie w panelu Jules (nie da się z repo). Plan ma to wymienić jako krok ręczny, przed zamknięciem PR-ów, żeby nie dochodziły nowe.
-- **Konsolidacja**: przejrzeć 138 PR-ów, wyłuskać niepowtarzające się poprawki (`aria-live` na przyciskach kopiowania, `aria-expanded` na rozwijanych sekcjach, tooltipy Radix na przyciskach ikonowych, `aria-label` w `ChatMessage`), sprawdzić, które nie są już na `main`, i złożyć je w **jeden PR** na aktualnym `main`, z testami tam, gdzie testy komponentów już istnieją.
-- **Zamknięcie**: pozostałe PR-y zamknąć z jednym, wspólnym komentarzem (po angielsku) odsyłającym do PR-u konsolidującego. Usunąć ich gałęzie zdalne.
-- **`AGENTS.md`** w korzeniu: zasady dla agentów kodujących (Claude, Gemini): praca na gałęzi i przez PR, uruchomienie quality gate'u przed PR, nie otwierać PR-u dublującego otwarty, konwencja commitów. Bez wzmianki o Jules jako aktywnym agencie.
+- **Switching Jules off**: the owner does this by hand in the Jules dashboard; it cannot be done from the repository. The plan lists it as a manual step before closing PRs, so no new ones arrive.
+- **Consolidation**:
+  - Review the 138 PRs and pick out the distinct fixes: `aria-live` on copy buttons, `aria-expanded` on collapsible sections, Radix tooltips on icon buttons, `aria-label` in `ChatMessage`.
+  - Check which of them are not on `main` yet.
+  - Combine them into **one PR** on current `main`, with tests where component tests already exist.
+- **Closing**: close the remaining PRs with one shared comment pointing to the consolidating PR, and delete their remote branches.
+- **`AGENTS.md`** in the root, with rules for coding agents (Claude, Gemini):
+  - work on a branch and through a PR;
+  - run the quality gate before opening a PR;
+  - never open a PR that duplicates an open one;
+  - follow the commit convention.
 
-### 0.2 CI i ochrona `main`
+  It does not mention Jules as an active agent.
 
-- Workflow GitHub Actions uruchamiany na PR do `main` i na push do `main`:
-  - backend: `uv sync`, `ruff check`, `ruff format --check`, `pytest` (testy niewymagające sieci/sekretów),
+### 0.2 CI and `main` protection
+
+- A GitHub Actions workflow runs on PRs to `main` and on pushes to `main`:
+  - backend: `uv sync`, `ruff check`, `ruff format --check`, `pytest` (tests that need no network or secrets);
   - frontend: `npm ci`, `eslint`, `vitest run`, type-check, `next build`.
-- Bezpieczeństwo: secret scanning (gitleaks albo natywny GitHub secret scanning + push protection), CodeQL (Python, JavaScript/TypeScript), Dependabot (pip/uv, npm, github-actions).
-- **Branch protection na `main`**: merge tylko przez PR, wymagane zielone checki z powyższej listy, bez wymaganego approve (właściciel pracuje sam), bez force-pushy. **Reguły obowiązują też admina** (`enforce_admins`, decyzja właściciela): changelog i release również idą przez PR.
-- **Dependabot** (decyzja asystenta): aktualizacje grupowane per ekosystem, harmonogram miesięczny, niski `open-pull-requests-limit`, plus alerty/aktualizacje bezpieczeństwa. Cel: nie odtworzyć zalewu PR-ów.
-- Od tej fazy właściciel pracuje workflow gałąź → PR → zielone checki → merge.
+- Security:
+  - secret scanning: gitleaks, or native GitHub secret scanning with push protection;
+  - CodeQL for Python and JavaScript/TypeScript;
+  - Dependabot for pip/uv, npm and github-actions.
+- **Branch protection on `main`:**
+  - merge only through a PR;
+  - the checks above are required to pass;
+  - no required approval, since the owner works alone;
+  - no force-pushes.
 
-### 0.3 Metadane repo
+  **The rules apply to admins too** (`enforce_admins`, owner decision), so the changelog and the release also go through PRs.
+- **Dependabot** (assistant decision): updates grouped per ecosystem, a monthly schedule, a low `open-pull-requests-limit`, plus security alerts and updates. The goal is not to recreate the PR flood.
+- From this phase on, the owner works branch → PR → green checks → merge.
 
-- Opis (jedno zdanie po angielsku) i tematy: m.in. `langgraph`, `agentic-ai`, `threat-intelligence`, `scambaiting`, `honeypot`, `phishing`, `fastapi`, `nextjs`.
-- `LICENSE` (MIT, właściciel: Lukasz Sajkowski, 2026), zgodnie z deklaracją w README.
-- `SECURITY.md`: jak zgłaszać podatności, zakres, zasada „żadnych prawdziwych danych osobowych”.
-- `CHANGELOG.md` i release `v0.1.0` z notatkami zbudowanymi z historii (grupowanie po US/obszarach, nie lista 144 commitów).
+### 0.3 Repository metadata
 
-### 0.4 Dostawca i model LLM
+- A one-sentence description and topics, including `langgraph`, `agentic-ai`, `threat-intelligence`, `scambaiting`, `honeypot`, `phishing`, `fastapi` and `nextjs`.
+- `LICENSE` (MIT, Lukasz Sajkowski, 2026), as declared in the README.
+- `SECURITY.md`: how to report vulnerabilities, the scope, and the "no real personal data" rule.
+- `CHANGELOG.md` and a `v0.1.0` release with notes built from the history, grouped by user story or area rather than listing 144 commits.
 
-- Konfiguracja wybiera dostawcę: `openai` (domyślny), `anthropic`, `ollama`.
-- Domyślny model główny: **`gpt-6-luna`** (decyzja właściciela). Przed wpisaniem identyfikator trzeba potwierdzić na liście modeli z API OpenAI, bo jest nowszy niż wiedza asystenta.
-- Publiczny interfejs `LLMClient` (`chat_completion`, `LLMResponse` z `used_fallback`, `model_used`, tokenami) zostaje, więc `conversation.py` i `profiler.py` się nie zmieniają. Retry z backoffem i fallback do tańszego modelu działają dla każdego dostawcy.
-- Ceny w `decisions/eval/metrics.py` przechodzą do jednej tabeli per model, obejmującej nowe modele domyślne (Ollama = koszt 0).
-- `.env.example` i `core/__init__.py` opisują nowe zmienne; stare `OPENAI_PRIMARY_MODEL` / `OPENAI_FALLBACK_MODEL` dalej działają albo są czytelnie zastąpione (decyzja wykonawcy, byle lokalne `.env` nie przestało działać bez komunikatu).
+### 0.4 LLM provider and model
 
-## Kolejność
+- Configuration selects the provider: `openai` (default), `anthropic` or `ollama`.
+- Default primary model: **`gpt-6-luna`** (owner decision). Before it is written in, the identifier must be confirmed against the OpenAI API model list, because it is newer than the assistant's knowledge.
+- The public `LLMClient` interface stays: `chat_completion`, and `LLMResponse` with `used_fallback`, `model_used` and token counts. As a result, `conversation.py` and `profiler.py` do not change. Retry with backoff and fallback to a cheaper model work for every provider.
+- Prices in `decisions/eval/metrics.py` move to a single per-model table covering the new default models (Ollama costs 0).
+- `.env.example` and `core/__init__.py` describe the new variables. The old `OPENAI_PRIMARY_MODEL` / `OPENAI_FALLBACK_MODEL` either keep working or are clearly replaced. That choice is the implementer's, as long as a local `.env` does not silently stop working.
 
-1. Wyłączenie Jules (ręcznie) → 0.1 (konsolidacja, zamknięcie PR-ów, `AGENTS.md`).
-2. 0.2 CI, potem włączenie branch protection. Od tego momentu wszystko idzie przez PR.
-3. 0.4 jako pierwszy „prawdziwy” PR przez nowe CI.
-4. 0.3 na końcu: release `v0.1.0` obejmuje wszystko powyżej.
+## Order
 
-## Decyzje asystenta (do sprawdzenia przez właściciela)
+1. Switch Jules off (by hand), then 0.1: consolidation, closing PRs, `AGENTS.md`.
+2. 0.2 CI, then turn on branch protection. From then on everything goes through PRs.
+3. 0.4 as the first real PR through the new CI.
+4. 0.3 last: the `v0.1.0` release covers everything above.
 
-- **Abstrakcja dostawcy**: wcześniej w rozmowie proponowałem `init_chat_model` z LangChain. Kod okazał się nie używać LangChain do LLM, tylko SDK OpenAI. Zamiast tego: adaptery za istniejącym `LLMClient` — SDK OpenAI dla `openai` i dla `ollama` (endpoint zgodny z OpenAI, `base_url`), natywne SDK `anthropic` dla Anthropic. Nie dokładamy LangChain ani LiteLLM.
-- **Model zapasowy** dla OpenAI wybiera asystent z listy modeli API (tańszy wariant z tej samej rodziny co domyślny). Domyślne modele dla `anthropic` i `ollama` też wybiera asystent.
-- **Parametry modelu**: jeśli `gpt-6-luna` (lub inny model) nie przyjmuje `temperature` albo wymaga `max_completion_tokens` zamiast `max_tokens`, dopasowanie robi `LLMClient` na podstawie modelu; wołający się nie zmieniają. Pominięcie `temperature` dla modelu, który go nie obsługuje, jest akceptowaną częścią „wymiany modelu”.
-- **Weryfikacja identyfikatora modelu**: lokalnie, kluczem z `backend/.env` właściciela, na początku 0.4. Jeśli `gpt-6-luna` nie ma na liście, praca nad 0.4 staje i wraca do właściciela.
-- **`AGENTS.md` jako jedyne źródło zasad**: `.claude/CLAUDE.md` odsyła do niego zamiast powtarzać reguły. Konwencja commitów zgodna z istniejącym skillem `.claude/skills/commit`.
-- **PR konsolidujący a11y** może zawierać widoczne tooltipy, nie tylko atrybuty aria. Przed mergem E2E uruchamiane lokalnie.
-- **E2E (Playwright) nie jest wymaganym checkiem** w tej fazie, bo potrzebuje backendu, Supabase i klucza OpenAI. Można go dodać jako workflow ręczny (`workflow_dispatch`) albo pominąć.
-- Nieużywaną zależność `langchain-openai` usuwamy przy 0.4.
+## Assistant decisions (for the owner to review)
 
-## Zostawione wykonawcy
+- **Provider abstraction.** Earlier in the conversation I proposed LangChain's `init_chat_model`. The code turned out not to use LangChain for the LLM at all, only the OpenAI SDK. Instead, the plan uses adapters behind the existing `LLMClient`:
+  - the OpenAI SDK for `openai`;
+  - the same SDK for `ollama` (an OpenAI-compatible endpoint via `base_url`);
+  - the native `anthropic` SDK for Anthropic.
 
-- Wybór gitleaks vs natywny secret scanning, wersje akcji, cache w CI, macierz wersji.
-- Jak dokładnie oznaczyć testy backendu wymagające sieci, jeśli takie istnieją.
-- Treść komentarza zamykającego PR-y, opis repo, dokładna lista tematów, treść `SECURITY.md` i `AGENTS.md`.
+  Neither LangChain nor LiteLLM is added.
+- **The OpenAI fallback model** is chosen by the assistant from the API model list: a cheaper variant from the same family as the default. The assistant also chooses the default models for `anthropic` and `ollama`.
+- **Model parameters.** If `gpt-6-luna` (or another model) rejects `temperature`, or needs `max_completion_tokens` instead of `max_tokens`, `LLMClient` adapts based on the model, and callers do not change. Dropping `temperature` for a model that does not support it is an accepted part of the model swap.
+- **Model identifier check**: done locally with the owner's key from `backend/.env` at the start of 0.4. If `gpt-6-luna` is not on the list, work on 0.4 stops and goes back to the owner.
+- **`AGENTS.md` as the single source of rules.** `.claude/CLAUDE.md` points to it instead of repeating the rules. The commit convention matches the existing `.claude/skills/commit` skill.
+- **The consolidating a11y PR** may include visible tooltips, not only aria attributes. E2E tests run locally before merging.
+- **E2E (Playwright) is not a required check** in this phase, because it needs the backend, Supabase and an OpenAI key. It can be added as a manual workflow (`workflow_dispatch`) or skipped.
+- The unused `langchain-openai` dependency is removed as part of 0.4.
+
+## Left to the implementer
+
+- Gitleaks vs native secret scanning, action versions, CI caching, version matrix.
+- How exactly to mark backend tests that need the network, if there are any.
+- The wording of the PR-closing comment, the repository description, the exact topic list, and the contents of `SECURITY.md` and `AGENTS.md`.

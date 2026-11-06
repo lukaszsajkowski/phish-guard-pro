@@ -1,179 +1,207 @@
-# Basal Decision Layer — Etap 2: sygnały znaczeniowe obok regexów
+# Basal Decision Layer — Stage 2: semantic signals alongside regexes
 
-Data: 2026-11-03. Kontynuacja `2026-11-02-basal-decision-layer-stage1-design.md`.
+Date: 2026-11-03. Continues `2026-11-02-basal-decision-layer-stage1-design.md`.
 
-## Po co
+## Why
 
-Etap 1 sprawdził jedyne miejsce, w którym Basal mógł **zastąpić** GPT (typ ataku w Profilerze). Wynik:
+Stage 1 tested the one place where Basal could **replace** GPT: the attack type in the Profiler. Result:
 
-| Bramka | Dane | Wynik |
+| Gate | Data | Result |
 |---|---|---|
-| 1 (fixtures) | 98 syntetycznych e-maili PL/EN, etykiety dwóch modeli Claude | **zaliczona**: próg 0,70, pokrycie 93,9%, błąd 0%, zgodność kaskady 98% |
-| 2 (shadow) | 29 prawdziwych e-maili (korpus Nazario `phishing-2025`, CC BY 4.0) | **niezaliczona**: zgodność z gpt-5.1 13/28, przy progu 0,70 błąd ~48%; Basal uznał 13/28 phishingów za `not_phishing`, część z pewnością 0,92–0,98 |
+| 1 (fixtures) | 98 synthetic PL/EN emails, labels from two Claude models | **passed**: threshold 0.70, coverage 93.9%, error 0%, cascade agreement 98% |
+| 2 (shadow) | 29 real emails (Nazario corpus `phishing-2025`, CC BY 4.0) | **failed**: agreement with gpt-5.1 13/28, at threshold 0.70 error ~48%; Basal labelled 13/28 phishing emails `not_phishing`, some with confidence 0.92–0.98 |
 
-Wniosek: Basal dobrze rozpoznaje **cechę znaczeniową tekstu, który nie udaje niewinnego** (jawny scam), i źle odróżnia **phishing przebrany za rutynowe powiadomienie** od prawdziwej poczty. Syntetyczny zbiór zawyżył wynik: bramka 1 nie przewidziała bramki 2.
+Takeaway: Basal recognises well **a semantic feature of text that does not pretend to be innocent** (an open scam). It is bad at telling **phishing dressed up as a routine notification** apart from genuine mail. The synthetic set inflated the result: gate 1 did not predict gate 2.
 
-Etap 2 przenosi Basala tam, gdzie te warunki działają na jego korzyść: do decyzji, które dziś podejmują **angielskie regexy** albo **nikt**, na tekście napastnika lub na naszym własnym. Basal nie konkuruje tu z lepszym modelem, tylko z listą fraz, która nie zna polskiego i parafraz.
+Stage 2 moves Basal to where those conditions work in its favour. These are decisions that today are made by **English regexes** or by **nobody**, on the attacker's text or on our own. Here Basal does not compete with a better model, only with a phrase list that knows no Polish and no paraphrases.
 
-## Decyzje właściciela
+## Owner decisions
 
-- Opóźnienie Basala (~4–9 s na M1 Pro, MLX, model `max`) jest **poza zakresem** tego etapu (2026-11-03). Projekt nie optymalizuje czasu odpowiedzi i nie ukrywa go w UI.
-- Profiler zostaje na GPT. Węzeł `profiler.attack_type` nie przechodzi na `live`.
+- Basal latency (~4–9 s on an M1 Pro, MLX, `max` model) is **out of scope** for this stage (2026-11-03). The project does not optimise response time and does not hide it in the UI.
+- The Profiler stays on GPT. The `profiler.attack_type` node does not move to `live`.
 
-## Cele
+## Goals
 
-1. Warstwa decyzyjna obsługuje **tryb sygnału**: Basal obok deterministycznej referencji (regex) zamiast kaskady Basal → LLM.
-2. **Tryb per węzeł** (`off`/`shadow`/`live`), bo Profiler zostaje w `shadow`/`off`, a nowe węzły przechodzą na `live` niezależnie.
-3. Trzy węzły:
-   - `response.in_role`: czy wygenerowana odpowiedź wychodzi z roli persony (nowa kontrola, dziś nie istnieje).
-   - `scammer.unmasking`: czy napastnik zorientował się, że rozmawia z botem (dziś 17 angielskich fraz, US-016).
-   - `scammer.urgency`: poziom presji w wiadomości napastnika (dziś ~20 angielskich regexów z wagami, składnik risk score US-032).
-4. Eval z CLI dla każdego węzła i bramki przejścia na `live` oparte na **prawdziwym tekście**, nie tylko syntetycznym.
+1. The decision layer supports a **signal mode**: Basal alongside a deterministic reference (regex) instead of a Basal → LLM cascade.
+2. **Per-node mode** (`off`/`shadow`/`live`), because the Profiler stays in `shadow`/`off` while the new nodes move to `live` independently.
+3. Three nodes:
+   - `response.in_role`: whether a generated reply breaks the persona's character (a new check that does not exist today).
+   - `scammer.unmasking`: whether the attacker realised they are talking to a bot (today: 17 English phrases, US-016).
+   - `scammer.urgency`: the pressure level in the attacker's message (today: ~20 weighted English regexes, a risk score component, US-032).
+4. An eval CLI for each node, and gates for switching to `live` based on **real text**, not only synthetic text.
 
-## Non-goals (etap 2)
+## Non-goals (stage 2)
 
-- Opóźnienie i wydajność Basala (decyzja właściciela).
-- Profiler: bez zmian w logice, zostaje na GPT.
-- Kontekst IOC („czy to adres, na który napastnik chce dostać pieniądze”) i faza wiadomości napastnika: etap 3, opisane niżej tylko jako kierunek.
-- Personalizacja (`analyzers/personalization.py`): zostaje deterministyczna; zysk z Basala za mały.
-- Walidator PII (`safety/output_validator.py`): zostaje deterministyczny, Basal go nie dotyka.
-- Nowe kategorie ataku (`credential_phishing`): osobna decyzja produktowa, patrz „Poza planem”.
+- Basal latency and performance (owner decision).
+- Profiler: no logic changes; it stays on GPT.
+- IOC context ("is this the address the attacker wants money sent to") and the attacker message phase: stage 3, described below only as a direction.
+- Personalisation (`analyzers/personalization.py`): stays deterministic; the gain from Basal is too small.
+- The PII validator (`safety/output_validator.py`): stays deterministic; Basal does not touch it.
+- New attack categories (`credential_phishing`): a separate product decision, see "Outside the plan".
 
-## Anti-goals (porażka, nawet jeśli „działa”)
+## Anti-goals (failure even if it "works")
 
-- Basal sam **blokuje, przepisuje albo wysyła** odpowiedź. Kontrola roli tylko ostrzega człowieka, który zatwierdza wiadomość.
-- Basal sam **kończy sesję**. Unmasking dalej tylko proponuje zakończenie (US-016).
-- Basal **osłabia** istniejącą kontrolę: dla unmaskingu regex dalej działa, Basal może tylko dodać wykrycie.
-- Przejście na `live` na podstawie samego syntetycznego zbioru. Lekcja z etapu 1: bramka 1 zaliczona, bramka 2 oblana.
-- Wpis w `decisions`, z którego nie da się odczytać, co było referencją (regex czy LLM) i której wiadomości dotyczył.
+- Basal **blocks, rewrites or sends** a reply on its own. The in-role check only warns the human who approves the message.
+- Basal **ends a session** on its own. Unmasking still only proposes ending it (US-016).
+- Basal **weakens** an existing check. For unmasking the regex keeps working, and Basal can only add detections.
+- Switching to `live` based on the synthetic set alone. The lesson from stage 1: gate 1 passed, gate 2 failed.
+- A `decisions` row from which you cannot tell what the reference was (regex or LLM) and which message it concerned.
 
-## Jak to działa
+## How it works
 
-### Tryb sygnału
+### Signal mode
 
-Kaskada z etapu 1 zakłada, że gdy Basal nie jest pewny, decyduje LLM. W etapie 2 referencją jest regex, a Basal **dokłada** odpowiedź:
+The stage 1 cascade assumes that when Basal is unsure, the LLM decides. In stage 2 the reference is the regex, and Basal **adds** its answer:
 
-| Tryb | `response.in_role` | `scammer.unmasking` | `scammer.urgency` |
+| Mode | `response.in_role` | `scammer.unmasking` | `scammer.urgency` |
 |---|---|---|---|
-| `off` | brak kontroli (jak dziś) | tylko regex (jak dziś) | tylko regex (jak dziś) |
-| `shadow` | Basal liczy i zapisuje, UI nic nie pokazuje | regex decyduje, Basal zapisany obok | regex decyduje, Basal zapisany obok |
-| `live` | ostrzeżenie przy szkicu, gdy `breaks_role` ≥ próg | wykrycie = regex **lub** Basal `unmasked` ≥ próg | poziom z Basala ≥ próg, inaczej regex |
+| `off` | no check (as today) | regex only (as today) | regex only (as today) |
+| `shadow` | Basal computes and records; the UI shows nothing | regex decides; Basal recorded alongside | regex decides; Basal recorded alongside |
+| `live` | warning on the draft when `breaks_role` ≥ threshold | detected = regex **or** Basal `unmasked` ≥ threshold | level from Basal ≥ threshold, otherwise regex |
 
-Gdy Basal jest niedostępny, przekroczy timeout albo bramka języka odrzuci tekst (`language.py`, PL/EN), węzeł wraca do zachowania z `off` i zapisuje `skip_reason`, tak jak w etapie 1.
+When Basal is unavailable, times out, or the language gate rejects the text (`language.py`, PL/EN), the node falls back to its `off` behaviour and records a `skip_reason`, as in stage 1.
 
-### Węzły i pytania
+### Nodes and questions
 
-**`response.in_role`** (opcje):
-- `in_role`: odpowiedź brzmi jak persona, nie zdradza, że to bot ani że rozmowa jest pułapką.
-- `breaks_role`: przyznaje się do bycia AI, odmawia, moralizuje, wspomina o scamie, policji lub CERT, przechodzi na ton asystenta albo mówi niezgodnie z personą (wiek, styl, wiedza).
+**`response.in_role`** (options):
+- `in_role`: the reply sounds like the persona and does not reveal that it is a bot or that the conversation is a trap.
+- `breaks_role`: it admits to being an AI, refuses, moralises, mentions a scam, the police or CERT, switches to an assistant tone, or speaks out of character (age, style, knowledge).
 
-Stan dla Basala: opis persony (typ, styl) i treść odpowiedzi. Uruchamiana po walidacji PII, na każdej wygenerowanej odpowiedzi, także po edycji przez użytkownika (US-008), jeśli edycja przechodzi przez backend.
+State for Basal: the persona description (type, style) and the reply text.
+- It runs after PII validation, on every generated reply.
+- It also runs after a user edit (US-008), if the edit goes through the backend.
 
-**`scammer.unmasking`** (opcje): `unmasked` (zarzuca bycie botem, mówi, że wie, co się dzieje, kończy z irytacją) / `engaged` (dalej prowadzi scam). Uruchamiana tam, gdzie dziś `detect_unmasking` (`api/routers/response.py:333`).
+**`scammer.unmasking`** (options):
+- `unmasked`: accuses the victim of being a bot, says they know what is going on, or quits in irritation;
+- `engaged`: carries on with the scam.
 
-**`scammer.urgency`** (opcje): `none` / `low` / `medium` / `high`, z opisami presji czasowej, gróźb i ostatecznych terminów. Mapowanie na skalę 0–10 risk score: wartość oczekiwana z rozkładu Basala (np. 0 / 3,3 / 6,7 / 10), a nie suma wag. **Liczona raz, przy zapisie wiadomości napastnika**, i przechowywana; `risk_score_service` czyta zapisane etykiety i liczy regexem tylko wiadomości bez etykiety. Dziś risk score jest liczony na żądanie ze wszystkich wiadomości, więc wołanie Basala przy każdym odczycie nie wchodzi w grę.
+It runs where `detect_unmasking` runs today (`api/routers/response.py:333`).
+
+**`scammer.urgency`** (options): `none` / `low` / `medium` / `high`, with descriptions of time pressure, threats and final deadlines.
+- Mapping to the 0–10 risk score scale is the expected value of Basal's distribution (e.g. 0 / 3.3 / 6.7 / 10), not a sum of weights.
+- **It is computed once, when the attacker message is saved**, and stored.
+- `risk_score_service` reads the stored labels and uses the regex only for messages without a label.
+- Today the risk score is computed on demand from all messages, so calling Basal on every read is not an option.
 
 ### UI
 
-- `response.in_role` w `live`: ostrzeżenie przy szkicu odpowiedzi z krótkim powodem (opis wybranej opcji i `p`). Przycisk wysyłki / kopiowania działa dalej.
-- `scammer.unmasking`: istniejąca propozycja zakończenia sesji pokazuje źródło wykrycia (fraza z regexu albo „Basal, p=…”).
-- `scammer.urgency`: w rozbiciu risk score etykieta poziomu zamiast listy słów, gdy źródłem jest Basal.
+- `response.in_role` in `live`: a warning on the reply draft with a short reason (the chosen option's description and `p`). The send / copy button keeps working.
+- `scammer.unmasking`: the existing "end session" proposal shows the detection source (the regex phrase or "Basal, p=…").
+- `scammer.urgency`: in the risk score breakdown, a level label instead of a word list when the source is Basal.
 
-## Dane
+## Data
 
-### `decisions` (migracja)
+### `decisions` (migration)
 
-Tabela z etapu 1 zostaje. Dochodzi:
-- `message_id` (nullable, FK do `messages`): której wiadomości dotyczy decyzja. Profiler zostawia `null`.
-- Informacja o rodzaju referencji: `llm` (Profiler) albo `regex` (nowe węzły), z odpowiedzią referencji. Kolumny `llm_*` z etapu 1 zostają dla Profilera; sposób zapisu referencji regexowej (nowe kolumny vs. uogólnienie istniejących) zostaje budowniczemu, pod warunkiem że wiersz jest jednoznaczny bez zaglądania do kodu.
-- `source` dopuszcza wartość `regex`, `node` nowe nazwy węzłów.
+The stage 1 table stays. Additions:
+- `message_id` (nullable, FK to `messages`): which message the decision is about. The Profiler leaves it `null`.
+- The reference kind: `llm` (Profiler) or `regex` (new nodes), with the reference's answer.
+  - The stage 1 `llm_*` columns stay for the Profiler.
+  - How to store the regex reference (new columns vs. generalising the existing ones) is left to the builder, as long as a row is unambiguous without reading the code.
+- `source` allows the value `regex`, and `node` allows the new node names.
 
-### Etykieta urgency przy wiadomości
+### Urgency label on a message
 
-Wynik `scammer.urgency` (poziom, rozkład, źródło) zapisany tak, żeby risk score mógł go odczytać bez ponownego wołania Basala. Miejsce (kolumna w `messages` czy odczyt z `decisions` po `message_id`) zostaje budowniczemu.
+The `scammer.urgency` result (level, distribution, source) is stored so the risk score can read it without calling Basal again. Where it lives (a column on `messages` or a lookup in `decisions` by `message_id`) is left to the builder.
 
-## Konfiguracja
+## Configuration
 
-- `BASAL_MODE_<WĘZEŁ>` nadpisuje globalny `BASAL_MODE`, tak jak `BASAL_THRESHOLD_<WĘZEŁ>` nadpisuje próg. Dotyczy też Profilera (`BASAL_MODE_PROFILER`).
-- Progi per węzeł od początku, ustalane po evalu.
-- Zmiana tylko przez `.env` i restart (jak w etapie 1).
+- `BASAL_MODE_<NODE>` overrides the global `BASAL_MODE`, just as `BASAL_THRESHOLD_<NODE>` overrides the threshold. This also covers the Profiler (`BASAL_MODE_PROFILER`).
+- Thresholds are per node from the start and are set after the eval.
+- Changes only through `.env` and a restart (as in stage 1).
 
-## Dane do evalu (największe ryzyko etapu)
+## Eval data (the biggest risk of this stage)
 
-| Węzeł | Prawdziwy tekst | Skąd |
+| Node | Real text | Source |
 |---|---|---|
-| `response.in_role` | odpowiedzi naszego Conversation Agenta | **pod kontrolą**: generowane z aplikacji dla wszystkich typów person i ataków; to jest rzeczywisty rozkład tego węzła. Przypadki `breaks_role` są w praktyce rzadkie, więc dochodzą przypadki syntetyczne, oznaczone jako syntetyczne i liczone w raporcie osobno. |
-| `scammer.unmasking`, `scammer.urgency` | odpowiedzi napastników (druga i kolejne wiadomości) | **nieznane**: korpus Nazario ma tylko pierwsze e-maile, lokalna baza ma 3 sesje. Kandydaci do sprawdzenia: publiczne archiwa scambaitingu (np. 419eater), zbiory akademickie, sesje zbierane w aplikacji. Sprawdzić licencję każdego źródła. |
+| `response.in_role` | replies from our Conversation Agent | **Under our control.** Generated by the app for every persona and attack type; this is the node's real distribution. `breaks_role` cases are rare in practice, so synthetic cases are added, marked as synthetic and reported separately. |
+| `scammer.unmasking`, `scammer.urgency` | attacker replies (second and later messages) | **Unknown.** The Nazario corpus has only first emails, and the local database has 3 sessions. Candidates to check: public scambaiting archives (e.g. 419eater), academic datasets, sessions collected in the app. Check each source's licence. |
 
-Etykiety: ten sam proces „na ślepo” co w etapie 1 (dwa niezależne subagenty Claude, trzeci przy niezgodności, `ambiguous` poza bramką). Ograniczenie podawane w raporcie: etykiety to zgoda modeli, a nie ekspert.
+Labels: the same blind process as in stage 1 (two independent Claude subagents, a third on disagreement, `ambiguous` outside the gate). The report states the limitation: labels are model agreement, not an expert's judgement.
 
-**Kryterium wyjścia z rekonesansu danych:** co najmniej 150 prawdziwych wiadomości napastników z licencją pozwalającą na użycie, w tym część po polsku. Jeśli się nie uda, unmasking i urgency zostają w `shadow`, dopóki aplikacja nie zbierze własnych sesji, a raport mówi to wprost.
+**Exit criterion for the data search:** at least 150 real attacker messages under a licence that allows use, some of them in Polish. If that fails, unmasking and urgency stay in `shadow` until the app collects its own sessions, and the report says so plainly.
 
 ## Eval (CLI)
 
-`eval` z etapu 1 dostaje podkomendy dla nowych węzłów (`in_role`, `unmasking`, `urgency`) i źródła `fixtures` / `decisions`. Raport per węzeł:
+The stage 1 `eval` gets subcommands for the new nodes (`in_role`, `unmasking`, `urgency`) and the `fixtures` / `decisions` sources. Report per node:
 
-- `in_role` i `unmasking`: precision / recall Basala dla klasy rzadkiej (`breaks_role`, `unmasked`) w funkcji progu, liczba wykryć, których regex nie ma (unmasking), liczba fałszywych alarmów, osobno PL i EN.
-- `urgency`: zgodność z etykietą na skali porządkowej (MAE w poziomach, macierz pomyłek), porównanie z regexem, osobno PL i EN.
-- Rozkład pewności i p50/p95 czasu Basala (informacyjnie).
+- `in_role` and `unmasking`, separately for PL and EN:
+  - Basal's precision / recall for the rare class (`breaks_role`, `unmasked`) as a function of the threshold;
+  - the number of detections the regex misses (unmasking);
+  - the number of false alarms.
+- `urgency`, separately for PL and EN:
+  - agreement with the label on the ordinal scale (MAE in levels, confusion matrix);
+  - comparison with the regex.
+- The confidence distribution and Basal's p50/p95 latency (for information).
 
-## Bramki przejścia na `live` (per węzeł)
+## Gates for switching to `live` (per node)
 
-Liczby są punktem startowym, jak w etapie 1.
+The numbers are a starting point, as in stage 1.
 
-1. **Eval na prawdziwym tekście** (syntetyczny tylko uzupełnia):
-   - `in_role`: recall `breaks_role` ≥ 90% przy fałszywych alarmach ≤ 10%.
-   - `unmasking`: precision Basala ≥ 90% przy progu; regex OR Basal wykrywa więcej niż sam regex, a różnica jest widoczna na wiadomościach PL.
-   - `urgency`: MAE ≤ 0,5 poziomu względem etykiet i nie gorzej niż regex na EN.
-2. **Shadow:** co najmniej 30 decyzji węzła na prawdziwych sesjach, rozbieżności z regexem (albo, dla `in_role`, wszystkie `breaks_role`) przejrzane ręcznie (`eval <węzeł> --source decisions`).
+1. **Eval on real text** (synthetic text only supplements it):
+   - `in_role`: `breaks_role` recall ≥ 90% with false alarms ≤ 10%.
+   - `unmasking`: Basal precision ≥ 90% at the threshold. Regex OR Basal detects more than the regex alone, and the difference shows on Polish messages.
+   - `urgency`: MAE ≤ 0.5 levels against the labels, and no worse than the regex on English.
+2. **Shadow:** at least 30 decisions by the node on real sessions. Disagreements with the regex (or, for `in_role`, every `breaks_role`) are reviewed by hand (`eval <node> --source decisions`).
 
-## Kolejność
+## Order
 
-| Faza | Zakres | Zależności |
+| Phase | Scope | Depends on |
 |---|---|---|
-| 0 | Wyniki etapu 1 dopisane do specu etapu 1; `BASAL_MODE_PROFILER` | — |
-| A | Tryb sygnału, tryb per węzeł, migracja `decisions`, szkielet evalu dla nowych węzłów | 0 |
-| R | Rekonesans danych napastników (równolegle od początku) | — |
-| B | `response.in_role` end to end: węzeł, UI, zbiór, eval, shadow | A |
-| C | `scammer.unmasking` + `scammer.urgency`: wspólny zbiór, węzły, zapis etykiety urgency, UI, eval, shadow | A, R |
+| 0 | Stage 1 results added to the stage 1 spec; `BASAL_MODE_PROFILER` | — |
+| A | Signal mode, per-node mode, `decisions` migration, eval skeleton for the new nodes | 0 |
+| R | Search for attacker data (in parallel from the start) | — |
+| B | `response.in_role` end to end: node, UI, dataset, eval, shadow | A |
+| C | `scammer.unmasking` + `scammer.urgency`: shared dataset, nodes, storing the urgency label, UI, eval, shadow | A, R |
 
-`in_role` idzie pierwszy, bo jego dane są pod kontrolą; unmasking i urgency czekają na rekonesans i dzielą jeden zbiór.
+`in_role` goes first because its data is under our control. Unmasking and urgency wait for the data search and share one dataset.
 
-## Testy
+## Tests
 
-- Tryb sygnału: każdy węzeł w każdym trybie, w tym fallback do regexu przy `unavailable`, `timeout`, `language`. Unmasking w `live`: regex wykrył, Basal nie → wykrycie zostaje.
-- Tryb per węzeł: nadpisanie globalnego trybu, Profiler w `off` przy nowych węzłach w `live`.
-- Urgency: etykieta liczona raz przy zapisie, risk score jej używa i nie woła Basala; wiadomość bez etykiety liczona regexem.
-- Eval: metryki na ręcznie policzonym małym zbiorze dla każdego węzła.
-- Istniejące testy przechodzą bez zmian przy `BASAL_URL=""`.
+- Signal mode: every node in every mode, including the fallback to the regex on `unavailable`, `timeout` and `language`. Unmasking in `live`: if the regex detected it and Basal did not, the detection stands.
+- Per-node mode: overriding the global mode; the Profiler in `off` while the new nodes are in `live`.
+- Urgency: the label is computed once on save, the risk score uses it and does not call Basal; a message without a label is scored by the regex.
+- Eval: metrics on a small hand-computed set for each node.
+- Existing tests pass unchanged with `BASAL_URL=""`.
 
-## Mapowanie na PRD
+## Mapping to the PRD
 
-Pierwotne US-050 (kontrola bezpieczeństwa) wraca jako `response.in_role`. Nowe US od US-056: tryb sygnału i tryb per węzeł, unmasking przez Basala, urgency przez Basala. US-051 (ocena IOC) zostaje w etapie 3. Aktualizacja `.ai/prd.md` jest częścią pracy.
+- The original US-050 (safety check) returns as `response.in_role`.
+- New user stories from US-056: signal mode and per-node mode, unmasking via Basal, urgency via Basal.
+- US-051 (IOC scoring) stays in stage 3.
+- Updating `.ai/prd.md` is part of the work.
 
-## Etap 3 (kierunek, nie zakres)
+## Stage 3 (direction, not scope)
 
-- `ioc.context`: czy wyciągnięty IOC to miejsce, na które napastnik chce dostać pieniądze, czy wzmianka / cytat / adres legalnej firmy. Zasila jakość IOC (US-040). Wymaga wiadomości napastników z IOC, więc korzysta z rekonesansu R.
-- `scammer.phase`: faza wiadomości (budowanie zaufania / prośba o dane / prośba o płatność / dane do płatności / groźba / pożegnanie). Budować dopiero, gdy pojawi się odbiorca, np. oś czasu sesji.
+- `ioc.context`: whether an extracted IOC is where the attacker wants the money sent, or a mention, a quote, or a legitimate company's address. It feeds IOC quality (US-040). It needs attacker messages with IOCs, so it relies on the data search (R).
+- `scammer.phase`: the message phase (building trust / asking for data / asking for payment / payment details / threat / goodbye). Build it only when there is a consumer, e.g. a session timeline.
 
-## Poza planem (znalezione przy bramce 2, osobne zadania)
+## Outside the plan (found at gate 2, separate tasks)
 
-- **Błąd 500:** gdy Conversation Agent trzy razy nie przejdzie walidacji PII (e-mail #116 z korpusu, naruszenie `ssn`), cały `/api/v1/classification/analyze` zwraca 500 i zostawia pustą sesję, choć klasyfikacja się udała.
-- **Prawdopodobnie fałszywe `ssn`** w tym samym przypadku: do sprawdzenia w regexie walidatora.
-- **Luka w taksonomii:** ~połowa prawdziwego phishingu to wyłudzanie danych logowania; gpt-5.1 rozkłada je między `tech_support` i `fake_invoice`. Kandydat na kategorię `credential_phishing`.
+- **500 error:** when the Conversation Agent fails PII validation three times (email #116 from the corpus, an `ssn` violation), the whole `/api/v1/classification/analyze` returns 500 and leaves an empty session, even though classification succeeded.
+- **Probably a false `ssn`** in the same case: to be checked in the validator regex.
+- **Taxonomy gap:** about half of real phishing is credential harvesting; gpt-5.1 spreads it between `tech_support` and `fake_invoice`. A candidate for a `credential_phishing` category.
 
-## Zostawione budowniczemu
+## Left to the builder
 
-- Układ kodu trybu sygnału (rozszerzenie `DecisionService` czy osobna klasa) i nazwy.
-- Schemat zapisu referencji regexowej i etykiety urgency (z warunkami opisanymi wyżej).
-- Treść opisów opcji dla Basala (z docstringów detektorów i promptu Conversation Agenta).
-- Format stanu dla `in_role` (jak podać personę Basalowi).
-- Wygląd ostrzeżeń w UI w ramach istniejących komponentów.
+- Code layout for signal mode (extending `DecisionService` or a separate class) and names.
+- The storage schema for the regex reference and the urgency label (within the conditions above).
+- The wording of the option descriptions for Basal (from the detector docstrings and the Conversation Agent prompt).
+- The state format for `in_role` (how to give Basal the persona).
+- The look of UI warnings, within the existing components.
 
-## Wyniki etapu 2 — pierwszy eval in-role (2026-11-03)
+## Stage 2 results — first in-role eval (2026-11-03)
 
-- Zbiór: 124 przypadki (64 prawdziwe odpowiedzi agenta, 60 syntetycznych), fixtures.
-- Bramka (recall `breaks_role` ≥ 90% przy fałszywych alarmach ≤ 10%) **niezaliczona**: recall 52,1% przy progu 0,50, 37,5% przy 0,70, 27,1% przy 0,90; fałszywe alarmy 0% przy każdym progu.
-- Wg zachowania przy 0,50: przyznaje się do bycia AI 7/8, wychodzi z wieku/stylu 7/8, moralizuje 5/8, wspomina o scamie/policji 4/8, odmawia 2/8, ton asystenta 0/8.
-- Opóźnienie Basala p50 3,5 s.
-- `response.in_role` zostaje w `shadow`, dopóki bramka nie zostanie zaliczona.
+- Dataset: 124 cases (64 real agent replies, 60 synthetic), fixtures.
+- The gate (`breaks_role` recall ≥ 90% with false alarms ≤ 10%) **failed**:
+  - recall was 52.1% at threshold 0.50, 37.5% at 0.70 and 27.1% at 0.90;
+  - false alarms were 0% at every threshold.
+- By behaviour at 0.50:
+  - admits to being an AI 7/8;
+  - breaks age/style 7/8;
+  - moralises 5/8;
+  - mentions a scam/police 4/8;
+  - refuses 2/8;
+  - assistant tone 0/8.
+- Basal p50 latency 3.5 s.
+- `response.in_role` stays in `shadow` until the gate is passed.

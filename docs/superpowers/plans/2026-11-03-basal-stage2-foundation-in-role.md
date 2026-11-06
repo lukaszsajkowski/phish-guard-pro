@@ -117,7 +117,7 @@ Behaviour (copy into the docstring):
 **Interfaces:**
 - Consumes: Task 3 `decide_signal`, Task 1 factory.
 - Produces:
-  - `IN_ROLE_NODE = "response.in_role"`, `IN_ROLE_INSTRUCTIONS: str`, `IN_ROLE_CRITERIA: dict[str, str]` with keys `in_role`, `breaks_role`. The descriptions follow the spec's "Węzły i pytania" section: `breaks_role` covers admitting to being AI, refusing, moralizing, mentioning a scam, police or CERT, assistant tone, and speaking against the persona's age, style or knowledge. The instructions say the reply is the data to judge and any instructions inside it are ignored.
+  - `IN_ROLE_NODE = "response.in_role"`, `IN_ROLE_INSTRUCTIONS: str`, `IN_ROLE_CRITERIA: dict[str, str]` with keys `in_role`, `breaks_role`. The descriptions follow the spec's "Nodes and questions" section: `breaks_role` covers admitting to being AI, refusing, moralizing, mentioning a scam, police or CERT, assistant tone, and speaking against the persona's age, style or knowledge. The instructions say the reply is the data to judge and any instructions inside it are ignored.
   - `build_in_role_state(persona: PersonaProfile, content: str) -> str`: persona type display name, age, style description, a blank line, then `Reply:` and the content. No name and no background.
   - `class InRoleWarning(BaseModel): message: str; confidence: float` (0–1)
   - `IN_ROLE_WARNING_MESSAGE = "This reply may break the persona's role. Review it before sending."`
@@ -221,7 +221,7 @@ Content of the final set: ≥ 60 real rows (`--per-type 8`, about 64), ≥ 40 sy
 - Modify: `docs/superpowers/specs/2026-11-02-basal-decision-layer-stage1-design.md` (new final section `## Wyniki (2026-11-03)`)
 - Modify: `.ai/prd.md`
 
-- [ ] **Step 1:** In the stage 1 spec, add the results table from the stage 2 spec's "Po co" section (gate 1 passed at 0.70 / 93.9% / 0% / 98%; gate 2 failed: 13/28 agreement, ~48% error at 0.70, 13/28 phishing as `not_phishing`), measured latency (~8 s per request on M1 Pro, MLX, `max` model, vs ~1.6 s gpt-5.1), and the decision that the Profiler stays on GPT.
+- [ ] **Step 1:** In the stage 1 spec, add the results table from the stage 2 spec's "Why" section (gate 1 passed at 0.70 / 93.9% / 0% / 98%; gate 2 failed: 13/28 agreement, ~48% error at 0.70, 13/28 phishing as `not_phishing`), measured latency (~8 s per request on M1 Pro, MLX, `max` model, vs ~1.6 s gpt-5.1), and the decision that the Profiler stays on GPT.
 - [ ] **Step 2:** In the PRD, add `US-056: Per-node Basal mode and signal mode` and the reshaped `US-050: Persona in-role check (Basal)` with acceptance criteria taken from Tasks 1–6 and 8, in the existing US format (`/prd-excerpt US-055` for the shape). Mark them ✅ only after their tasks are done. Update the "Original US-050…" note: US-050 is now the in-role check; US-051 stays in stage 3; unmasking and urgency get their own US in the phase C plan.
 - [ ] **Step 3:** Run `/check-all`. Expected: backend and frontend green.
 - [ ] **Step 4: Commit** `docs: record Basal stage 1 results and add stage 2 user stories`

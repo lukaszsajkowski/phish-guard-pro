@@ -217,7 +217,7 @@ Email → Profiler → Persona Selection → [Conversation Loop] → Summary
 Here's how you should handle implementing a user story:
 
 ```text
-User: "Zaimplementuj US-003 - ekstrakcję IOC"
+User: "Implement US-003 - IOC extraction"
 
 1. PLANNING (you do this):
    - Read .ai/prd.md → find US-003 acceptance criteria

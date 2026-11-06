@@ -1,229 +1,237 @@
-# Faza 1.1: Scammer Arena
+# Phase 1.1: Scammer Arena
 
-Data: 2026-11-06. Punkt 1.1 mapy drogowej projektu (wraz z tą częścią 1.2, która wynika z tego samego przebiegu).
+Date: 2026-11-06. Item 1.1 of the project roadmap, together with the part of 1.2 that comes out of the same run.
 
-## Po co
+## Why
 
-PhishGuard nie ma dziś pomiaru, który pokazywałby, czy aktywna obrona działa: czy persona wyciąga od oszusta dane płatności, jak szybko, jak często oszust rozpoznaje bota i ile to kosztuje. Bez tego każda zmiana promptu lub grafu to zgadywanie.
+PhishGuard has no measurement today that shows whether active defense works:
+- whether the persona gets payment details out of the scammer, and how quickly;
+- how often the scammer recognises the bot;
+- what a conversation costs.
 
-Scammer Arena to harness eksperymentalny: toczy automatyczne rozmowy PhishGuard z oszustem granym przez LLM i mierzy wynik. Efektem jest plik `EVALS.md` w katalogu głównym repo.
+Without that, every prompt or graph change is guesswork.
 
-**Obraz docelowy (decyzja właściciela).** `EVALS.md` zaczyna się od:
+Scammer Arena is an experimental harness. It runs automated conversations between PhishGuard and a scammer played by an LLM, and measures the outcome. The output is an `EVALS.md` file in the repository root.
 
-1. **Jednej tabeli „PhishGuard vs sam LLM bez grafu”** na tych samych scenariuszach. Kolumny: odsetek wydobytych sekretów, średnia liczba tur do pierwszego sekretu, jak często oszust wykrył bota, koszt jednej rozmowy.
-2. Pod tabelą **krótkiego fragmentu prawdziwej rozmowy**, w której persona wyciąga od oszusta IBAN (albo inny sekret).
-3. Zaraz pod spodem **uczciwych zastrzeżeń**, w tym że symulacja to nie produkcja.
+**Target picture (owner decision).** `EVALS.md` opens with:
 
-Tabela i fragment rozmowy mają być zrozumiałe bez czytania kodu. Dalsza część pliku i surowe dane pozwalają prześledzić każdą liczbę do konkretnej rozmowy.
+1. **One table, "PhishGuard vs plain LLM without the graph"**, on the same scenarios. Columns:
+   - share of secrets extracted;
+   - mean number of turns to the first secret;
+   - how often the scammer detected the bot;
+   - cost of one conversation.
+2. Below the table, **a short excerpt of a real conversation** in which the persona gets an IBAN (or another secret) out of the scammer.
+3. Right below that, **honest caveats**, including that a simulation is not production.
 
-## Stan wyjściowy (sprawdzony 2026-11-06)
+The table and the excerpt must make sense without reading code. The rest of the file and the raw data let a reader trace every number back to specific conversations.
 
-- Dwa grafy LangGraph w `backend/src/phishguard/orchestrator/graph.py`:
+## Starting point (checked 2026-11-06)
+
+- Two LangGraph graphs in `backend/src/phishguard/orchestrator/graph.py`:
   - `create_phishguard_graph()`: `classify_email → extract_intel_from_email → select_persona`;
-  - `create_continuation_graph()`: `add_scammer_message → extract_intel → generate_response → validate_safety → (regeneracja do 3 razy) → add_bot_response`.
-- API (`api/routers/response.py`) woła graf kontynuacji z checkpointerem Postgres. Każde wywołanie to jedna odpowiedź bota. Pierwsza odpowiedź na maila też idzie tą drogą, z pustą historią.
-- Router wykrywa demaskowanie (US-016) przez `phishguard.safety.detect_unmasking(message)` na wiadomości oszusta. Ta funkcja nie jest węzłem grafu.
-- `select_persona` tworzy `PersonaEngine()` bez seeda (`orchestrator/nodes.py:82`). `PersonaEngine(seed=...)` już przyjmuje seed.
-- Istnieje CLI ewaluacji profilera (`python -m phishguard.decisions.eval`) z wzorcem do naśladowania:
-  - błąd pojedynczego przypadku jest zapisywany i przebieg leci dalej;
-  - nic nie trafia do Supabase (`session_id=None`).
-- Koszty liczy `decisions/eval/metrics.py`: `llm_cost_usd`, `PRICES_PER_MTOK`, gdzie `gpt-6-luna` kosztuje $0.10/$0.50 za 1M tokenów.
-- Zależności już są w `pyproject.toml`:
-  - `faker`, `phonenumbers`, `matplotlib` jako zależności bezpośrednie;
-  - `pyyaml` w lockfile tylko pośrednio.
+  - `create_continuation_graph()`: `add_scammer_message → extract_intel → generate_response → validate_safety → (up to 3 regenerations) → add_bot_response`.
+- The API (`api/routers/response.py`) calls the continuation graph with a Postgres checkpointer. Each call produces one bot reply. The first reply to the email goes the same way, with an empty history.
+- The router detects unmasking (US-016) with `phishguard.safety.detect_unmasking(message)` on the scammer message. This function is not a graph node.
+- `select_persona` builds `PersonaEngine()` without a seed (`orchestrator/nodes.py:82`). `PersonaEngine(seed=...)` already accepts one.
+- There is a profiler eval CLI (`python -m phishguard.decisions.eval`) whose pattern to follow is:
+  - a failing case is recorded and the run continues;
+  - nothing is written to Supabase (`session_id=None`).
+- Costs come from `decisions/eval/metrics.py` (`llm_cost_usd`, `PRICES_PER_MTOK`). `gpt-6-luna` costs $0.10 input / $0.50 output per 1M tokens.
+- Dependencies in `pyproject.toml`:
+  - `faker`, `phonenumbers` and `matplotlib` are already direct dependencies;
+  - `pyyaml` is in the lockfile only as a transitive dependency.
 
-## Cele
+## Goals
 
-1. Jedna komenda uruchamia 24 scenariusze × 2 systemy × 3 powtórzenia, czyli 144 rozmowy, i zapisuje wszystkie wyniki na dysk.
-2. Druga komenda generuje z zapisanych wyników `EVALS.md` i wykres, bez ponownych wywołań API.
-3. Każda liczba w `EVALS.md` da się prześledzić do konkretnych plików rozmów w repo.
-4. Arena testuje **prawdziwy kod produkcyjny**: te same grafy, prompty, ekstrakcję IOC i warstwę bezpieczeństwa, z których korzysta aplikacja.
+1. One command runs 24 scenarios × 2 systems × 3 repetitions (144 conversations) and writes all results to disk.
+2. A second command generates `EVALS.md` and a chart from the saved results, with no further API calls.
+3. Every number in `EVALS.md` can be traced to specific conversation files in the repository.
+4. The Arena exercises **real production code**: the same graphs, prompts, IOC extraction and safety layer the application uses.
 
-## Decyzje właściciela
+## Owner decisions
 
-- **Co jest testowane.** Arena uruchamia oba produkcyjne grafy bezpośrednio w Pythonie, bez API, frontendu i Supabase, ze stanem w pamięci.
-  - Zatwierdzenie odpowiedzi przez człowieka zastępuje automat: odpowiedź idzie dalej bez edycji.
-  - Gdy warstwa bezpieczeństwa zablokuje szkic odpowiedzi, liczymy to jako zdarzenie bezpieczeństwa. Rozmowa toczy się dalej na wersji, którą graf ostatecznie wypuścił.
-- **Baseline.** Ten sam model i ta sama persona, ale jedno zwykłe wywołanie LLM na turę, z prostym promptem ofiary. Nie ma grafu, ekstrakcji IOC sterującej rozmową ani warstwy bezpieczeństwa. Różnica wyników ma mierzyć wartość grafu, a nie różnicę modeli.
-- **Scenariusze.** 24 sztuki:
-  - **16 po angielsku:** każdy z 8 typów, które PhishGuard rozpoznaje (`AttackType` bez `not_phishing`: 419, CEO fraud, fake invoice, romance, tech support, lottery, crypto investment, credential phishing), w dwóch wariantach, łatwiejszy i trudniejszy oszust;
-  - **8 po polsku:** OLX/Allegro „dopłata do paczki”, BLIK, fałszywy przelew, inwestycje krypto (po dwa warianty).
-  - Każdy scenariusz to plik YAML:
-    - treść pierwszego maila;
-    - opis postaci oszusta;
-    - od 2 do 3 sekretów z warunkami ujawnienia;
-    - limit **10 tur**.
-  - Wszystkie dane są fikcyjne, ale mają poprawny format.
-- **Model.** `gpt-6-luna` po obu stronach: ofiara (PhishGuard i baseline) oraz oszust. `EVALS.md` mówi wprost, że ten sam model po obu stronach może zawyżać wyniki. Inny model oszusta to rozszerzenie na później.
-- **Powtórzenia.** Każdy scenariusz 3 razy dla każdego systemu. W tabeli: średnia i rozrzut (min–max).
-  - Stały seed persony per scenariusz, żeby oba systemy grały tę samą ofiarę.
-  - Każda rozmowa jest zapisywana do JSON.
-  - Fragment rozmowy w `EVALS.md` pochodzi z prawdziwego przebiegu.
-- **Zakres 1.1:**
-  - Arena;
-  - 24 scenariusze;
-  - przebieg baseline;
-  - zapis rozmów;
-  - `EVALS.md` z tabelą i fragmentem rozmowy;
-  - metryki, które wynikają z samego przebiegu (sekcja „Metryki”).
-- **Poza zakresem 1.1:**
-  - spójność persony przez LLM-as-judge (1.2, wymaga ręcznej kalibracji);
-  - uruchamianie w CI (1.3);
-  - porównanie regex vs LLM w ekstrakcji (1.6).
+- **What is tested.** The Arena runs both production graphs directly in Python, without the API, the frontend or Supabase, with in-memory state.
+  - Human approval is replaced by an automatic pass: each reply goes through unedited.
+  - When the safety layer rejects a draft reply, that counts as a safety event. The conversation continues with the reply the graph finally released.
+- **Baseline.** Same model and same persona, but one plain LLM call per turn with a simple victim prompt. No graph, no IOC extraction steering the conversation, no safety layer. The difference in results measures the value of the graph, not a difference between models.
+- **Scenarios.** 24 in total:
+  - **16 in English:** each of the 8 types PhishGuard recognises (`AttackType` without `not_phishing`: 419, CEO fraud, fake invoice, romance, tech support, lottery, crypto investment, credential phishing), each in two variants, an easier and a harder scammer;
+  - **8 in Polish:** OLX/Allegro "parcel surcharge", BLIK, fake bank transfer and crypto investment, two variants each.
+  - Each scenario is a YAML file with:
+    - the first email;
+    - a description of the scammer character;
+    - 2–3 secrets with reveal conditions;
+    - a limit of **10 turns**.
+  - All data is fictional but formally valid.
+- **Model.** `gpt-6-luna` on both sides: the victim (PhishGuard and baseline) and the scammer. `EVALS.md` states plainly that using the same model on both sides may inflate results. A different scammer model is a later extension.
+- **Repetitions.** Each scenario runs 3 times per system. The table shows the mean and the min–max range.
+  - Each scenario has a fixed persona seed, so both systems play the same victim.
+  - Every conversation is saved as JSON.
+  - The excerpt in `EVALS.md` comes from a real run.
+- **In scope for 1.1:**
+  - the Arena itself;
+  - the 24 scenarios;
+  - the baseline run;
+  - saved conversations;
+  - `EVALS.md` with the table and the excerpt;
+  - the metrics that come out of the run itself (see "Metrics").
+- **Out of scope for 1.1:**
+  - persona consistency scored by an LLM-as-judge (1.2; needs manual calibration);
+  - running in CI (1.3);
+  - comparing regex with LLM extraction (1.6).
 
-  Arena ma być zbudowana tak, żeby te punkty dało się podpiąć bez przeróbek.
-- **Komendy i pliki:**
-  - `uv run python -m phishguard.arena run` zapisuje wyniki do `evals/results/<data>/`: każda rozmowa jako osobny JSON plus plik podsumowania;
-  - `uv run python -m phishguard.arena report` tworzy `EVALS.md` w katalogu głównym i jeden wykres słupkowy PNG „PhishGuard vs baseline”;
-  - do repo trafiają wyniki, wszystkie 144 rozmowy, wykres i `EVALS.md`.
+  The Arena must be built so these can be added later without rework.
+- **Commands and files:**
+  - `uv run python -m phishguard.arena run` writes results to `evals/results/<date>/`: one JSON file per conversation plus a summary file;
+  - `uv run python -m phishguard.arena report` writes `EVALS.md` in the repository root and one PNG bar chart, "PhishGuard vs baseline";
+  - the results, all 144 conversations, the chart and `EVALS.md` are committed.
 
-## Jak przebiega jedna rozmowa
+## How one conversation runs
 
-Jedna rozmowa to para (scenariusz, system, powtórzenie).
+A conversation is one (scenario, system, repetition) triple.
 
-1. **Przygotowanie (wspólne dla obu systemów w danym scenariuszu i powtórzeniu).**
-   - Uruchom `create_phishguard_graph()` na mailu ze scenariusza, z `session_id=None` i bez zapisu do bazy. Daje to klasyfikację, IOC z maila i personę.
-   - Persona powstaje z seeda wyprowadzonego deterministycznie z identyfikatora scenariusza.
-   - Klasyfikację i personę zapisujemy w wyniku. Baseline dostaje tę samą personę.
-2. **Pierwsza odpowiedź ofiary** na maila, z pustą historią, tak jak w API.
-   - PhishGuard: `create_continuation_graph()` bez wiadomości oszusta.
-   - Baseline: jedno wywołanie LLM.
-3. **Tura:**
-   - oszust (LLM) dostaje swój opis, sekrety z warunkami i dotychczasową rozmowę, po czym zwraca wiadomość;
-   - na wiadomości oszusta uruchamiamy `detect_unmasking` (dla obu systemów, to tylko analiza tekstu);
-   - ofiara odpowiada (PhishGuard przez graf kontynuacji, baseline jednym wywołaniem).
-4. **Koniec rozmowy:** po 10 turach albo wcześniej, gdy oszust zakończy rozmowę, np. bo uznał, że rozmawia z botem, albo się zniechęcił. Wydobycie wszystkich sekretów **nie** kończy rozmowy, bo długość zaangażowania (tarpitting) to też wynik.
+1. **Setup, once per scenario, shared by both systems and all repetitions** (see "Classification once per scenario" below).
+   - Run `create_phishguard_graph()` on the scenario email, with `session_id=None` and no database writes. This produces the classification, the IOCs from the email and the persona.
+   - The persona is created from a seed derived deterministically from the scenario id.
+   - The classification and persona are stored in the results. The baseline gets the same persona.
+2. **The victim's first reply** to the email, with an empty history, as in the API.
+   - PhishGuard: `create_continuation_graph()` with no scammer message.
+   - Baseline: one LLM call.
+3. **A turn:**
+   - the scammer (LLM) receives its description, the secrets with their conditions, and the conversation so far, and returns a message;
+   - `detect_unmasking` runs on the scammer message, for both systems, since it is plain text analysis;
+   - the victim replies: PhishGuard through the continuation graph, the baseline with one call.
+4. **End of conversation:** after 10 turns, or earlier when the scammer ends it, for example because it concluded it was talking to a bot or lost interest. Extracting every secret does **not** end the conversation, because engagement length (tarpitting) is also a result.
 
-Turą nazywamy parę „wiadomość oszusta + odpowiedź ofiary”. Pierwsza odpowiedź na maila to tura 0.
+A turn is the pair "scammer message + victim reply". The first reply to the email is turn 0.
 
-## Oszust
+## The scammer
 
-Oszusta gra LLM. W każdej turze zwraca strukturę (structured output) z polami:
+The scammer is played by an LLM. On every turn it returns a structured output with these fields:
 
-- `message`: treść wiadomości do ofiary;
-- `revealed_secret_ids`: które sekrety właśnie ujawnił, według niego samego;
-- `suspects_bot`: czy podejrzewa, że rozmawia z botem lub AI;
-- `ends_conversation`: czy kończy rozmowę.
+- `message`: the text sent to the victim;
+- `revealed_secret_ids`: which secrets it just revealed, by its own account;
+- `suspects_bot`: whether it suspects it is talking to a bot or an AI;
+- `ends_conversation`: whether it ends the conversation.
 
-Prompt oszusta mówi mu:
+The scammer prompt tells it:
 
-- kim jest;
-- jaki ma cel;
-- że sekrety ujawnia **tylko** przy spełnieniu warunku;
-- że ma reagować realistycznie, czyli zniechęcać się, naciskać i podejrzewać bota, gdy ofiara zachowuje się nienaturalnie.
+- who it is;
+- what it wants;
+- that it reveals secrets **only** when the condition is met;
+- to react realistically: lose interest, push harder, and suspect a bot when the victim behaves unnaturally.
 
-Trudniejszy wariant scenariusza ma ostrzejsze warunki ujawnienia i bardziej podejrzliwego oszusta.
+The harder variant of a scenario has stricter reveal conditions and a more suspicious scammer.
 
-## Format scenariusza
+## Scenario format
 
-`evals/scenarios/<id>.yaml`. Pola:
+`evals/scenarios/<id>.yaml`. Fields:
 
-- `id`, `language` (`en`/`pl`), `attack_type` (wartość `AttackType`), `difficulty` (`easy`/`hard`);
-- `email`: pierwszy mail od oszusta;
-- `scammer`: opis postaci, stylu i celu;
-- `secrets`: lista z `id`, `type` (`iban`/`btc`/`url`/`phone`, zgodnie z typami IOC aplikacji), `value` i `reveal_when` (warunek opisowy dla LLM oszusta);
-- `known_iocs`: inne wskaźniki, które legalnie występują w scenariuszu, np. link w samym mailu. Wyciągnięcie ich przez PhishGuard nie jest fałszywym trafieniem.
-- `max_turns`: domyślnie 10.
+- `id`, `language` (`en`/`pl`), `attack_type` (an `AttackType` value), `difficulty` (`easy`/`hard`);
+- `email`: the scammer's first email;
+- `scammer`: the character, style and goal;
+- `secrets`: a list of entries with `id`, `type` (`iban`/`btc`/`url`/`phone`, matching the application's IOC types), `value` and `reveal_when` (a plain-language condition for the scammer LLM);
+- `known_iocs`: other indicators that legitimately appear in the scenario, such as a link in the email itself. PhishGuard extracting these is not a false positive;
+- `max_turns`: 10 by default.
 
-Dane muszą być fikcyjne i poprawne formalnie:
+The data must be fictional and formally valid:
 
-- IBAN z prawidłową sumą kontrolną;
-- adresy BTC przechodzące walidację formatu aplikacji;
-- telefony przechodzące `phonenumbers`;
-- domeny URL nienależące do nikogo realnego.
+- IBANs with a correct checksum;
+- BTC addresses that pass the application's format validation;
+- phone numbers that pass `phonenumbers`;
+- URL domains that belong to no real party.
 
-Ładowanie scenariusza waliduje to wszystko i odrzuca plik z błędem.
+Loading a scenario validates all of this and rejects an invalid file with an error.
 
-## Metryki
+## Metrics
 
-Dla obu systemów, chyba że zaznaczono inaczej.
+Both systems, unless noted otherwise.
 
-| Metryka | Definicja |
+| Metric | Definition |
 |---|---|
-| **Odsetek wydobytych sekretów** (odpowiednik IDR) | Sekrety ujawnione w rozmowie / wszystkie sekrety scenariusza. Ujawnienie rozpoznajemy po wartości sekretu w treści wiadomości oszusta (po normalizacji: spacje, wielkość liter), a nie po deklaracji oszusta. Deklarację zapisujemy obok jako sygnał pomocniczy. |
-| **Tury do pierwszego sekretu** (IDS) | Numer tury z pierwszym ujawnionym sekretem. Rozmowy bez ujawnienia nie wchodzą do średniej; podajemy osobno, ile ich było. |
-| **Wykrycie bota** | Odsetek rozmów, w których oszust choć raz ustawił `suspects_bot`. Obok pomocniczo: odsetek rozmów, w których `detect_unmasking` zgłosił demaskowanie. |
-| **Długość zaangażowania** | Liczba tur do końca rozmowy. |
-| **Koszt i czas rozmowy** | Tokeny i koszt **strony ofiary** (`llm_cost_usd`), czas wywołań. Koszt oszusta liczymy osobno i nie wchodzi do porównania. |
-| **Ekstrakcja IOC** (tylko PhishGuard) | Recall: ujawnione sekrety, które znalazły się w `extracted_iocs` / ujawnione sekrety. Precision: wyciągnięte IOC pasujące do sekretów lub `known_iocs` / wszystkie wyciągnięte IOC. |
-| **Bezpieczeństwo** (tylko PhishGuard) | Liczba tur, w których `validate_safety` odrzuciło szkic. Liczba odpowiedzi, które mimo to wyszły jako niebezpieczne (oczekiwane 0). |
+| **Share of secrets extracted** (IDR equivalent) | Secrets revealed in the conversation / all secrets in the scenario. A reveal is detected by the secret value appearing in a scammer message (after normalising whitespace and case), not by the scammer's own claim. The claim is stored alongside as a secondary signal. |
+| **Turns to first secret** (IDS) | The turn number of the first revealed secret. Conversations with no reveal are excluded from the mean, and their count is reported separately. |
+| **Bot detection** | Share of conversations in which the scammer set `suspects_bot` at least once. Secondary: share of conversations in which `detect_unmasking` flagged unmasking. |
+| **Engagement length** | Number of turns until the conversation ended. |
+| **Cost and latency per conversation** | Tokens and cost on the **victim side** (`llm_cost_usd`), plus call latency. Scammer cost is tracked separately and is not part of the comparison. |
+| **IOC extraction** (PhishGuard only) | Recall: revealed secrets found in `extracted_iocs` / revealed secrets. Precision: extracted IOCs matching a secret or a `known_iocs` entry / all extracted IOCs. |
+| **Safety** (PhishGuard only) | Number of turns in which a draft was rejected. Number of replies that still went out unsafe (expected 0). |
 
-Agregacja: każda metryka liczona per powtórzenie (średnia po 24 scenariuszach), w tabeli średnia z 3 powtórzeń i min–max. Różnicę PhishGuard vs baseline opisujemy jako „w granicach szumu”, gdy zakresy min–max się nakładają. To prosta i uczciwa reguła bez udawania statystyki na n=3.
+Aggregation: each metric is computed per repetition as a mean over the 24 scenarios. The table shows the mean of the 3 repetitions and the min–max range. A PhishGuard vs baseline difference is described as "within noise" when the min–max ranges overlap. It is a simple, honest rule that does not pretend to do statistics on n=3.
 
 ## `EVALS.md`
 
-Generowany w całości z wyników. Zawiera, w tej kolejności:
+Generated entirely from the results. Contents, in order:
 
-1. Tabela główna (4 kolumny z obrazu docelowego, PhishGuard vs baseline, średnia i min–max).
-2. Wykres słupkowy PNG z tymi samymi metrykami.
-3. Fragment rozmowy PhishGuard z ujawnieniem sekretu, czyli kilka wiadomości wokół ujawnienia, z linkiem do pełnego JSON.
-4. Zastrzeżenia:
-   - symulacja to nie produkcja;
-   - ten sam model po obu stronach;
-   - n = 24 scenariusze × 3 powtórzenia;
-   - dane fikcyjne;
-   - porównanie z literaturą (Siadati i in., Puppeteer) jest tylko orientacyjne.
-5. Metoda: jak działa Arena, czym jest baseline, definicje metryk, data i commit przebiegu, model.
-6. Wyniki szczegółowe:
-   - tabela per scenariusz;
-   - podział EN/PL;
-   - ekstrakcja IOC i bezpieczeństwo dla PhishGuard;
-   - liczba rozmów nieważnych lub z błędem.
-7. Jak odtworzyć: dwie komendy i wymagany klucz.
+1. The headline table: the 4 columns from the target picture, PhishGuard vs baseline, mean and min–max.
+2. A PNG bar chart of the same metrics.
+3. An excerpt of a PhishGuard conversation with a secret being revealed: a few messages around the reveal, with a link to the full JSON.
+4. Caveats:
+   - a simulation is not production;
+   - the same model plays both sides;
+   - n = 24 scenarios × 3 repetitions;
+   - all data is fictional;
+   - comparison with published results (Siadati et al., Puppeteer) is only indicative.
+5. Method: how the Arena works, what the baseline is, metric definitions, run date and commit, model.
+6. Detailed results:
+   - per-scenario table;
+   - EN/PL split;
+   - IOC extraction and safety for PhishGuard;
+   - number of invalid or failed conversations;
+   - profiler agreement with the scenario attack types.
+7. How to reproduce: the two commands and the required key.
 
-Język `EVALS.md`: angielski, jak README, bo czytelnik może nie znać polskiego.
+## Constraints
 
-## Ograniczenia
+- Arena unit tests do not call the API. The LLM is replaced with a fake, and CI has no key. The Arena does not change the required CI checks.
+- The Arena does not write to Supabase and does not need a running database.
+- Production code changes are limited to what the Arena needs (for example, passing a persona seed) and must not change application behaviour.
+- No secrets and no real personal data in scenarios, results or tests (AGENTS.md).
+- A full run should cost about $1. The `run` command has flags to narrow a run (single scenario, number of repetitions, PhishGuard only or baseline only) so a change can be checked cheaply.
 
-- Testy jednostkowe Areny nie wołają API. LLM jest podmieniany atrapą, a w CI nie ma klucza. Arena nie zmienia wymaganych checków CI.
-- Arena nie pisze do Supabase i nie wymaga działającej bazy.
-- Zmiany w kodzie produkcyjnym tylko tam, gdzie Arena tego potrzebuje (np. możliwość podania seeda persony), bez zmiany zachowania aplikacji.
-- Brak sekretów i prawdziwych danych osobowych w scenariuszach, wynikach i testach (AGENTS.md).
-- Pełny przebieg ma kosztować około $1. Komenda `run` ma flagi do ograniczenia przebiegu (pojedynczy scenariusz, liczba powtórzeń, sam PhishGuard albo sam baseline), żeby dało się tanio sprawdzić zmianę.
+## Calls made by the spec author (for the owner to review)
 
-## Moje decyzje (do sprawdzenia przez właściciela)
+- **The baseline knows the goal.** The baseline prompt tells the victim more than "play this person": one paragraph also tells it to keep the conversation going and get the scammer to share payment details. Without that, the comparison would be rigged in PhishGuard's favour and the result would not hold up.
+- **Reveals are detected by value in the text, not by the scammer's claim.** The scammer LLM can be wrong about what it said; the value in the message is a hard fact.
+- **Model refusals.** When the model refuses to play the scammer or the victim, the call is retried once. If it refuses again, the conversation is marked invalid with the reason and excluded from the metrics, and the count is reported in `EVALS.md`. If more than 10% are invalid, the report says so at the very top.
+- **API errors.** The error is recorded in the conversation and the run continues, as in the existing eval CLI.
+- **Excerpt selection.** The report picks the PhishGuard conversation with the earliest IBAN reveal (or any secret if there is none). A `report` flag lets the author choose a different conversation.
+- **Classification once per scenario, live.** The profiler (real code) classifies the email once per scenario. The same classification and persona serve all 3 repetitions and both systems, so the repetitions measure the same thing.
+  - The profiler's attack type is compared with the scenario's `attack_type`. Agreement is reported in the detailed results.
+  - If the profiler returns `not_phishing`, the scenario is marked invalid with that reason. The profiler's answer is not overridden, because it is also a result.
+- **Basal layer off.** The Arena forces mode `off` regardless of `BASAL_MODE`, so only the LLM answers. This keeps runs reproducible and needs no local Basal service.
+- **Safety events are counted at the source.** The real validate-and-regenerate loop lives in `ConversationAgent.generate_response`, not in the `validate_safety` node. The Arena therefore counts regenerations inside the agent. This needs a small production change: exposing the regeneration count in graph state, with no behaviour change.
+  - If the agent runs out of attempts and raises `ResponseGenerationError`, the turn ends the conversation as "blocked by safety". It is counted separately, not as an API error.
+- **The Arena collects token usage itself.** `record_llm_usage` stores tokens only when there is a `session_id`, and the Arena runs without one. The Arena collects usage on its own, for example by wrapping the LLM client, with no database writes.
+- **`pyyaml`** becomes a direct dependency, since today it is only transitive.
+- **Arena code** lives in `backend/src/phishguard/arena/`. Scenarios and results live in `evals/` in the repository root, next to `EVALS.md`.
 
-- **Baseline zna cel.** Prompt baseline mówi ofierze nie tylko „udawaj tę osobę”, ale też jednym akapitem, że ma podtrzymywać rozmowę i nakłonić oszusta do podania danych płatności. Bez tego porównanie byłoby z góry ustawione na korzyść PhishGuard i podważałoby wynik.
-- **Ujawnienie sekretu wykrywamy po wartości w tekście, a nie po deklaracji oszusta.** LLM oszusta może się mylić w deklaracjach; wartość w treści jest twardym faktem.
-- **Odmowy modelu.** Gdy model odmówi zagrania oszusta albo ofiary, ponawiamy próbę raz. Przy kolejnej odmowie rozmowa jest oznaczana jako nieważna z powodem i wyłączana z metryk, a jej liczbę podajemy w `EVALS.md`. Gdy nieważnych jest więcej niż 10%, raport mówi to na samej górze.
-- **Błędy API.** Błąd zapisujemy w rozmowie i przebieg leci dalej, tak jak w istniejącym CLI ewaluacji.
-- **Wybór fragmentu rozmowy.** Raport sam wybiera rozmowę PhishGuard z najwcześniejszym ujawnieniem IBAN-u (a w razie braku dowolnego sekretu). Flaga komendy `report` pozwala wskazać inną rozmowę ręcznie.
-- **Klasyfikacja raz na scenariusz, na żywo.** Profiler (prawdziwy kod) klasyfikuje maila raz na scenariusz. Ta sama klasyfikacja i persona służą wszystkim 3 powtórzeniom i obu systemom, więc powtórzenia mierzą to samo.
-  - Typ ataku z profilera porównujemy z `attack_type` scenariusza. Zgodność klasyfikacji podajemy w wynikach szczegółowych.
-  - Gdy profiler zwróci `not_phishing`, scenariusz jest oznaczany jako nieważny z tym powodem. Nie podmieniamy wyniku profilera, bo to też jest wynik.
-- **Warstwa Basal wyłączona.** Arena wymusza tryb `off` niezależnie od `BASAL_MODE`, czyli odpowiada sam LLM. Daje to powtarzalność i nie wymaga lokalnej usługi Basal.
-- **Zdarzenia bezpieczeństwa liczymy u źródła.** Właściwa pętla walidacji i regeneracji działa w `ConversationAgent.generate_response`, a nie w węźle `validate_safety`. Arena liczy więc regeneracje wewnątrz agenta. Wymaga to małej zmiany produkcyjnej: wystawienia licznika regeneracji w stanie grafu, bez zmiany zachowania.
-  - Gdy agent wyczerpie próby i zgłosi `ResponseGenerationError`, tura kończy rozmowę jako „zablokowana przez bezpieczeństwo”. Liczymy ją osobno, a nie jako błąd API.
-- **Tokeny zbieramy w Arenie.** `record_llm_usage` zapisuje tokeny tylko przy `session_id`, a Arena działa bez niego. Arena zbiera użycie tokenów sama (np. przez opakowanie klienta LLM), bez zapisu do bazy.
-- **`pyyaml`** dopisujemy jako zależność bezpośrednią, bo dziś jest tylko pośrednia.
-- **Kod Areny** mieszka w `backend/src/phishguard/arena/`, a scenariusze i wyniki w `evals/` w katalogu głównym repo, obok `EVALS.md`.
+## Left to the builder
 
-## Zostawione budowniczemu
+- The wording of the scammer and baseline prompts, within the calls above.
+- The exact JSON shape of a conversation and of the summary. A conversation must contain:
+  - every message;
+  - PhishGuard state after each turn (IOCs, safety events, thinking);
+  - the scammer's claims;
+  - tokens and timings;
+  - the scenario version;
+  - the code commit.
+- How the persona seed reaches `select_persona` while keeping the current API behaviour.
+- The content of the 24 scenarios, within the split and the format.
+- The chart's look: it must be readable in both GitHub light and dark themes.
+- Order and concurrency of calls during a run.
 
-- Treść promptów oszusta i baseline (w ramach decyzji powyżej).
-- Dokładny kształt JSON rozmowy i podsumowania. Rozmowa musi zawierać:
-  - wszystkie wiadomości;
-  - stan PhishGuard po każdej turze (IOC, zdarzenia bezpieczeństwa, thinking);
-  - deklaracje oszusta;
-  - tokeny i czasy;
-  - wersję scenariusza;
-  - commit kodu.
-- Jak podać seed persony do `select_persona` przy zachowaniu obecnego zachowania API.
-- Treść 24 scenariuszy w ramach podziału i formatu.
-- Wygląd wykresu: ma być czytelny w jasnym i ciemnym motywie GitHuba.
-- Kolejność i współbieżność wywołań w przebiegu.
+## Acceptance criteria
 
-## Kryteria akceptacji
-
-1. `evals/scenarios/` zawiera 24 scenariusze w ustalonym podziale. Wszystkie przechodzą walidację formatu i fikcyjności danych.
-2. `phishguard.arena run` wykonuje pełny przebieg i zapisuje 144 rozmowy (lub mniej przy flagach) plus podsumowanie.
-3. `phishguard.arena report` z samych plików wyników generuje `EVALS.md` i wykres. Dwa uruchomienia na tych samych wynikach dają identyczne pliki.
-4. Testy jednostkowe z atrapą LLM pokrywają:
-   - pętlę rozmowy, w tym koniec przez limit i przez oszusta;
-   - wykrywanie ujawnienia sekretów;
-   - liczenie metryk na ręcznie przygotowanych rozmowach;
-   - obsługę odmów i błędów;
-   - walidację scenariuszy;
-   - generowanie raportu z fikcyjnych wyników.
-5. Pierwszy prawdziwy przebieg jest zacommitowany razem z `EVALS.md`, wykresem i rozmowami.
-6. Zastrzeżenia i definicje metryk w `EVALS.md` zgadzają się z tym spec.
+1. `evals/scenarios/` contains 24 scenarios in the agreed split. All pass format and fictional-data validation.
+2. `phishguard.arena run` completes a full run and writes 144 conversations (fewer with flags) plus a summary.
+3. `phishguard.arena report` generates `EVALS.md` and the chart from the result files alone. Two runs on the same results produce identical files.
+4. Unit tests with a fake LLM cover:
+   - the conversation loop, including ending by the turn limit and by the scammer;
+   - secret reveal detection;
+   - metric computation on hand-built conversations;
+   - refusal and error handling;
+   - scenario validation;
+   - report generation from fictional results.
+5. The first real run is committed together with `EVALS.md`, the chart and the conversations.
+6. The caveats and metric definitions in `EVALS.md` match this spec.
