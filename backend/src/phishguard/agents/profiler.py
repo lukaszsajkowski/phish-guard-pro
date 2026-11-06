@@ -28,12 +28,13 @@ from phishguard.decisions import (
 from phishguard.decisions.basal_client import BasalAnswer
 from phishguard.decisions.recorder import record_llm_usage
 from phishguard.llm import LLMClient, LLMRequestError, LLMResponse, create_llm_client
+from phishguard.llm.budget import warn_if_budget_exhausted
 from phishguard.models.classification import AttackType, ClassificationResult
 
 logger = logging.getLogger(__name__)
 
 CLASSIFICATION_TEMPERATURE: Final[float] = 0.2
-CLASSIFICATION_MAX_TOKENS: Final[int] = 200
+CLASSIFICATION_MAX_TOKENS: Final[int] = 2000
 MAX_PARSE_RETRIES: Final[int] = 1
 PROFILER_NODE: Final[str] = "profiler.attack_type"
 USAGE_AGENT: Final[str] = "profiler"
@@ -230,6 +231,11 @@ class ProfilerAgent:
                     except Exception:
                         # A buggy callback must not count as a parse failure.
                         logger.warning("on_usage callback failed", exc_info=True)
+                warn_if_budget_exhausted(
+                    llm_response,
+                    agent=USAGE_AGENT,
+                    max_tokens=CLASSIFICATION_MAX_TOKENS,
+                )
                 content = llm_response.content
 
                 # Track if fallback model was used
