@@ -17,8 +17,8 @@ REFUSAL_PATTERN = re.compile(
     r"|as\s+an\s+ai\b"
     r"|(?:this\s+is\s+)?against\s+my\s+(?:guidelines|policies)"
     r"|(?:przepraszam,?\s+ale\s+)?nie\s+mog\u0119\s+"
-    r"(?:pom\u00f3c|w\s+tym\s+pom\u00f3c|kontynuowa\u0107)"
-    r"|przepraszam,?\s+ale\s+nie\s+mog\u0119"
+    r"(?:(?:w\s+tym\s+)?pom\u00f3c|kontynuowa\u0107|tego\s+zrobi\u0107"
+    r"|uczestniczy\u0107|odgrywa\u0107)"
     r"|jako\s+(?:ai|model\s+j\u0119zykowy)\b"
     r")",
     re.IGNORECASE,

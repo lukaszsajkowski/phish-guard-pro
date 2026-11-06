@@ -104,6 +104,7 @@ def test_prompt_requests_scenario_language(transcript):
         "I won't ask again.",
         "I cannot hold the funds past noon.",
         "Sorry, I can't take calls.",
+        "Przepraszam, ale nie mogę rozmawiać przez telefon.",
     ],
 )
 async def test_in_character_lines_are_not_refusals(scenario, transcript, line):
