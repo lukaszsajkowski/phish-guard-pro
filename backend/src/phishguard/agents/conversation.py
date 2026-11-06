@@ -119,6 +119,7 @@ class ConversationAgent:
         conversation_history: list[ConversationMessage] | None = None,
         is_first_response: bool = True,
         session_id: str | None = None,
+        latest_scammer_message: str | None = None,
     ) -> ResponseGenerationResult:
         """Generate a victim response in the persona's style.
 
@@ -133,6 +134,9 @@ class ConversationAgent:
             conversation_history: Optional list of previous messages for context.
             is_first_response: Whether this is the first response in conversation.
             session_id: Optional session id; when set, token usage is recorded.
+            latest_scammer_message: The scammer's newest message on a follow-up
+                turn. Defaults to the last scammer entry in the history, then
+                to `email_content`.
 
         Returns:
             ResponseGenerationResult with the generated response and metadata.
@@ -150,11 +154,44 @@ class ConversationAgent:
 
         # Build prompts
         system_prompt = get_conversation_system_prompt(persona, attack_type)
+        prompt_message = email_content
+        prompt_history = conversation_history
+        if not is_first_response:
+            # Follow-up: answer the newest scammer message, shown once.
+            prompt_message = latest_scammer_message or next(
+                (
+                    m.content
+                    for m in reversed(conversation_history or [])
+                    if m.sender == MessageSender.SCAMMER
+                ),
+                email_content,
+            )
+            if (
+                prompt_history
+                and prompt_history[-1].sender == MessageSender.SCAMMER
+                and prompt_history[-1].content == prompt_message
+            ):
+                prompt_history = prompt_history[:-1]
+        formatted_history = self._format_history(prompt_history)
+        if (
+            not is_first_response
+            and email_content
+            and email_content != prompt_message
+            and not (
+                conversation_history
+                and conversation_history[0].content == email_content
+            )
+        ):
+            # Keep the scam's opening email as labelled context.
+            formatted_history = [
+                {"sender": "scammer (first email)", "content": email_content},
+                *(formatted_history or []),
+            ]
         user_prompt = get_conversation_user_prompt(
-            email_content=email_content,
-            conversation_history=self._format_history(conversation_history),
+            email_content=prompt_message,
+            conversation_history=formatted_history,
             is_first_response=is_first_response,
-            reply_language=_detect_reply_language(email_content, conversation_history),
+            reply_language=_detect_reply_language(prompt_message, None),
         )
 
         messages = [
