@@ -28,10 +28,17 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_db_url: str = ""  # Direct PostgreSQL connection URL for checkpointing
 
-    # OpenAI
+    # LLM provider. Empty model names mean "use the provider's default".
+    llm_provider: Literal["openai", "anthropic", "ollama"] = "openai"
+    llm_primary_model: str = ""
+    llm_fallback_model: str = ""
+    # Legacy names from existing .env files; used only when llm_provider is
+    # "openai" and LLM_PRIMARY_MODEL / LLM_FALLBACK_MODEL are empty.
+    openai_primary_model: str = ""
+    openai_fallback_model: str = ""
     openai_api_key: str = ""
-    openai_primary_model: str = "gpt-4o"
-    openai_fallback_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434/v1"
 
     # IOC Enrichment API keys (optional — enrichment degrades gracefully when absent)
     bitcoinabuse_api_key: str = ""

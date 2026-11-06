@@ -12,7 +12,7 @@ PhishGuard Pro is an autonomous agent-based system that implements the Active De
 ├──────────────────────────────────────────────────────────────────────┤
 │  Frontend (Next.js 16)   │  Backend (FastAPI)    │  Database         │
 │  - React 19              │  - LangGraph          │  - Supabase       │
-│  - Tailwind CSS v4       │  - LangChain-OpenAI   │  - Postgres       │
+│  - Tailwind CSS v4       │  - OpenAI/Anthropic   │  - Postgres       │
 │  - shadcn/ui             │  - Faker              │  - RLS            │
 │  - Vercel AI SDK         │  - Pydantic v2        │  - Auth           │
 │  - next-themes           │  - phonenumbers       │  - pgvector       │
@@ -152,9 +152,12 @@ API docs at http://localhost:8000/docs (in debug mode)
 |----------|-------------|
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
-| `OPENAI_API_KEY` | OpenAI API key for LLM |
-| `OPENAI_PRIMARY_MODEL` | Primary model (default: gpt-4o) |
-| `OPENAI_FALLBACK_MODEL` | Fallback model (default: gpt-4o-mini) |
+| `LLM_PROVIDER` | LLM provider: `openai` (default), `anthropic` or `ollama` |
+| `LLM_PRIMARY_MODEL` | Primary model (default for openai: gpt-6-luna) |
+| `LLM_FALLBACK_MODEL` | Fallback model (default for openai: gpt-5.4-mini) |
+| `OPENAI_API_KEY` | OpenAI API key (provider `openai`) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (provider `anthropic`) |
+| `OLLAMA_BASE_URL` | Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1) |
 | `VIRUSTOTAL_API_KEY` | VirusTotal API key (optional, for URL/domain enrichment) |
 | `ABUSEIPDB_API_KEY` | AbuseIPDB API key (optional, for IP enrichment) |
 | `NUMVERIFY_API_KEY` | NumVerify API key (optional, for phone enrichment) |
