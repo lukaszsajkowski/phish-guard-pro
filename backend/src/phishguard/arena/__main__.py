@@ -80,10 +80,20 @@ def _report(args: argparse.Namespace) -> int:
 
     scenarios = {s.id: s for s in load_scenarios(args.scenarios)}
     summary = summarise(results, scenarios)
-    excerpt = select_excerpt(results, args.excerpt, args.scenarios)
+    try:
+        excerpt = select_excerpt(results, args.excerpt, args.scenarios)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"Cannot use --excerpt: {exc}", file=sys.stderr)
+        return 2
     render_chart(summary, args.chart)
     text = render_markdown(
-        summary, summary.meta, excerpt, _rel(args.chart), _rel(results)
+        summary,
+        summary.meta,
+        excerpt,
+        _rel(args.chart),
+        _rel(results),
+        args.excerpt,
+        args.scenarios,
     )
     args.out.write_text(text, encoding="utf-8")
     print(f"Wrote {args.out} and {args.chart}")

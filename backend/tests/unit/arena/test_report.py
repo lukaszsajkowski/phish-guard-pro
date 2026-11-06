@@ -86,14 +86,20 @@ PLAN = {
 }
 
 
-def build_results(root: Path, drop_baseline: int = 0, invalid: int = 0) -> Path:
+def build_results(
+    root: Path,
+    drop_baseline: int = 0,
+    invalid: int = 0,
+    systems: tuple[str, ...] = ("phishguard", "baseline"),
+    no_reveals: bool = False,
+) -> Path:
     """Write 2 scenarios x 2 systems x 2 repetitions."""
     meta = RunMeta(
         date="2026-11-06",
         commit="abc1234",
         model="gpt-6-luna",
         repetitions=2,
-        systems=["phishguard", "baseline"],
+        systems=list(systems),
         scenario_ids=[EN, PL],
     )
     (root / "conversations").mkdir(parents=True)
@@ -110,6 +116,10 @@ def build_results(root: Path, drop_baseline: int = 0, invalid: int = 0) -> Path:
         )
     dropped = invalid_left = 0
     for (sid, system, rep), (turn, secret, suspects) in sorted(PLAN.items()):
+        if system not in systems:
+            continue
+        if no_reveals:
+            turn, secret = None, None
         if system == "baseline" and dropped < drop_baseline:
             dropped += 1
             continue
@@ -131,7 +141,12 @@ def render(results: Path, scenarios, excerpt_override=None) -> str:
     summary = summarise(results, scenarios)
     excerpt = select_excerpt(results, excerpt_override)
     return render_markdown(
-        summary, summary.meta, excerpt, "evals/chart.png", RESULTS_REL
+        summary,
+        summary.meta,
+        excerpt,
+        "evals/chart.png",
+        RESULTS_REL,
+        excerpt_override,
     )
 
 
@@ -191,6 +206,8 @@ def test_report_is_deterministic(tmp_path, scenarios):
 
     assert render(results, scenarios) == render(results, scenarios)
     summary = summarise(results, scenarios)
+    assert "33.3% (25.0%–41.7%)" in render(results, scenarios)  # 1 decimal
+    assert "$0.0003 ($0.0003–$0.0003)" in render(results, scenarios)  # 4 decimals
     render_chart(summary, tmp_path / "a.png")
     render_chart(summary, tmp_path / "b.png")
     assert (tmp_path / "a.png").read_bytes() == (tmp_path / "b.png").read_bytes()
@@ -203,7 +220,10 @@ def test_report_renders_with_missing_conversations(tmp_path, scenarios):
     text = render(results, scenarios)
 
     assert re.search(r"Missing[^\n]*\b2\b", text)
-    assert "different scenario" in text or "same scenarios" in text
+    assert (
+        "averaged over different scenario sets" in text
+        and "PhishGuard 2 of 2 scenarios, Baseline (plain LLM) 1 of 2 scenarios" in text
+    )
 
 
 def test_invalid_share_warning(tmp_path, scenarios):
@@ -224,3 +244,83 @@ def test_no_warning_when_few_invalid(tmp_path, scenarios):
     text = render(build_results(tmp_path / "r"), scenarios)
 
     assert "> **Warning" not in text
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"systems": ("baseline",)},
+        {"systems": ("phishguard",), "no_reveals": True},
+        {"no_reveals": True},
+    ],
+    ids=["baseline-only", "phishguard-no-reveals", "no-reveals"],
+)
+def test_report_renders_without_excerpt(tmp_path, scenarios, kwargs):
+    results = build_results(tmp_path / "r", **kwargs)
+
+    assert select_excerpt(results, None) is None
+    text = render(results, scenarios)
+    assert "No PhishGuard conversation with a revealed secret in this run." in text
+    render_chart(summarise(results, scenarios), tmp_path / "c.png")
+
+
+def test_report_renders_phishguard_only(tmp_path, scenarios):
+    text = render(build_results(tmp_path / "r", systems=("phishguard",)), scenarios)
+
+    assert "| PhishGuard |" in text
+    assert "Baseline (plain LLM) |" not in text.split("## Caveats")[0]
+
+
+def test_report_skips_corrupt_conversation(tmp_path, scenarios):
+    results = build_results(tmp_path / "r")
+    bad = results / "conversations" / f"{EN}__phishguard__r1.json"
+    bad.write_text('{"scenario_id": "trunc', encoding="utf-8")
+
+    record, turn = select_excerpt(results, None)
+    text = render(results, scenarios)
+
+    assert (record.scenario_id, record.repetition, turn) == (EN, 0, 3) or (
+        record.scenario_id,
+        record.repetition,
+        turn,
+    ) == (PL, 0, 2)
+    assert (
+        "Unreadable conversation files (corrupt or truncated, skipped): "
+        f"1: `{bad.name}`" in text
+    )
+
+
+def test_excerpt_heading_and_labels_follow_selection(tmp_path, scenarios):
+    results = build_results(tmp_path / "r")
+
+    auto = render(results, scenarios)
+    assert "## Example: the persona gets an IBAN" in auto
+    assert "earliest IBAN reveal" in auto
+    assert "**PhishGuard persona**" in auto
+
+    manual = render(results, scenarios, f"{EN}__baseline__r0")
+    assert "chosen by hand" in manual
+    assert "**Baseline (plain LLM)**" in manual
+    assert "the baseline victim gets an IBAN" in manual
+
+
+def test_excerpt_ignores_invalid_conversations(tmp_path):
+    results = build_results(tmp_path / "r")
+    path = results / "conversations" / f"{EN}__phishguard__r1.json"
+    rec = ConversationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    path.write_text(
+        rec.model_copy(update={"status": "invalid"}).model_dump_json(),
+        encoding="utf-8",
+    )
+
+    chosen, _ = select_excerpt(results, None)
+
+    assert (chosen.scenario_id, chosen.repetition) != (EN, 1)
+    assert chosen.status == "completed"
+
+
+def test_excerpt_override_without_reveal_is_an_error(tmp_path):
+    results = build_results(tmp_path / "r")
+
+    with pytest.raises(ValueError, match="no revealed secret"):
+        select_excerpt(results, f"{PL}__phishguard__r1")

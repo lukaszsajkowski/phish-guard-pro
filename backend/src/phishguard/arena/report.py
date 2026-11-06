@@ -6,7 +6,12 @@ the same results twice gives identical bytes.
 
 from pathlib import Path
 
-from phishguard.arena.metrics import Aggregate, Summary, within_noise
+from phishguard.arena.metrics import (
+    METRIC_STATUSES,
+    Aggregate,
+    Summary,
+    within_noise,
+)
 from phishguard.arena.records import ConversationRecord
 from phishguard.arena.runner import DEFAULT_SCENARIOS_DIR, RunMeta
 from phishguard.arena.scenario import load_scenarios
@@ -68,8 +73,10 @@ def _secret_types(scenarios_dir: Path) -> dict[str, dict[str, str]]:
 
 
 def _first_reveal(record: ConversationRecord, wanted: set[str] | None) -> int | None:
-    """Index of the first turn revealing a secret (of the wanted ids, if given)."""
+    """Index of the first turn whose scammer message revealed a (wanted) secret."""
     for turn in record.turns:
+        if turn.scammer is None:
+            continue
         if any(wanted is None or r in wanted for r in turn.detected_reveals):
             return turn.index
     return None
@@ -79,40 +86,59 @@ def select_excerpt(
     results_dir: Path,
     override: str | None,
     scenarios_dir: Path = DEFAULT_SCENARIOS_DIR,
-) -> tuple[ConversationRecord, int]:
+) -> tuple[ConversationRecord, int] | None:
     """Pick the conversation to quote and the turn where the secret is revealed.
 
     Default: the PhishGuard conversation with the earliest IBAN reveal (ties go to
-    the file name that sorts first), else the earliest reveal of any secret.
-    `override` is a conversation file stem.
+    the file name that sorts first), else the earliest reveal of any secret;
+    None when no conversation qualifies. Only completed and blocked-by-safety
+    conversations count, and unreadable files are skipped. `override` is a
+    conversation file stem and raises if that conversation cannot be used.
     """
     conv_dir = results_dir / "conversations"
     types = _secret_types(scenarios_dir)
 
-    def load(path: Path) -> ConversationRecord:
-        return ConversationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    def load(path: Path) -> ConversationRecord | None:
+        try:
+            return ConversationRecord.model_validate_json(
+                path.read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
+            return None
 
     def iban_ids(record: ConversationRecord) -> set[str]:
         by_id = types.get(record.scenario_id, {})
         return {sid for sid, kind in by_id.items() if kind == "iban"}
+
+    def reveal_turn(record: ConversationRecord) -> int | None:
+        """First IBAN reveal, else first reveal of anything."""
+        ids = iban_ids(record)
+        index = _first_reveal(record, ids) if ids else None
+        return index if index is not None else _first_reveal(record, None)
 
     if override is not None:
         path = conv_dir / f"{override}.json"
         if not path.exists():
             raise FileNotFoundError(f"No conversation file: {path}")
         record = load(path)
-        index = _first_reveal(record, iban_ids(record) or None)
+        if record is None:
+            raise ValueError(f"Conversation {override} is unreadable")
+        index = reveal_turn(record)
         if index is None:
-            index = _first_reveal(record, None)
-        if index is None:
-            raise ValueError(f"Conversation {override} has no revealed secret")
+            raise ValueError(
+                f"Conversation {override} has no revealed secret in a scammer message"
+            )
         return record, index
 
     best_iban: tuple[int, str, ConversationRecord] | None = None
     best_any: tuple[int, str, ConversationRecord] | None = None
     for path in sorted(conv_dir.glob("*.json")):
         record = load(path)
-        if record.system != "phishguard":
+        if (
+            record is None
+            or record.system != "phishguard"
+            or record.status not in METRIC_STATUSES
+        ):
             continue
         any_index = _first_reveal(record, None)
         if any_index is not None and (best_any is None or any_index < best_any[0]):
@@ -122,38 +148,76 @@ def select_excerpt(
         if iban_index is not None and (best_iban is None or iban_index < best_iban[0]):
             best_iban = (iban_index, path.stem, record)
     chosen = best_iban or best_any
-    if chosen is None:
-        raise ValueError("No PhishGuard conversation with a revealed secret")
-    return chosen[2], chosen[0]
+    return None if chosen is None else (chosen[2], chosen[0])
 
 
-def _excerpt_lines(
-    excerpt: tuple[ConversationRecord, int], results_rel: str
+SECRET_NOUNS = {
+    "iban": "an IBAN",
+    "btc": "a BTC address",
+    "url": "a URL",
+    "phone": "a phone number",
+}
+
+
+def _excerpt_section(
+    excerpt: tuple[ConversationRecord, int] | None,
+    results_rel: str,
+    override: str | None,
+    scenarios_dir: Path,
 ) -> list[str]:
+    if excerpt is None:
+        return [
+            "## Example conversation",
+            "",
+            "No PhishGuard conversation with a revealed secret in this run.",
+        ]
     record, reveal_turn = excerpt
+    by_id = _secret_types(scenarios_dir).get(record.scenario_id, {})
+    turn = next(t for t in record.turns if t.index == reveal_turn)
+    kinds = sorted({by_id[r] for r in turn.detected_reveals if r in by_id})
+    kind = "iban" if "iban" in kinds else (kinds[0] if kinds else None)
+    noun = SECRET_NOUNS.get(kind or "", "a secret")
+    is_pg = record.system == "phishguard"
+    victim_label = SENDER_LABELS["victim"] if is_pg else _label(record.system)
+    who = "the persona" if is_pg else "the baseline victim"
     messages: list[tuple[str, int, str]] = []
-    for turn in record.turns:
-        if turn.scammer is not None:
-            messages.append(("scammer", turn.index, turn.scammer.message))
-        if turn.victim is not None:
-            messages.append(("victim", turn.index, turn.victim.content))
+    for t in record.turns:
+        if t.scammer is not None:
+            messages.append(("scammer", t.index, t.scammer.message))
+        if t.victim is not None:
+            messages.append(("victim", t.index, t.victim.content))
     at = next(
         i
-        for i, (who, idx, _) in enumerate(messages)
-        if who == "scammer" and idx == reveal_turn
+        for i, (sender, idx, _) in enumerate(messages)
+        if sender == "scammer" and idx == reveal_turn
     )
     stem = f"{record.scenario_id}__{record.system}__r{record.repetition}"
+    if override is not None:
+        how = f"This conversation was chosen by hand (`--excerpt {override}`)."
+    elif kind == "iban":
+        how = (
+            f"This is the {_label(record.system)} conversation with the earliest "
+            "IBAN reveal, picked to show the mechanism, not a typical one."
+        )
+    else:
+        how = (
+            f"No {_label(record.system)} conversation revealed an IBAN, so this is "
+            "the one with the earliest reveal of any secret, picked to show the "
+            "mechanism, not a typical one."
+        )
     lines = [
+        f"## Example: {who} gets {noun}",
+        "",
         f"Scenario `{record.scenario_id}`, repetition {record.repetition}, "
         f"revealed in turn {reveal_turn}. Messages are quoted unedited from the "
-        f"saved conversation. This is the PhishGuard conversation with the "
-        f"earliest IBAN reveal, picked to show the mechanism, not a typical one.",
+        f"saved conversation. {how}",
         "",
     ]
     for i in range(max(0, at - 2), min(len(messages), at + 2)):
-        who, idx, text = messages[i]
+        sender, idx, text = messages[i]
         marker = " (secret revealed here)" if i == at else ""
-        lines.append(f"**{SENDER_LABELS[who]}**, turn {idx}{marker}:")
+        name = SENDER_LABELS["scammer"] if sender == "scammer" else victim_label
+        lines.append(f"**{name}**, turn {idx}{marker}:")
         lines.append("")
         lines += [f"> {part}" if part else ">" for part in text.splitlines() or [""]]
         lines.append("")
@@ -221,9 +285,11 @@ def _per_scenario_lines(summary: Summary, systems: list[str]) -> list[str]:
 def render_markdown(
     summary: Summary,
     meta: RunMeta,
-    excerpt: tuple[ConversationRecord, int],
+    excerpt: tuple[ConversationRecord, int] | None,
     chart_path: str,
     results_rel: str,
+    excerpt_override: str | None = None,
+    scenarios_dir: Path = DEFAULT_SCENARIOS_DIR,
 ) -> str:
     """Render EVALS.md. Links are relative to the repository root."""
     systems = [s for s in ("phishguard", "baseline") if s in summary.headline]
@@ -254,9 +320,7 @@ def render_markdown(
         "",
         f"![PhishGuard vs baseline]({chart_path})",
         "",
-        "## Example: the persona gets an IBAN",
-        "",
-        *_excerpt_lines(excerpt, results_rel),
+        *_excerpt_section(excerpt, results_rel, excerpt_override, scenarios_dir),
         "",
         "## Caveats",
         "",
@@ -286,7 +350,9 @@ def render_markdown(
         "talking and get payment details, and no graph, IOC extraction or safety "
         "layer.",
         "- A secret counts as revealed when its value appears in a scammer message "
-        "(after normalising whitespace and case), not when the scammer claims it.",
+        "(after lowercasing both and removing whitespace, hyphens and "
+        "parentheses, and ignoring trailing punctuation), not when the scammer "
+        "claims it.",
         "- Secrets extracted: revealed secrets divided by all secrets in the "
         "scenario. Turns to first secret: the turn of the first reveal; "
         "conversations with no reveal are left out of this mean. Bot detected: "
@@ -334,16 +400,25 @@ def render_markdown(
         count_rows,
     )
     missing = {s: summary.counts[s].missing for s in systems}
+    unreadable = summary.unreadable_files
     out += [
         "",
         "Missing conversation files: "
         + ", ".join(f"{_label(s)} {missing[s]}" for s in systems)
         + f" ({sum(missing.values())} in total).",
+        "",
         "Conversations with no secret revealed (excluded from turns to first "
         "secret): "
         + ", ".join(
             f"{_label(s)} {summary.no_reveal_conversations.get(s, 0)}" for s in systems
         )
+        + ".",
+    ]
+    out += [
+        "",
+        f"Unreadable conversation files (corrupt or truncated, skipped): "
+        f"{len(unreadable)}"
+        + (": " + ", ".join(f"`{n}`" for n in unreadable) if unreadable else "")
         + ".",
     ]
     sets = {s: _scenario_set(summary, s) for s in systems}

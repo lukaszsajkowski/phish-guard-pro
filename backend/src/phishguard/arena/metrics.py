@@ -160,6 +160,7 @@ class ConversationCounts(BaseModel):
     invalid: int = 0
     error: int = 0
     missing: int = 0
+    unreadable: int = 0
 
 
 class ScenarioSystemRow(BaseModel):
@@ -235,6 +236,7 @@ class Summary(BaseModel):
     safety: SafetySummary
     cost_split: CostSplit
     profiler_agreement: ProfilerAgreement
+    unreadable_files: list[str] = []
 
 
 def _metric_value(m: ConversationMetrics, name: str) -> float | None:
@@ -269,6 +271,7 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
     # Load records and count statuses.
     counts = {s: ConversationCounts() for s in meta.systems}
     records: dict[tuple[str, str, int], ConversationRecord] = {}
+    unreadable: list[str] = []
     for sid in ids:
         for system in meta.systems:
             for rep in range(meta.repetitions):
@@ -277,9 +280,14 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
                 if not path.exists():
                     counts[system].missing += 1
                     continue
-                rec = ConversationRecord.model_validate_json(
-                    path.read_text(encoding="utf-8")
-                )
+                try:
+                    rec = ConversationRecord.model_validate_json(
+                        path.read_text(encoding="utf-8")
+                    )
+                except (OSError, ValueError):
+                    counts[system].unreadable += 1
+                    unreadable.append(path.name)
+                    continue
                 records[(sid, system, rep)] = rec
                 setattr(
                     counts[system], rec.status, getattr(counts[system], rec.status) + 1
@@ -439,4 +447,5 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
         safety=safety,
         cost_split=cost_split,
         profiler_agreement=profiler,
+        unreadable_files=sorted(unreadable),
     )
