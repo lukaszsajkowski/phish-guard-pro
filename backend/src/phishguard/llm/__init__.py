@@ -6,6 +6,7 @@ and fallback model support for graceful degradation (US-023, FR-039).
 
 from phishguard.llm.client import (
     DEFAULT_TIMEOUT_SECONDS,
+    PROVIDER_DEFAULT_MODELS,
     LLMClient,
     LLMClientConfig,
     LLMClientError,
@@ -22,6 +23,7 @@ __all__ = [
     "LLMConfigurationError",
     "LLMRequestError",
     "LLMResponse",
+    "PROVIDER_DEFAULT_MODELS",
     "create_llm_client",
     "DEFAULT_TIMEOUT_SECONDS",
 ]

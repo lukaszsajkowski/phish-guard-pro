@@ -22,6 +22,7 @@ import {
     ATTACK_TYPE_LABELS,
     getRiskLabel,
 } from "@/lib/constants/ioc";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { RiskScoreBreakdown } from "./RiskScoreBreakdown";
 import { useEnrichment, deriveThreatAssessment } from "@/hooks/useEnrichment";
 import { defangUrl } from "@/lib/utils";
@@ -425,18 +426,27 @@ export function IntelDashboard({
                                                                 {ioc.type === "url" ? defangUrl(ioc.value) : ioc.value}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            title="Copy to clipboard"
-                                                            aria-label="Copy IOC value"
-                                                            className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
-                                                            onClick={() => copyToClipboard(ioc.value, key)}
-                                                        >
-                                                            {copiedKey === key ? (
-                                                                <Check className="h-3 w-3 text-[color:var(--pg-green)]" />
-                                                            ) : (
-                                                                <Copy className="h-3 w-3" />
-                                                            )}
-                                                        </button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    aria-live="polite"
+                                                                    className="flex-shrink-0 p-1 rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
+                                                                    onClick={() => copyToClipboard(ioc.value, key)}
+                                                                >
+                                                                    <span className="sr-only">
+                                                                        {copiedKey === key ? "Copied!" : "Copy IOC value"}
+                                                                    </span>
+                                                                    {copiedKey === key ? (
+                                                                        <Check className="h-3 w-3 text-[color:var(--pg-green)]" aria-hidden="true" />
+                                                                    ) : (
+                                                                        <Copy className="h-3 w-3" aria-hidden="true" />
+                                                                    )}
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {copiedKey === key ? "Copied!" : "Copy to clipboard"}
+                                                            </TooltipContent>
+                                                        </Tooltip>
 
                                                         {/* Enrich button — only shown when getAccessToken is provided and
                                                             not in autoEnrichAll mode where unsupported types silently skip */}
