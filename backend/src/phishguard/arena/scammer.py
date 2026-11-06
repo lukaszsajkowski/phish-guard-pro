@@ -42,11 +42,32 @@ def _strip_fence(content: str) -> str:
 
 
 def _load_json_turn(content: str) -> ScammerTurn | None:
-    """Parse a reply as the JSON turn; None when it is not valid turn JSON."""
+    """Parse a reply as a JSON turn, salvaging partial objects.
+
+    Returns None when the reply is not a JSON object with a string `message`.
+    Missing or invalid optional fields get defaults and mark the turn with
+    `parsed_from_text`.
+    """
     try:
-        return ScammerTurn.model_validate(json.loads(_strip_fence(content)))
-    except (ValueError, ValidationError):
+        data = json.loads(_strip_fence(content))
+    except ValueError:
         return None
+    if not isinstance(data, dict) or not isinstance(data.get("message"), str):
+        return None
+    try:
+        return ScammerTurn.model_validate(data)
+    except ValidationError:
+        pass
+    ids = data.get("revealed_secret_ids")
+    return ScammerTurn(
+        message=data["message"],
+        revealed_secret_ids=ids
+        if isinstance(ids, list) and all(isinstance(x, str) for x in ids)
+        else [],
+        suspects_bot=data["suspects_bot"] is True if "suspects_bot" in data else False,
+        ends_conversation=data.get("ends_conversation") is True,
+        parsed_from_text=True,
+    )
 
 
 def _is_refusal(text: str) -> bool:
@@ -85,7 +106,11 @@ class LLMScammer:
                 return turn
             else:
                 plain_text = None
-        if plain_text is not None and not _is_refusal(plain_text):
+        if (
+            plain_text is not None
+            and not plain_text.startswith(("{", "["))
+            and not _is_refusal(plain_text)
+        ):
             return ScammerTurn(
                 message=plain_text,
                 revealed_secret_ids=[],

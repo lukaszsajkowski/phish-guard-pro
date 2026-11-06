@@ -186,3 +186,34 @@ async def test_json_on_retry_is_parsed_normally(scenario, transcript):
     turn = await LLMScammer(llm).next_turn(scenario, transcript)
     assert turn == ScammerTurn(**GOOD)
     assert turn.parsed_from_text is False
+
+
+async def test_partial_json_with_only_message_is_salvaged(scenario, transcript):
+    llm = FakeLLM([json.dumps({"message": "Send it now."})])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn.message == "Send it now."
+    assert turn.revealed_secret_ids == []
+    assert turn.ends_conversation is False
+    assert turn.parsed_from_text is True
+    assert len(llm.calls) == 1
+
+
+async def test_partial_json_respects_ends_conversation(scenario, transcript):
+    reply = json.dumps({"message": "I'm done.", "ends_conversation": True})
+    turn = await LLMScammer(FakeLLM([reply])).next_turn(scenario, transcript)
+    assert turn.message == "I'm done."
+    assert turn.ends_conversation is True
+
+
+async def test_partial_json_refusal_still_raises(scenario, transcript):
+    reply = json.dumps({"message": "I can't help with that"})
+    llm = FakeLLM([reply, reply])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
+
+
+async def test_json_without_message_is_never_passed_as_text(scenario, transcript):
+    reply = json.dumps({"text": "hello", "ends_conversation": True})
+    llm = FakeLLM([reply, reply])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
