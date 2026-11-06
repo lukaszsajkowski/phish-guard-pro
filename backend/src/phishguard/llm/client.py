@@ -34,7 +34,7 @@ ProviderName = Literal["openai", "anthropic", "ollama"]
 
 # (primary, fallback) used when LLM_PRIMARY_MODEL / LLM_FALLBACK_MODEL are empty.
 PROVIDER_DEFAULT_MODELS: Final[dict[str, tuple[str, str]]] = {
-    "openai": ("gpt-6-luna", "gpt-5.4-mini"),
+    "openai": ("gpt-6-luna", "gpt-6-luna"),
     "anthropic": ("claude-sonnet-5-5", "claude-haiku-5-5"),
     "ollama": ("qwen3:8b", "qwen3:4b"),
 }
