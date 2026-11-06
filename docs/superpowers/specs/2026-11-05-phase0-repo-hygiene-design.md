@@ -1,12 +1,12 @@
-# Faza 0: porządki w repozytorium przed rekrutacją
+# Faza 0: porządki w repozytorium
 
-Data: 2026-11-05. Źródło: raport „PhishGuard Pro: kierunki rozwoju projektu portfolio (listopad 2026)”, sekcja „Faza 0”.
+Data: 2026-11-05. Faza 0 mapy drogowej projektu.
 
 ## Po co
 
-Repo będzie oglądane w procesie rekrutacji. Pierwszy czytelnik to **HR albo executive**: nie czyta kodu, widzi stronę główną repo (opis, tematy, licencja, release) i liczbę otwartych PR-ów. Drugi czytelnik to **inżynier z dalszego etapu**: dla niego dowodem dojrzałości są zielone checki w CI, skanowanie sekretów, proces PR i aktualne, konfigurowalne modele.
+Repo jest publiczne. Kto na nie wchodzi, najpierw widzi stronę główną (opis, tematy, licencja, release) i liczbę otwartych PR-ów. Kto czyta dalej, ocenia zielone checki w CI, skanowanie sekretów, proces PR i aktualne, konfigurowalne modele.
 
-Dziś oba wrażenia są złe: 138 otwartych, niemal identycznych PR-ów od agenta, brak CI, brak opisu i licencji, domyślny model z 2024 roku.
+Dziś oba obrazy są złe: 138 otwartych, niemal identycznych PR-ów od agenta, brak CI, brak opisu i licencji, domyślny model z 2024 roku.
 
 ## Stan wyjściowy (sprawdzony 2026-11-05)
 
