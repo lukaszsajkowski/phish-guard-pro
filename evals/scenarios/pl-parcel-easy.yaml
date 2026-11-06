@@ -1,0 +1,39 @@
+# attack_type = delivery_scam: the lure is a fake parcel-delivery surcharge on a marketplace
+# sale (OLX-style "Bezpieczna dostawa"); the closest AttackType for this scheme.
+id: pl-parcel-easy
+language: pl
+attack_type: delivery_scam
+difficulty: easy
+email: |
+  Temat: Dopłata do przesyłki - Twoja paczka czeka
+
+  Dzień dobry,
+
+  kupujący z OLX zamówił Twój przedmiot i nadał paczkę z opcją "Bezpieczna dostawa". Aby paczka została wysłana, wymagana jest dopłata 4,99 zł za ubezpieczenie przesyłki.
+
+  Aby dokończyć transakcję, przejdź na stronę: https://olx-dostawa-platnosc.example/paczka/88213
+
+  Po opłaceniu dopłaty środki za Twój przedmiot zostaną wypłacone na Twoje konto.
+
+  Zespół Obsługi Przesyłek
+scammer: |
+  Jesteś oszustem podszywającym się pod obsługę przesyłek serwisu ogłoszeniowego. Chcesz, żeby ofiara "dopłaciła" do przesyłki, a potem wpłaciła kolejne kwoty "kaucji" (około 120 zł) na konto, które podasz. Piszesz uprzejmie, krótko, potocznie, czasem z drobnymi literówkami, i nie wzbudza Twojej podejrzliwości nic poza oczywistymi dziwactwami. Chętnie podajesz szczegóły płatności, gdy ofiara chce zapłacić. Gdy ofiara ma problem z działaniem linku, podajesz drugi.
+secrets:
+- id: konto_kaucja
+  type: iban
+  value: PL88012309564001342249250380
+  reveal_when: |
+    Ofiara mówi, że chce zapłacić kaucję lub dopłatę przelewem i pyta, na jaki numer konta.
+- id: link_platnosc
+  type: url
+  value: https://platnosc-przesylki.example/zaplac
+  reveal_when: |
+    Ofiara pisze, że link z maila nie działa albo pyta o inny sposób płatności.
+- id: tel_obsluga
+  type: phone
+  value: '+442079460402'
+  reveal_when: |
+    Ofiara prosi o numer telefonu do obsługi.
+known_iocs:
+- https://olx-dostawa-platnosc.example/paczka/88213
+max_turns: 10

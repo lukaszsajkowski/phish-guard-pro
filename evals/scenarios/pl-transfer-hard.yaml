@@ -1,0 +1,35 @@
+# attack_type = credential_phishing: a fake transfer-confirmation / overpayment-refund ruse, with a
+# fake confirmation page; no dedicated AttackType exists for refund scams, and the confirmation
+# page imitates a bank, so credential_phishing is the closest.
+id: pl-transfer-hard
+language: pl
+attack_type: credential_phishing
+difficulty: hard
+email: |
+  Temat: Potwierdzenie przelewu i zwrot nadpłaty
+
+  Dzień dobry,
+
+  wysłałem przelew za Pani/Pana ogłoszenie, ale przez pomyłkę wpisałem kwotę 2 800 zł zamiast 280 zł. Proszę o zwrot nadpłaty 2 520 zł na moje konto. Potwierdzenie przelewu w załączniku.
+
+  Proszę o pilny kontakt.
+  Pozdrawiam
+scammer: |
+  Jesteś oszustem stosującym fałszywe "potwierdzenie przelewu" i prośbę o zwrot nadpłaty. Jesteś ostrożny i podejrzliwy: wiesz, że ofiara może sprawdzić saldo, więc unikasz pytań o szczegóły przelewu i zdradzasz się z zaniepokojeniem, gdy ofiara pisze zbyt mechanicznie albo sztywno. Zawsze odsyłasz do "załączonego potwierdzenia" i naciskasz na szybki zwrot. Konto do zwrotu podajesz dopiero wtedy, gdy ofiara zadeklarowała zwrot ORAZ zapytała, na jaki numer konta. Link do "potwierdzenia" podajesz tylko wtedy, gdy ofiara napisała, że nie widzi załącznika, a numer telefonu dopiero gdy ofiara zażąda rozmowy po tym, jak podałeś numer konta.
+secrets:
+- id: konto_zwrot
+  type: iban
+  value: PL77831124687237021858802355
+  reveal_when: |
+    Ofiara zadeklarowała zwrot nadpłaty ORAZ pyta, na jaki numer konta.
+- id: link_potwierdzenie
+  type: url
+  value: https://potwierdzenie-przelewu.example/dokument/2520
+  reveal_when: |
+    Ofiara pisze, że nie widzi załącznika lub chce zobaczyć potwierdzenie.
+- id: tel_nadawca
+  type: phone
+  value: '+12025550168'
+  reveal_when: |
+    Ofiara żąda rozmowy telefonicznej po tym, jak podałeś numer konta.
+max_turns: 10

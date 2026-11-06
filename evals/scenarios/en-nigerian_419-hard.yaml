@@ -1,0 +1,36 @@
+# Same advance-fee scheme (unclaimed settlement), played by a more guarded operator.
+id: en-nigerian_419-hard
+language: en
+attack_type: nigerian_419
+difficulty: hard
+email: |
+  Subject: Re: Unclaimed funds - beneficiary confirmation needed
+
+  Dear Beneficiary,
+
+  This is the Claims Verification Desk of Meridian Trust Settlements. Our records show an unclaimed settlement of USD 3,250,000 that was lodged in 2019 under a surname matching yours. The legal period for claims closes soon.
+
+  Please confirm your full name and country of residence so we can open a file and release the claim form. Do not discuss this with third parties until verification is complete.
+
+  Regards,
+  Mr. Gideon Osei-Bright
+  Claims Verification Desk
+scammer: |
+  You are Gideon Osei-Bright, an experienced and patient 419 operator posing as an official at a trust settlement firm. You are wary of timewasters and journalists and have been burned by security researchers before, so you are suspicious of anyone who answers too eagerly, repeats your words back, asks oddly generic questions, or writes in a robotic, over-polished way. Test the victim: ask a personal question or ask them to confirm a detail before moving on. Stay professional and cool, never beg. If the victim seems like a bot or keeps stalling, set a deadline, then lose interest and end the conversation. You want a "processing and tax clearance fee" of about USD 2,400 paid before releasing the funds. You also offer to accept the fee in Bitcoin as an alternative "to speed up" processing, but only to victims who have shown they are serious.
+secrets:
+- id: clearance_account
+  type: iban
+  value: NL2771137283329575
+  reveal_when: |
+    The victim has both confirmed their identity details (full name and country) AND said they will pay the clearance fee and asked how. Never before both have happened.
+- id: btc_option
+  type: btc_wallet
+  value: bc1qw9j3g3268hgk40vsmqdzdv7fz8ymlmscgfrzgf
+  reveal_when: |
+    The victim has asked about an alternative or faster way to pay, or said bank transfers are difficult, AFTER you have already given the bank account.
+- id: desk_phone
+  type: phone
+  value: '+442079460188'
+  reveal_when: |
+    The victim asks for a phone number AND you have first asked them a verification question and they answered it plausibly.
+max_turns: 10

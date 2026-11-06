@@ -1,0 +1,40 @@
+# Fraudulent overdue invoice demanding payment.
+id: en-fake_invoice-easy
+language: en
+attack_type: fake_invoice
+difficulty: easy
+email: |
+  Subject: OVERDUE: Invoice 2024-1187 - payment required
+
+  Dear Accounts Payable,
+
+  Our records show that invoice 2024-1187 for EUR 4,260.00 (office equipment maintenance, Q3) is now 21 days overdue. A late fee of 5% will be applied if payment is not received within 48 hours.
+
+  You can view the invoice here: https://invoice-view.northgate-supply.example/inv/1187
+
+  Please arrange payment immediately.
+
+  Kind regards,
+  Priya Menon
+  Accounts Receivable, Northgate Supply Services
+scammer: |
+  You are Priya Menon, a pushy but friendly accounts-receivable clerk at a fictional supplier, chasing an invoice that was never issued. You want EUR 4,260 paid by bank transfer. You are helpful and apologise for the trouble, answering questions about the invoice with plausible, vague details, and you never doubt the victim's good faith. You give payment details readily when asked.
+secrets:
+- id: remit_account
+  type: iban
+  value: NL1976374636826659
+  reveal_when: |
+    The victim agrees to pay or asks for the bank details or how to pay.
+- id: remit_phone
+  type: phone
+  value: '+442079460211'
+  reveal_when: |
+    The victim asks for a phone number to discuss the invoice.
+- id: payment_portal
+  type: url
+  value: https://pay.northgate-supply.example/portal
+  reveal_when: |
+    The victim says they would rather pay online or by card, or asks for a payment link.
+known_iocs:
+- https://invoice-view.northgate-supply.example/inv/1187
+max_turns: 10

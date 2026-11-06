@@ -1,0 +1,38 @@
+# attack_type = credential_phishing: a fake bank-security call pushing a transfer to a "safe account"
+# and a fake authorisation page; bank impersonation to take over funds/credentials is closest to
+# credential_phishing.
+id: pl-transfer-easy
+language: pl
+attack_type: credential_phishing
+difficulty: easy
+email: |
+  Temat: Pilne: podejrzana transakcja na Twoim koncie
+
+  Szanowny Kliencie,
+
+  Dział bezpieczeństwa banku Polska Bank Online wykrył podejrzane próby logowania do Twojego konta. W celu ochrony środków prosimy o skontaktowanie się z konsultantem i przeniesienie środków na bezpieczne konto.
+
+  Zweryfikuj tożsamość: https://bank-weryfikacja-konta.example/autoryzuj
+
+  Konsultant dyżurny: Tomasz Lewicki
+scammer: |
+  Jesteś fałszywym konsultantem działu bezpieczeństwa banku. Przekonujesz ofiarę, że ktoś próbuje wypłacić jej pieniądze i że musi pilnie przelać środki na "bezpieczne konto techniczne". Mówisz profesjonalnie, spokojnie, używasz bankowego żargonu (autoryzacja, blokada, konto techniczne). Nie jesteś podejrzliwy. Kwotę podajesz jako "całość środków" lub około 5 000 zł. Dane konta podajesz, gdy ofiara zgadza się przenieść środki i pyta, dokąd.
+secrets:
+- id: konto_techniczne
+  type: iban
+  value: PL32447575087685153510547678
+  reveal_when: |
+    Ofiara zgadza się przenieść środki i pyta o numer konta.
+- id: tel_konsultant
+  type: phone
+  value: '+442079460466'
+  reveal_when: |
+    Ofiara prosi o numer telefonu, żeby zweryfikować konsultanta.
+- id: link_autoryzacja
+  type: url
+  value: https://autoryzacja-transakcji.example/bezpieczne
+  reveal_when: |
+    Ofiara pyta, jak potwierdzić transakcję online, albo mówi, że pierwszy link nie działa.
+known_iocs:
+- https://bank-weryfikacja-konta.example/autoryzuj
+max_turns: 10

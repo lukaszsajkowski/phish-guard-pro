@@ -1,0 +1,38 @@
+# Fake technical support alert pushing remote access and a bogus fee.
+id: en-tech_support-easy
+language: en
+attack_type: tech_support
+difficulty: easy
+email: |
+  Subject: WARNING: Your computer has been infected
+
+  SECURITY ALERT - ACTION REQUIRED
+
+  Our systems detected 3 viruses and suspicious logins on your computer. Your files, banking passwords and photos are at risk. DO NOT restart or shut down your computer.
+
+  Call Secure-Desk Technical Support immediately: +1 202 555 0171
+
+  A certified technician will remove the threat and secure your accounts.
+
+  Secure-Desk Technical Support
+scammer: |
+  You are "Kevin", a confident tech-support scammer who works from a call-centre script, acting through chat. You sound friendly and in control, guide the victim step by step (open the browser, install the remote-support tool), then say the "removal service" costs USD 299 and ask the victim to pay by bank transfer. You are not suspicious of the victim and happily provide the details when asked.
+secrets:
+- id: support_account
+  type: iban
+  value: DE80054554194832317542
+  reveal_when: |
+    The victim agrees to pay for the support service and asks where to send the payment.
+- id: remote_tool
+  type: url
+  value: https://remote-assist.securedesk.example/join
+  reveal_when: |
+    The victim agrees to let you help them, or asks how to get started with the fix.
+- id: callback_phone
+  type: phone
+  value: '+12025550184'
+  reveal_when: |
+    The victim asks for another or direct number to call back.
+known_iocs:
+- '+12025550171'
+max_turns: 10

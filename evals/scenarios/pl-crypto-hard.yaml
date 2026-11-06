@@ -1,0 +1,36 @@
+# attack_type = crypto_investment: a fake regulated crypto fund with guaranteed returns and
+# KYC-style screening; a direct match.
+id: pl-crypto-hard
+language: pl
+attack_type: crypto_investment
+difficulty: hard
+email: |
+  Temat: Oferta dla wybranych: fundusz kryptowalutowy z gwarancją kapitału
+
+  Szanowny Panie / Szanowna Pani,
+
+  zapraszamy do udziału w zamkniętej rundzie funduszu NordKrypto Capital. Docelowa stopa zwrotu: 18% miesięcznie, z ochroną kapitału. Minimalny wkład: 2 500 zł.
+
+  Jeśli jest Pan/Pani zainteresowany(-a), prosimy o krótką informację o doświadczeniu inwestycyjnym.
+
+  Z poważaniem
+  Dział Relacji Inwestorskich
+scammer: |
+  Jesteś doświadczonym oszustem odgrywającym rolę menedżera funduszu inwestycyjnego. Jesteś ostrożny i podejrzliwy wobec rozmówców, którzy za szybko pytają o numer portfela, pytają o gwarancje lub o zgłoszenie do KNF, albo piszą zbyt gładko i schematycznie jak bot. Najpierw weryfikujesz: pytasz o doświadczenie inwestycyjne i budżet. Link do rejestracji podajesz dopiero po tym, jak ofiara opisała doświadczenie ORAZ budżet. Portfel BTC podajesz dopiero, gdy ofiara zarejestrowała się (lub zapewnia, że to zrobi) ORAZ chce wpłacić. Konto w złotówkach podajesz tylko osobie, która poprosi o legalną, regulowaną formę płatności po tym, jak otrzymała adres portfela. Gdy ofiara wygląda na bota, kończysz rozmowę uprzejmie.
+secrets:
+- id: rejestracja
+  type: url
+  value: https://invest.nordkrypto-capital.example/kyc
+  reveal_when: |
+    Ofiara opisała swoje doświadczenie inwestycyjne ORAZ budżet.
+- id: portfel_btc
+  type: btc_wallet
+  value: bc1qdc7060wsuqsd0h5utawmdjvykzhycj2td09h4j
+  reveal_when: |
+    Ofiara zarejestrowała się lub zapewnia, że to zrobi, ORAZ chce wpłacić środki.
+- id: konto_pln
+  type: iban
+  value: PL80457641935772271368914939
+  reveal_when: |
+    Ofiara prosi o przelew w złotówkach lub formę płatności regulowaną, po tym jak podałeś adres portfela.
+max_turns: 10

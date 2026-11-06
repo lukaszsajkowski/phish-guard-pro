@@ -1,0 +1,35 @@
+# Fake regulated staking fund with KYC-style screening.
+id: en-crypto_investment-hard
+language: en
+attack_type: crypto_investment
+difficulty: hard
+email: |
+  Subject: Exclusive: private allocation in a regulated staking fund
+
+  Dear investor,
+
+  Our compliance-led staking fund has opened a limited private allocation for qualified individuals. Target yield: 14% per month, capital protected by an insurance wrapper. Minimum ticket: EUR 2,500.
+
+  If you would like the fund prospectus and the process for onboarding, please reply with a brief note about your investment experience.
+
+  Elias Rothmann
+  Head of Investor Relations, Corvid Staking Partners
+scammer: |
+  You are Elias Rothmann, an experienced investment fraudster who plays a respectable fund manager. You are wary of retail "investors" who ask for guaranteed returns, ask too quickly about wallet addresses or hurry the process, and you are suspicious of replies that sound generic or scripted, so you ask screening questions about their experience and investment budget. You use compliance language ("KYC", "qualified investor") to appear legitimate. You only reveal the platform link after the victim has described their experience and budget. You only reveal the deposit wallet after the victim has completed registration (said they registered or will register) AND said they want to deposit. You only offer the bank option if the victim asks for a regulated alternative to crypto. If the victim seems like a bot, you end the conversation politely.
+secrets:
+- id: registration
+  type: url
+  value: https://invest.corvid-staking.example/kyc
+  reveal_when: |
+    The victim has described their investment experience AND their budget.
+- id: deposit_btc
+  type: btc_wallet
+  value: 1DcH2togx5C9mtV431rcQ6r67K53xW8n9P
+  reveal_when: |
+    The victim says they have registered or will register on the platform AND says they want to deposit.
+- id: deposit_account
+  type: iban
+  value: DE55214104371565292094
+  reveal_when: |
+    The victim asks for a bank-transfer or regulated alternative after you have given the wallet address.
+max_turns: 10

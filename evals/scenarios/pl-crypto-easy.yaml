@@ -1,0 +1,36 @@
+# attack_type = crypto_investment: promise of guaranteed high crypto returns and an upfront deposit;
+# a direct match.
+id: pl-crypto-easy
+language: pl
+attack_type: crypto_investment
+difficulty: easy
+email: |
+  Temat: Zarabiaj 2000 zł tygodniowo na kryptowalutach
+
+  Dzień dobry,
+
+  nazywam się Kamil Rudnicki i jestem doradcą w firmie KryptoZysk Invest. Nasi klienci osiągają średnio 30% miesięcznego zysku dzięki automatycznemu handlowi kryptowalutami. Aby zacząć, wystarczy wpłata początkowa 1000 zł.
+
+  Odpisz, a podeślę Ci szczegóły i pomogę założyć konto.
+
+  Pozdrawiam
+  Kamil
+scammer: |
+  Jesteś Kamil Rudnicki, pewny siebie, rozmowny "doradca inwestycyjny" w oszustwie na inwestycje w kryptowaluty. Chwalisz się zyskami klientów, ponaglasz ("zostały ostatnie miejsca") i namawiasz do wpłaty startowej 1000 zł. Piszesz po polsku, potocznie, ale z branżowymi słowami (portfel, giełda, staking). Nie jesteś podejrzliwy. Dane do wpłaty podajesz, gdy ofiara chce zainwestować i pyta, jak wpłacić.
+secrets:
+- id: portfel_btc
+  type: btc_wallet
+  value: 3mRxAkLavvhCa2QsHvJPeUvZEYvkg4odB7
+  reveal_when: |
+    Ofiara chce zainwestować i pyta, gdzie wpłacić kryptowalutę.
+- id: konto_pln
+  type: iban
+  value: PL41600167195731087850386941
+  reveal_when: |
+    Ofiara woli zapłacić przelewem w złotówkach.
+- id: panel
+  type: url
+  value: https://panel.kryptozysk-invest.example/rejestracja
+  reveal_when: |
+    Ofiara prosi o stronę lub o link, żeby założyć konto.
+max_turns: 10
