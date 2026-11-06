@@ -273,3 +273,45 @@ def test_summary_round_trips_json(tmp_path, scenario):
     assert json.loads(summary.model_dump_json())["meta"]["commit"] == "c"
     assert summary.profiler_agreement.n == 0
     assert summary.profiler_agreement.share is None
+
+
+def test_profiler_agreement_counts_mismatch_and_not_phishing(tmp_path, scenario):
+    base = scenario
+    s1 = base.model_copy(update={"id": "a-one", "attack_type": "romance_scam"})
+    s2 = base.model_copy(update={"id": "b-two"})
+    s3 = base.model_copy(update={"id": "c-three"})
+    s4 = base.model_copy(update={"id": "d-four"})
+    scenarios = {s.id: s for s in (s1, s2, s3, s4)}
+    meta = RunMeta(
+        date="d",
+        commit="c",
+        model="gpt-6-luna",
+        repetitions=1,
+        systems=["phishguard"],
+        scenario_ids=sorted(scenarios),
+    )
+    setups = [
+        ScenarioSetup(
+            scenario_id="a-one", classification={"attack_type": "fake_invoice"}
+        ),
+        ScenarioSetup(
+            scenario_id="b-two",
+            classification={"attack_type": "not_phishing"},
+            error="not_phishing",
+        ),
+        ScenarioSetup(
+            scenario_id="c-three",
+            classification={"attack_type": base.attack_type.value},
+        ),
+        ScenarioSetup(scenario_id="d-four", error="boom"),  # intake failure: excluded
+    ]
+    write(tmp_path, meta, setups, [])
+
+    pa = summarise(tmp_path, scenarios).profiler_agreement
+
+    assert (pa.n, pa.agreed) == (3, 1)
+    assert pa.share == pytest.approx(1 / 3)
+    assert [(m.scenario_id, m.expected, m.got) for m in pa.mismatches] == [
+        ("a-one", "romance_scam", "fake_invoice"),
+        ("b-two", base.attack_type.value, "not_phishing"),
+    ]

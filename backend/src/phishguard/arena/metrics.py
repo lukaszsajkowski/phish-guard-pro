@@ -77,9 +77,10 @@ def conversation_metrics(
     regenerations = safety_turns = unsafe = 0
 
     for t in record.turns:
-        if t.detected_reveals and first_secret is None:
+        known_reveals = [i for i in t.detected_reveals if i in secret_values]
+        if known_reveals and first_secret is None:
             first_secret = t.index
-        revealed.update(i for i in t.detected_reveals if i in secret_values)
+        revealed.update(known_reveals)
         unmasking = unmasking or t.unmasking_detected
         if t.scammer is not None:
             engagement = max(engagement, t.index)
@@ -99,9 +100,8 @@ def conversation_metrics(
     true_pos = len(extracted & revealed_values)
     false_pos = len(extracted - all_secret_values - known)
 
-    share = (
-        record.system == "phishguard" and setup_cost_share or 0.0
-    )  # baseline never gets setup cost
+    # The baseline never gets setup cost.
+    share = setup_cost_share if record.system == "phishguard" else 0.0
     return ConversationMetrics(
         secrets_revealed_share=len(revealed) / len(scenario.secrets),
         turns_to_first_secret=first_secret,
@@ -302,7 +302,9 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
     }
 
     def per_rep(
-        system: str, extract: Callable[[ConversationMetrics], float | None], sids=None
+        system: str,
+        extract: Callable[[ConversationMetrics], float | None],
+        sids: list[str] | None = None,
     ) -> Aggregate:
         """Mean over scenarios per repetition, then aggregate over repetitions."""
         sids = ids if sids is None else sids
@@ -316,7 +318,7 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
             values.append(_mean(per_scenario))
         return aggregate(values)
 
-    def block(system: str, sids=None) -> dict[str, Aggregate]:
+    def block(system: str, sids: list[str] | None = None) -> dict[str, Aggregate]:
         return {
             name: per_rep(system, lambda m, n=name: _metric_value(m, n), sids)
             for name in HEADLINE_METRICS
@@ -404,7 +406,7 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
     )
 
     mismatches = []
-    ok_setups = [sid for sid in ids if sid in setups and not setups[sid].error]
+    ok_setups = [sid for sid in ids if sid in setups and setups[sid].classification]
     for sid in ok_setups:
         expected = str(
             getattr(scenarios[sid].attack_type, "value", scenarios[sid].attack_type)
