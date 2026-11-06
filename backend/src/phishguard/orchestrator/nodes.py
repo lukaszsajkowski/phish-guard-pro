@@ -157,6 +157,7 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         conversation_history=conversation_history if not is_first else None,
         is_first_response=is_first,
         session_id=state.get("session_id"),
+        latest_scammer_message=state.get("scammer_message"),
     )
 
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)
