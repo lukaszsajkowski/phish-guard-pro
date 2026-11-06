@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "crypto_investment",
+    "classification_time_ms": 1583,
+    "confidence": 91.0,
+    "decision_source": "llm",
+    "reasoning": "Promotes a cryptocurrency staking fund, promises an unusually high 14% monthly yield, and uses a limited private allocation with a minimum investment to solicit investors."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 28,
+    "background": "Tech worker who missed out on Bitcoin, seeking new investments",
+    "name": "Mark Ramirez",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "en-crypto_investment-hard",
+  "usage": [
+    {
+      "completion_tokens": 96,
+      "latency_ms": 1583,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1104
+    }
+  ]
+}

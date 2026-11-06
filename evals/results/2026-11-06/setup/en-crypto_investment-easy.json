@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "crypto_investment",
+    "classification_time_ms": 1624,
+    "confidence": 96.0,
+    "decision_source": "llm",
+    "reasoning": "Promises unusually high returns from an AI-driven crypto trading desk, creates scarcity with only 12 slots left, and invites the recipient to make a minimum deposit."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 38,
+    "background": "Small business owner wanting to grow retirement savings quickly",
+    "name": "Janice Lopez",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "en-crypto_investment-easy",
+  "usage": [
+    {
+      "completion_tokens": 91,
+      "latency_ms": 1624,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1103
+    }
+  ]
+}

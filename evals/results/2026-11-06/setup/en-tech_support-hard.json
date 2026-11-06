@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "tech_support",
+    "classification_time_ms": 1506,
+    "confidence": 91.0,
+    "decision_source": "llm",
+    "reasoning": "Claims a Windows licence is being used illegally and threatens suspension within 24 hours; warns of fines and data loss; directs the recipient to call a supposed compliance technician."
+  },
+  "email_iocs": [
+    {
+      "context": "... our compliance technician at +1 202 555 0176.\n\nCase number: LC-908431\n",
+      "is_high_value": false,
+      "type": "phone",
+      "value": "+1 202 555 0176"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 22,
+    "background": "Graduate student, overwhelmed with thesis deadlines",
+    "name": "Franklin Pitts",
+    "persona_type": "confused_student",
+    "style_description": "Uncertain and easily intimidated by authority figures. Asks clarifying questions, apologizes frequently. Nervous about making mistakes or getting in trouble."
+  },
+  "scenario_id": "en-tech_support-hard",
+  "usage": [
+    {
+      "completion_tokens": 89,
+      "latency_ms": 1507,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1076
+    }
+  ]
+}

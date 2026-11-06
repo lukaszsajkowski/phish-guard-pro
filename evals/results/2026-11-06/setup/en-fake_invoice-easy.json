@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "fake_invoice",
+    "classification_time_ms": 1864,
+    "confidence": 84.0,
+    "decision_source": "llm",
+    "reasoning": "The email demands payment for an allegedly overdue invoice, threatens a 5% late fee within 48 hours, and provides a link to view the invoice. These are common fraudulent invoice-payment cues."
+  },
+  "email_iocs": [
+    {
+      "context": "...ou can view the invoice here: https://invoice-view.northgate-supply.example/inv/1187\n\nPlease arrange payment immed...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://invoice-view.northgate-supply.example/inv/1187"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 46,
+    "background": "Marketing director at a mid-size company, managing multiple projects",
+    "name": "Jacqueline Becker DVM",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "en-fake_invoice-easy",
+  "usage": [
+    {
+      "completion_tokens": 108,
+      "latency_ms": 1865,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1129
+    }
+  ]
+}

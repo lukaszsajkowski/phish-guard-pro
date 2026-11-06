@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "fake_invoice",
+    "classification_time_ms": 2626,
+    "confidence": 86.0,
+    "decision_source": "llm",
+    "reasoning": "Requests payment of a specific outstanding invoice and announces a change to the supplier’s bank details, a common invoice-diversion fraud pattern. The five-day deadline adds pressure, and the invoice is linked online."
+  },
+  "email_iocs": [
+    {
+      "context": "...voice copy is available here: https://docs.larkspur-logistics.example/inv/77-3301\n\nPlease confirm receipt of th...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://docs.larkspur-logistics.example/inv/77-3301"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 40,
+    "background": "Operations manager, dealing with supply chain issues and deadlines",
+    "name": "Karen Mcintosh",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "en-fake_invoice-hard",
+  "usage": [
+    {
+      "completion_tokens": 150,
+      "latency_ms": 2626,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1122
+    }
+  ]
+}

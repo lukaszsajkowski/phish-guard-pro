@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "crypto_investment",
+    "classification_time_ms": 1634,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Promises high returns from automated cryptocurrency trading (30% monthly), advertises weekly earnings, and requires an initial deposit of 1000 zł to get started."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 47,
+    "background": "Small business owner wanting to grow retirement savings quickly",
+    "name": "Dawn Ramirez",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "pl-crypto-easy",
+  "usage": [
+    {
+      "completion_tokens": 99,
+      "latency_ms": 1635,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1138
+    }
+  ]
+}

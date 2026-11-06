@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "ceo_fraud",
+    "classification_time_ms": 3397,
+    "confidence": 68.0,
+    "decision_source": "llm",
+    "reasoning": "Closest match is impersonation-based payment fraud: the sender gives no clear identity (“to ja”), creates urgency with a car-repair excuse, and asks for a 600 zł BLIK code with a promise to repay. It is not specifically executive impersonation, so confidence is moderate."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 50,
+    "background": "Marketing director at a mid-size company, managing multiple projects",
+    "name": "Mr. Charles Acosta",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "pl-blik-hard",
+  "usage": [
+    {
+      "completion_tokens": 317,
+      "latency_ms": 3398,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1095
+    }
+  ]
+}

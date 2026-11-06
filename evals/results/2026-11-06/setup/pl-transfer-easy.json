@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "credential_phishing",
+    "classification_time_ms": 1995,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Impersonates a bank with an unusual-login alert, asks the recipient to verify their identity through a link, and urges moving funds to a supposed safe account."
+  },
+  "email_iocs": [
+    {
+      "context": "...konto.\n\nZweryfikuj tożsamość: https://bank-weryfikacja-konta.example/autoryzuj\n\nKonsultant dyżurny: Tomasz L...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://bank-weryfikacja-konta.example/autoryzuj"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 51,
+    "background": "Sales team lead, under pressure to hit quarterly targets",
+    "name": "Jasmin Smith",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "pl-transfer-easy",
+  "usage": [
+    {
+      "completion_tokens": 153,
+      "latency_ms": 1995,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1132
+    }
+  ]
+}

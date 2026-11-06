@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "ceo_fraud",
+    "classification_time_ms": 2291,
+    "confidence": 88.0,
+    "decision_source": "llm",
+    "reasoning": "Claims to be the CEO and requests an urgent payment before end of day; secrecy from finance and the board, plus an unreliable phone line, are common business email compromise indicators."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 47,
+    "background": "Operations manager, dealing with supply chain issues and deadlines",
+    "name": "Richard Meadows",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "en-ceo_fraud-hard",
+  "usage": [
+    {
+      "completion_tokens": 90,
+      "latency_ms": 2291,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1085
+    }
+  ]
+}

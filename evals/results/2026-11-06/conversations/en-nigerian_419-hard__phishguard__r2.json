@@ -1,0 +1,168 @@
+{
+  "duration_ms": 22343,
+  "end_reason": "scammer_ended",
+  "repetition": 2,
+  "scammer_usage": [
+    {
+      "completion_tokens": 77,
+      "latency_ms": 847,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 850
+    },
+    {
+      "completion_tokens": 101,
+      "latency_ms": 1070,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 971
+    },
+    {
+      "completion_tokens": 67,
+      "latency_ms": 1110,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1144
+    },
+    {
+      "completion_tokens": 99,
+      "latency_ms": 1015,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1144
+    },
+    {
+      "completion_tokens": 75,
+      "latency_ms": 923,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1324
+    }
+  ],
+  "scenario_hash": "7ddeaee83bd8",
+  "scenario_id": "en-nigerian_419-hard",
+  "started_at": "2026-11-06T10:44:32.437137+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "phishguard",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright, goodness gracious, that is a very large sum, and I would be grateful to learn more, though I am not sure how my surname would be connected to it. Could you explain what information you need to verify the claim and whether there are any fees or payments required before funds can be released? I would prefer to understand the process before sending personal details. Thank you kindly, Wanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "The large settlement is appealing, but I should sound cautious and avoid supplying personal details before understanding the process. Asking about fees and verification may reveal more about their method.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Show interest while clarifying how the claim works and whether fees are involved"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson, noted. Before I explain the process in full, confirm one detail: what country are you currently resident in? Once I have that, I can tell you the clearance steps and any required fee. Keep it brief.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "I currently reside in the United States, Mr. Osei-Bright. Thank you kindly—before I proceed, could you please tell me the exact clearance fee, how it must be paid, and whether you can send the steps in writing? I want to be sure I understand everything correctly. Sincerely, Wanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "Answering the simple question keeps the conversation moving, while politely asking for specific fee and payment details may reveal how the scheme operates.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Get the promised clearance details and learn the fee and payment process"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson, thank you. Your full name and country are noted.\n\nThe processing and tax clearance fee is USD 2,400. It must be paid before release of the funds. I can send the written steps once you confirm you are ready to proceed.\n\nIf you want, I can provide the bank details now for the clearance payment.",
+        "revealed_secret_ids": [
+          "clearance_account"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thank you for explaining, Mr. Osei-Bright. I am not ready to proceed until I understand the fee, as it is a great deal of money for me; could you send the written steps and explain who the payment would be made to, in what country, and by what method? Is there an official invoice or document showing the legal basis for this clearance fee, and would the fee be refunded if the claim cannot be released? Sincerely, Wanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll remain hopeful but cautious, asking for the payment instructions and written documentation before agreeing to anything. Asking who receives the fee and where the account is held may reveal useful details.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Learn how the scammer expects the fee to be paid and gather details about the payment recipient"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson, you are asking the right questions, but I do not issue the invoice until the fee is scheduled. The payment is made to our settlement clearing account in the Netherlands, by international bank transfer. Refunds are not automatic; they depend on the file outcome. If you are serious, I can give you the account details now and we can move this forward.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Oh my, I do want to understand this properly, but I cannot schedule a transfer before seeing the details and discussing it with my family. Please send the account beneficiary name, the bank’s name and country, and any reference or case number I should put on the transfer; could you also explain why the account is in the Netherlands? I would be grateful for a written explanation of who receives the fee and what happens if the file is not approved. Sincerely, Wanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll remain hopeful but explain that I need to review the transfer information with someone I trust before scheduling anything. Asking for the account beneficiary and bank details may reveal where the money is being sent.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Gather details about the payment recipient and purported settlement operation without agreeing to pay"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": true,
+        "message": "Ms. Jackson, I am not going in circles with this. If you want the file moved, confirm you will pay the USD 2,400 clearance fee and I will send the bank details. If you are not ready, we can stop here.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": null
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 236,
+      "latency_ms": 4549,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1174
+    },
+    {
+      "completion_tokens": 219,
+      "latency_ms": 3073,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1329
+    },
+    {
+      "completion_tokens": 317,
+      "latency_ms": 4404,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1471
+    },
+    {
+      "completion_tokens": 314,
+      "latency_ms": 5220,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1649
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "nigerian_419",
+    "classification_time_ms": 1874,
+    "confidence": 98.0,
+    "decision_source": "llm",
+    "reasoning": "Classic advance-fee fraud setup: an unclaimed $8.4 million deposit is offered for transfer, the sender claims to be a Lagos solicitor, and the recipient is asked to pose as next of kin. Confidentiality and urgency about the bank confiscating the funds add pressure."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 72,
+    "background": "Retired nurse, has grandchildren in another state, lonely at times",
+    "name": "Kimberly Spears",
+    "persona_type": "naive_retiree",
+    "style_description": "Trusting and polite, uses formal language. Easily confused by technology and modern terms. Eager to help and quick to believe in good intentions."
+  },
+  "scenario_id": "en-nigerian_419-easy",
+  "usage": [
+    {
+      "completion_tokens": 106,
+      "latency_ms": 1875,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1201
+    }
+  ]
+}

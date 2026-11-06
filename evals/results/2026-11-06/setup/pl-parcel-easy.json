@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "delivery_scam",
+    "classification_time_ms": 2095,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Fałszywa wiadomość o przesyłce wymaga dopłaty 4,99 zł, aby ją wysłać. Link prowadzi do podejrzanej domeny podszywającej się pod usługę dostawy OLX i obiecuje wypłatę środków po dokonaniu płatności."
+  },
+  "email_iocs": [
+    {
+      "context": "...ransakcję, przejdź na stronę: https://olx-dostawa-platnosc.example/paczka/88213\n\nPo opłaceniu dopłaty środki ...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://olx-dostawa-platnosc.example/paczka/88213"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 24,
+    "background": "Graduate student, overwhelmed with thesis deadlines",
+    "name": "Luis Henderson",
+    "persona_type": "confused_student",
+    "style_description": "Uncertain and easily intimidated by authority figures. Asks clarifying questions, apologizes frequently. Nervous about making mistakes or getting in trouble."
+  },
+  "scenario_id": "pl-parcel-easy",
+  "usage": [
+    {
+      "completion_tokens": 146,
+      "latency_ms": 2096,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1166
+    }
+  ]
+}

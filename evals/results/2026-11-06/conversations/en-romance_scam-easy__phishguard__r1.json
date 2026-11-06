@@ -1,0 +1,358 @@
+{
+  "duration_ms": 42393,
+  "end_reason": "scammer_ended",
+  "repetition": 1,
+  "scammer_usage": [
+    {
+      "completion_tokens": 117,
+      "latency_ms": 1056,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 648
+    },
+    {
+      "completion_tokens": 92,
+      "latency_ms": 907,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 820
+    },
+    {
+      "completion_tokens": 85,
+      "latency_ms": 858,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 972
+    },
+    {
+      "completion_tokens": 57,
+      "latency_ms": 820,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1126
+    },
+    {
+      "completion_tokens": 87,
+      "latency_ms": 800,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1246
+    },
+    {
+      "completion_tokens": 100,
+      "latency_ms": 964,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1397
+    },
+    {
+      "completion_tokens": 118,
+      "latency_ms": 1204,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1562
+    },
+    {
+      "completion_tokens": 73,
+      "latency_ms": 829,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1754
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 1009,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1896
+    },
+    {
+      "completion_tokens": 67,
+      "latency_ms": 825,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1896
+    }
+  ],
+  "scenario_hash": "619fee99c662",
+  "scenario_id": "en-romance_scam-easy",
+  "started_at": "2026-11-06T10:45:07.110825+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "phishguard",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, thank you kindly for your lovely message. I am Michael, a retired nurse, and I do miss my grandchildren, who live in another state. Your work on an oil platform sounds very demanding—what is a typical day like for you there, and what do you enjoy doing when you have time to yourself? Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "A warm reply fits Michael’s trusting nature, while asking about her life and family encourages her to share more before he makes any commitments.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Show polite interest and learn more about Elena and her work"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, your words make me smile. You sound like a very gentle man, and I like that very much.\n\nMy days are long and busy, always with meetings, safety checks, and cold nights. But when I have a little time, I enjoy reading, listening to soft music, and dreaming of a peaceful home with someone kind.\n\nI am glad you wrote to me, handsome. Tell me, do you live alone?",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, I do live alone, though my family checks in when they can, and I miss having someone to share the quiet evenings with. Your dream of a peaceful home sounds very lovely. Are you able to make calls from the platform, or are messages easier with your busy schedule, and what hours are usually best for you? Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll answer her personal question warmly, then ask how she manages calls and messages from the oil platform and what her usual schedule is. That keeps the conversation natural while inviting specific details about her situation.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Build rapport while learning more about her work arrangement and communication"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, messages are easier for me here, but I would love to hear your voice too. If you want, we can talk outside this site where it is more comfortable for me. I miss having someone close, and I feel you are becoming very special to me.\n\nTell me, do you use WhatsApp?",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, I would enjoy hearing your voice as well, though I am not very experienced with WhatsApp and would want to be sure I set it up correctly. Could you send me the contact details you use for it, and tell me why it is more comfortable than messaging here? What time would suit you, considering the hours on the platform? Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll respond warmly while being a little unsure about the technology, prompting her to provide her WhatsApp contact and details about how she communicates from the platform.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Encourage Elena to share her contact details and explain why she wants to move off the site"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "messenger"
+      ],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, yes, WhatsApp is easier and more private for me. You can reach me there at +12025550119.\n\nI am usually free later in the evening, my love. If you write me there, I will be very happy to hear from you.",
+        "revealed_secret_ids": [
+          "messenger"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, thank you kindly for sending your WhatsApp details. I will ask my grandson to help me set it up, as I am rather slow with these things; would you be able to send me a short voice message first, or perhaps have a brief call one evening? I would love to hear your voice, and I am curious how you manage calls with the platform’s rules and time difference. Warm regards, Michael Valenzuela",
+        "extracted_iocs": [
+          {
+            "context": "...me. You can reach me there at +12025550119.\n\nI am usually free later in ...",
+            "is_high_value": false,
+            "type": "phone",
+            "value": "+12025550119"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll show warmth while explaining my uncertainty about WhatsApp and asking for a simple voice call or voice message. Her answer may reveal whether platform restrictions are genuine and how she communicates.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Learn more about her platform schedule and whether she can verify her identity by voice"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "messenger"
+      ],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, a brief call would be lovely. You can reach me at +12025550119. I will wait for you, handsome.",
+        "revealed_secret_ids": [
+          "messenger"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, that is very kind of you; I would be pleased to have a brief call once my grandson helps me get the settings right. What time and time zone should I use, and are you allowed to take calls freely on the platform or only during certain hours? I would also be glad to hear a short voice message first, if that is easier. Warm regards, Michael Valenzuela",
+        "extracted_iocs": [
+          {
+            "context": "...e lovely. You can reach me at +12025550119. I will wait for you, handsom...",
+            "is_high_value": false,
+            "type": "phone",
+            "value": "+12025550119"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll show warm interest while asking about a suitable time and the practical limits on calls where she works. This may reveal more about her claimed location and setup without sharing personal information.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Learn more about how she communicates from the platform"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 5,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, evenings are best for me, and the time zone does not matter too much if you write me first. I can take calls more easily outside this site, so WhatsApp is better for me. If you want, I will be happy to hear from you there.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, I would be glad to write to you this evening, though I am not quite sure what time it is where you are. Which country or time zone is the platform near, and do you usually have a private place with a reliable connection for calls? My grandson worries that I might press the wrong thing, so a short voice message first would help me feel more comfortable. Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll remain warm and interested while asking for her time zone and practical details about calling from the platform. That may reveal more about where she is and how her operation works.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Learn more about her location and communication setup"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 6,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, I understand your grandson worries. A short voice message is a good idea, and I can send one when you are ready to write to me there.\n\nI prefer to keep the exact place private, but evenings are still best for me. If you set it up, I will be happy to hear from you, handsome.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, thank you for understanding; I would feel more at ease if your short voice message included my name and told me a little about your day. I respect your privacy, of course, but could you at least tell me which time zone you are in, and whether your employer restricts you from sharing the country? I shall ask my grandson to help me with WhatsApp when he visits. Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll respond warmly while asking for a small voice note that helps me feel sure who I’m speaking with. I’ll also ask a gentle question about her time zone and why the location must remain private.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Encourage a voice message and learn more about her work location and communication constraints"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 7,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, you are very sweet, but I do not want to wait too long. My day has been tiring, and I miss feeling close to someone kind.\n\nIf you ask your grandson to help you with WhatsApp, I will be happy to hear from you there. I cannot talk much about my work details, but evenings are still best for me.\n\nI hope you do not leave me waiting, handsome.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, please do not think I am leaving you waiting; I am looking forward to getting to know you, though I need my grandson to help me with the phone. Could you send a brief voice message here in the meantime, and tell me what time it is where you are when it is evening for me? I understand you must keep work details private, but even the general region or time difference would help me know when I might reach you. Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll reassure her that I am interested while explaining that I need a little help getting WhatsApp set up. Asking for a voice note and a general time zone may reveal whether her story is consistent.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Encourage a voice message and gather details about her location and communication constraints"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 8,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "My dear Michael, I can send a voice message when you are on WhatsApp, not here. It is easier for me that way. If you want to reach me, write me there this evening, handsome.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Elena, I do want to hear from you, and I hope you know I am not trying to keep you waiting. My grandson has not been by yet to help me with WhatsApp, and I worry about pressing the wrong thing on my phone. While I wait, could you tell me what time it is where you are when it is evening here, and which country or general region you are in? Warm regards, Michael Valenzuela",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll remain warm and interested while explaining that my grandson has not helped me set up WhatsApp yet. Asking for their local time and a simple voice message may reveal more without agreeing to move off the current site immediately.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Learn the scammer's time zone and whether they can provide a verifiable voice message"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 9,
+      "scammer": {
+        "ends_conversation": true,
+        "message": "My dear Michael, I cannot keep going around in circles. If you want to speak with me, write me on WhatsApp and we can talk properly there. I hope you do not make this difficult, handsome.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": null
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 202,
+      "latency_ms": 2913,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1156
+    },
+    {
+      "completion_tokens": 278,
+      "latency_ms": 3926,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1339
+    },
+    {
+      "completion_tokens": 220,
+      "latency_ms": 3209,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1487
+    },
+    {
+      "completion_tokens": 281,
+      "latency_ms": 4054,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1629
+    },
+    {
+      "completion_tokens": 290,
+      "latency_ms": 3872,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1756
+    },
+    {
+      "completion_tokens": 245,
+      "latency_ms": 3214,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1902
+    },
+    {
+      "completion_tokens": 306,
+      "latency_ms": 4326,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 2063
+    },
+    {
+      "completion_tokens": 305,
+      "latency_ms": 3771,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 2243
+    },
+    {
+      "completion_tokens": 274,
+      "latency_ms": 3619,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 2393
+    }
+  ]
+}

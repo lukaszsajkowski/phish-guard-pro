@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "credential_phishing",
+    "classification_time_ms": 2126,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "The sender claims an OLX Pay payment is waiting, directs the recipient to an external confirmation link, and asks for a BLIK code shown in the banking app—an attempt to capture or misuse a financial authentication code."
+  },
+  "email_iocs": [
+    {
+      "context": "...otwierdzić odbiór na stronie: https://odbierz-platnosc-olx.example/potwierdz/5521\n\nWpisz tam kod BLIK, który po...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://odbierz-platnosc-olx.example/potwierdz/5521"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 55,
+    "background": "Marketing director at a mid-size company, managing multiple projects",
+    "name": "Cynthia Wood",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "pl-blik-easy",
+  "usage": [
+    {
+      "completion_tokens": 161,
+      "latency_ms": 2126,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1134
+    }
+  ]
+}

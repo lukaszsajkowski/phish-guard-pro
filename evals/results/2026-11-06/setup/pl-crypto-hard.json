@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "crypto_investment",
+    "classification_time_ms": 2326,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Promotes a cryptocurrency fund with an implausibly high 18% monthly return, guarantees capital protection, and solicits a minimum investment of 2,500 zł."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 28,
+    "background": "Small business owner wanting to grow retirement savings quickly",
+    "name": "Emily Reyes",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "pl-crypto-hard",
+  "usage": [
+    {
+      "completion_tokens": 101,
+      "latency_ms": 2326,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1141
+    }
+  ]
+}

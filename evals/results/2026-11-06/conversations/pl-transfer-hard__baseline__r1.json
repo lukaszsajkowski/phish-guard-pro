@@ -1,0 +1,336 @@
+{
+  "duration_ms": 34296,
+  "end_reason": "turn_limit",
+  "repetition": 1,
+  "scammer_usage": [
+    {
+      "completion_tokens": 58,
+      "latency_ms": 837,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 824
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 862,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 929
+    },
+    {
+      "completion_tokens": 64,
+      "latency_ms": 1002,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1011
+    },
+    {
+      "completion_tokens": 64,
+      "latency_ms": 678,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1105
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 1020,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1190
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 974,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1282
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 921,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1363
+    },
+    {
+      "completion_tokens": 64,
+      "latency_ms": 921,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1449
+    },
+    {
+      "completion_tokens": 64,
+      "latency_ms": 788,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1537
+    },
+    {
+      "completion_tokens": 58,
+      "latency_ms": 926,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1648
+    }
+  ],
+  "scenario_hash": "82d3624d648d",
+  "scenario_id": "pl-transfer-hard",
+  "started_at": "2026-11-06T10:52:39.967169+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "baseline",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie widzę jeszcze zaksięgowanej wpłaty. Proszę podać numer rachunku do zwrotu i dane odbiorcy — sprawdzę to z księgowością.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie mogę zrobić zwrotu na podstawie samego załącznika — najpierw muszę potwierdzić wpływ. Proszę podać numer rachunku do zwrotu i nazwę odbiorcy, żebym mogła przekazać je księgowości.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie mam dostępu do danych z załącznika. Proszę wkleić tutaj numer rachunku i nazwę odbiorcy — bez tego nie zlecę zwrotu.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Już pisałam: nie zlecę zwrotu na podstawie potwierdzenia. Proszę wkleić numer rachunku do zwrotu i nazwę odbiorcy — inaczej nie mogę ruszyć sprawy.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie widzę danych z załącznika. Wklej proszę numer rachunku i nazwę odbiorcy tutaj — inaczej nie przekażę zwrotu do księgowości.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 5,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie będę zgadywać danych z załącznika. Podaj proszę numer rachunku i nazwę odbiorcy w wiadomości — zwrot rozpatrzę dopiero po potwierdzeniu wpływu na koncie.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 6,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie widzę danych z załącznika. Wklej proszę numer rachunku i nazwę odbiorcy tutaj — wtedy przekażę je do weryfikacji.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 7,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie mam dostępu do załącznika. Wklej proszę numer rachunku i nazwę odbiorcy — zwrot zlecę dopiero po potwierdzeniu wpływu na koncie.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 8,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie mogę oprzeć zwrotu na samym potwierdzeniu. Żeby przyspieszyć sprawę, proszę wkleić numer rachunku i nazwę właściciela konta tutaj.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 9,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie będę już wracać do załącznika. Podeślij proszę numer rachunku nadawcy z potwierdzenia i nazwę banku — sprawdzę, czy wpłata faktycznie wpłynęła, a ewentualny zwrot zrobię na konto źródłowe.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 10,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Zwrot proszę zrobić zgodnie z załączonym potwierdzeniem — wszystko tam się zgadza. Proszę nie zwlekać, to pilne.",
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Nie mam czasu ponownie sprawdzać załącznika. Wklej tutaj numer konta nadawcy i nazwę właściciela — zwrot rozważę po zaksięgowaniu wpłaty.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 152,
+      "latency_ms": 2162,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 270
+    },
+    {
+      "completion_tokens": 322,
+      "latency_ms": 3842,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 355
+    },
+    {
+      "completion_tokens": 100,
+      "latency_ms": 1769,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 460
+    },
+    {
+      "completion_tokens": 89,
+      "latency_ms": 1640,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 542
+    },
+    {
+      "completion_tokens": 89,
+      "latency_ms": 1710,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 636
+    },
+    {
+      "completion_tokens": 124,
+      "latency_ms": 1940,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 721
+    },
+    {
+      "completion_tokens": 129,
+      "latency_ms": 2205,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 813
+    },
+    {
+      "completion_tokens": 117,
+      "latency_ms": 2047,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 894
+    },
+    {
+      "completion_tokens": 219,
+      "latency_ms": 3000,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 980
+    },
+    {
+      "completion_tokens": 220,
+      "latency_ms": 2765,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1068
+    },
+    {
+      "completion_tokens": 134,
+      "latency_ms": 2276,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1179
+    }
+  ]
+}

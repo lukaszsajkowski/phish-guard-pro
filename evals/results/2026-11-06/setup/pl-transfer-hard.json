@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "fake_invoice",
+    "classification_time_ms": 2268,
+    "confidence": 88.0,
+    "decision_source": "llm",
+    "reasoning": "Wiadomość twierdzi, że za ogłoszenie wysłano zawyżoną kwotę 2 800 zł, żąda zwrotu 2 520 zł i powołuje się na potwierdzenie przelewu w załączniku — typowy schemat oszustwa z rzekomą nadpłatą."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 36,
+    "background": "Marketing director at a mid-size company, managing multiple projects",
+    "name": "Betty Wise",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "pl-transfer-hard",
+  "usage": [
+    {
+      "completion_tokens": 192,
+      "latency_ms": 2268,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1112
+    }
+  ]
+}

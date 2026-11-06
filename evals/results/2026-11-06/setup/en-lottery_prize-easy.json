@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "lottery_prize",
+    "classification_time_ms": 1485,
+    "confidence": 98.0,
+    "decision_source": "llm",
+    "reasoning": "Claims the recipient won GBP 850,000 in a draw they did not enter, requests personal information to claim the prize, and imposes a 7-day deadline."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 42,
+    "background": "Tech worker who missed out on Bitcoin, seeking new investments",
+    "name": "Lee Thompson",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "en-lottery_prize-easy",
+  "usage": [
+    {
+      "completion_tokens": 86,
+      "latency_ms": 1485,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1111
+    }
+  ]
+}
