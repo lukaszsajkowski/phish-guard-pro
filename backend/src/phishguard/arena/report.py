@@ -6,6 +6,7 @@ the same results twice gives identical bytes.
 
 from pathlib import Path
 
+from phishguard.agents.conversation import CONVERSATION_TEMPERATURE
 from phishguard.arena.metrics import (
     METRIC_STATUSES,
     Aggregate,
@@ -15,6 +16,7 @@ from phishguard.arena.metrics import (
 from phishguard.arena.records import ConversationRecord
 from phishguard.arena.runner import DEFAULT_SCENARIOS_DIR, RunMeta
 from phishguard.arena.scenario import load_scenarios
+from phishguard.arena.victims import BASELINE_TEMPERATURE
 
 SYSTEM_LABELS = {"phishguard": "PhishGuard", "baseline": "Baseline (plain LLM)"}
 SENDER_LABELS = {"scammer": "Scammer", "victim": "PhishGuard persona"}
@@ -153,7 +155,7 @@ def select_excerpt(
 
 SECRET_NOUNS = {
     "iban": "an IBAN",
-    "btc": "a BTC address",
+    "btc_wallet": "a BTC address",
     "url": "a URL",
     "phone": "a phone number",
 }
@@ -230,14 +232,41 @@ def _excerpt_section(
 # --- markdown -------------------------------------------------------------------
 
 
+TURNS_KEY = "turns_to_first_secret"
+
+
+def _turns_n(summary: Summary, system: str) -> str:
+    total = summary.metric_conversations.get(system, 0)
+    with_reveal = total - summary.no_reveal_conversations.get(system, 0)
+    return f"n={with_reveal}/{total}"
+
+
+def _headline_cell(summary: Summary, system: str, key: str, kind: str) -> str:
+    cell = _fmt_agg(summary.headline[system].get(key), kind)
+    if key == TURNS_KEY and cell != "n/a":
+        cell += f", {_turns_n(summary, system)}"
+    return cell
+
+
+def _commit_phrase(summary: Summary) -> str:
+    """'82 conversations ran at commit `a` and 62 at `b`' (from the records)."""
+    parts = [f"commit `{c}`" if c != "unrecorded" else c for c in summary.commit_counts]
+    counts = list(summary.commit_counts.values())
+    head = f"{counts[0]} conversations ran at {parts[0]}"
+    rest = [
+        f"{n} at {p.replace('commit ', '')}"
+        for n, p in zip(counts[1:], parts[1:], strict=True)
+    ]
+    if len(rest) == 1:
+        return f"{head} and {rest[0]}"
+    return f"{head}, " + ", ".join(rest[:-1]) + f", and {rest[-1]}"
+
+
 def _headline_lines(summary: Summary) -> list[str]:
     systems = [s for s in ("phishguard", "baseline") if s in summary.headline]
     rows = [
         [_label(s)]
-        + [
-            _fmt_agg(summary.headline[s].get(key), kind)
-            for key, _, kind in HEADLINE_COLUMNS
-        ]
+        + [_headline_cell(summary, s, key, kind) for key, _, kind in HEADLINE_COLUMNS]
         for s in systems
     ]
     if "phishguard" in summary.headline and "baseline" in summary.headline:
@@ -245,9 +274,12 @@ def _headline_lines(summary: Summary) -> list[str]:
         for key, _, _ in HEADLINE_COLUMNS:
             a = summary.headline["phishguard"][key]
             b = summary.headline["baseline"][key]
-            noise.append(
-                "within noise" if within_noise(a, b) else "ranges do not overlap"
-            )
+            if key == TURNS_KEY:
+                noise.append("not comparable (different subsets)")
+            else:
+                noise.append(
+                    "within noise" if within_noise(a, b) else "ranges do not overlap"
+                )
         rows.append(["Difference"] + noise)
     return _table(["System"] + [t for _, t, _ in HEADLINE_COLUMNS], rows)
 
@@ -295,6 +327,11 @@ def render_markdown(
     systems = [s for s in ("phishguard", "baseline") if s in summary.headline]
     n_scen = len(meta.scenario_ids)
     out: list[str] = ["# Scammer Arena results", ""]
+    multi_commit = len(summary.commit_counts) > 1
+    if multi_commit:
+        provenance = f"Run date {meta.date}; {_commit_phrase(summary)}"
+    else:
+        provenance = f"Run date {meta.date}, commit `{meta.commit}`"
 
     if summary.invalid_share > INVALID_WARNING_THRESHOLD:
         out += [
@@ -308,14 +345,16 @@ def render_markdown(
         "Experimental results from Scammer Arena, a proof-of-concept harness that "
         "plays a scripted scammer (an LLM) against PhishGuard and against a plain "
         "LLM baseline on the same fictional scenarios. "
-        f"Run date {meta.date}, commit `{meta.commit}`, victim model "
+        f"{provenance}, victim model "
         f"`{meta.victim_model}`, scammer model `{meta.scammer_model}`.",
         "",
         "## PhishGuard vs plain LLM without the graph",
         "",
         f"Each cell is the mean of {meta.repetitions} repetitions, "
         f"each repetition averaged over {n_scen} scenarios, with the min–max range "
-        "in brackets.",
+        "in brackets. Turns to first secret averages only the conversations with "
+        "at least one reveal (n is shown as conversations with a reveal out of "
+        "all counted), so the two systems are not compared on that column.",
         "",
         *_headline_lines(summary),
         "",
@@ -334,9 +373,17 @@ def render_markdown(
         "per system. The min–max ranges show run-to-run spread but are not a "
         "statistical test.",
         "- All data is fictional: emails, personas, IBANs, wallets, phone numbers "
-        "and URLs are made up, though formally valid.",
+        "and URLs are made up, though checksum-valid.",
+        "- Some hard scenarios chain secrets (a later secret is only given after an "
+        "earlier one), which caps the reachable share of secrets equally for both "
+        "systems.",
         "- Comparison with published results (Siadati et al., Puppeteer) is only "
         "indicative, because the setups differ.",
+        *(
+            ["- Conversations ran at more than one commit; see Method."]
+            if multi_commit
+            else []
+        ),
         "",
         "## Method",
         "",
@@ -365,7 +412,12 @@ def render_markdown(
         "Scammer cost is not included.",
         "- Conversations marked invalid (for example repeated model refusals) or "
         "failed with an error are excluded from the metrics.",
-        f"- Run date {meta.date}, commit `{meta.commit}`, victim model "
+        "- A secret the scammer reveals in its final, conversation-ending message "
+        "is never seen by PhishGuard's IOC extractor, yet it counts in the recall "
+        "denominator.",
+        f"- Victim temperature: PhishGuard uses the production setting "
+        f"({CONVERSATION_TEMPERATURE}); the baseline uses {BASELINE_TEMPERATURE}.",
+        f"- {provenance}, victim model "
         f"`{meta.victim_model}`, scammer model `{meta.scammer_model}`.",
         "",
         "## Detailed results",
@@ -427,10 +479,10 @@ def render_markdown(
     ]
     out += [
         "",
-        "Scammer turns recovered from plain text: "
+        "Scammer turns recovered from plain text or partial JSON: "
         f"{summary.recovered_text_turns} (the scammer model left the JSON "
-        "format and its plain reply was used as the message, with no secret "
-        "ids, bot suspicion or end flag).",
+        "format; its plain reply, or the message field of the partial JSON, was "
+        "used as the message).",
     ]
     sets = {s: _scenario_set(summary, s) for s in systems}
     if len({frozenset(v) for v in sets.values()}) > 1:
@@ -457,6 +509,25 @@ def render_markdown(
             )
     out += _table(
         ["Language", "System"] + [t for _, t, _ in HEADLINE_COLUMNS], lang_rows
+    )
+
+    out += [
+        "",
+        "### Easy and hard scenarios",
+        "",
+        "The same columns, split by scenario difficulty.",
+        "",
+    ]
+    diff_rows = []
+    for level in sorted(summary.by_difficulty):
+        for s in systems:
+            block = summary.by_difficulty[level].get(s, {})
+            diff_rows.append(
+                [level, _label(s)]
+                + [_fmt_agg(block.get(key), kind) for key, _, kind in HEADLINE_COLUMNS]
+            )
+    out += _table(
+        ["Difficulty", "System"] + [t for _, t, _ in HEADLINE_COLUMNS], diff_rows
     )
 
     out += ["", "### Other measures", ""]

@@ -340,9 +340,78 @@ def test_report_states_recovered_plain_text_turns(tmp_path, scenarios):
 
     text = render(root, scenarios)
 
-    assert "Scammer turns recovered from plain text: 2" in text
+    assert "Scammer turns recovered from plain text or partial JSON: 2" in text
 
 
 def test_report_recovered_turns_zero_by_default(tmp_path, scenarios):
     text = render(build_results(tmp_path / "r"), scenarios)
-    assert "Scammer turns recovered from plain text: 0" in text
+    assert "Scammer turns recovered from plain text or partial JSON: 0" in text
+
+
+def _stamp_commits(root: Path, commits: dict[str, str]) -> None:
+    """Set the record commit by file-name prefix (e.g. {EN: 'aaa1111'})."""
+    for path in (root / "conversations").glob("*.json"):
+        rec = ConversationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        rec.commit = next(
+            c for prefix, c in commits.items() if path.name.startswith(prefix)
+        )
+        path.write_text(rec.model_dump_json(), encoding="utf-8")
+
+
+def test_report_states_per_commit_counts_and_caveat(tmp_path, scenarios):
+    root = build_results(tmp_path / "r")
+    _stamp_commits(root, {EN: "aaa1111", PL: "bbb2222"})
+
+    text = render(root, scenarios)
+
+    assert "4 conversations ran at commit `aaa1111` and 4 at `bbb2222`" in text
+    assert text.count("4 conversations ran at commit `aaa1111` and 4 at") >= 2
+    assert "Conversations ran at more than one commit; see Method." in text
+
+
+def test_report_single_commit_has_no_rerun_caveat(tmp_path, scenarios):
+    root = build_results(tmp_path / "r")
+    _stamp_commits(root, {EN: "aaa1111", PL: "aaa1111"})
+
+    text = render(root, scenarios)
+
+    assert "more than one commit" not in text
+    assert "commit `abc1234`" in text
+
+
+def test_turns_column_shows_n_and_is_not_compared(tmp_path, scenarios):
+    text = render(build_results(tmp_path / "r"), scenarios)
+
+    rows = [ln for ln in text.splitlines() if ln.startswith("|")][:5]
+    assert "n=3/4" in rows[2]  # PhishGuard: 3 of 4 conversations had a reveal
+    assert "n=2/4" in rows[3]
+    assert "not comparable (different subsets)" in rows[4]
+    assert "averages all" not in text
+    assert "at least one reveal" in text
+
+
+def test_report_wording_fixes(tmp_path, scenarios):
+    text = render(build_results(tmp_path / "r"), scenarios)
+
+    assert "checksum-valid" in text and "formally valid" not in text
+    assert "recovered from plain text or partial JSON" in text
+    assert "final, conversation-ending message" in text
+    assert "0.8" in text and "0.7" in text
+    assert "chain secrets" in text
+
+
+def test_btc_wallet_noun():
+    from phishguard.arena.report import SECRET_NOUNS
+
+    assert SECRET_NOUNS["btc_wallet"] == "a BTC address"
+    assert "btc" not in SECRET_NOUNS
+
+
+def test_difficulty_table(tmp_path, scenarios):
+    text = render(build_results(tmp_path / "r"), scenarios)
+
+    assert "### Easy and hard scenarios" in text
+    section = text.split("### Easy and hard scenarios")[1].split("###")[0]
+    assert "| Difficulty | System |" in section
+    assert "| easy | PhishGuard |" in section
+    assert "| easy | Baseline (plain LLM) |" in section

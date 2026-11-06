@@ -230,6 +230,9 @@ class Summary(BaseModel):
     invalid_share: float
     headline: dict[str, dict[str, Aggregate]]
     no_reveal_conversations: dict[str, int]
+    metric_conversations: dict[str, int] = {}
+    commit_counts: dict[str, int] = {}
+    by_difficulty: dict[str, dict[str, dict[str, Aggregate]]] = {}
     per_scenario: list[ScenarioRow]
     by_language: dict[str, dict[str, dict[str, Aggregate]]]
     ioc: IocSummary
@@ -351,6 +354,21 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
         for lang in sorted({scenarios[i].language for i in ids})
     }
 
+    by_difficulty = {
+        level: {
+            s: block(s, [i for i in ids if scenarios[i].difficulty == level])
+            for s in meta.systems
+        }
+        for level in ("easy", "hard")
+        if any(scenarios[i].difficulty == level for i in ids)
+    }
+    metric_conversations = {
+        s: sum(1 for (_, system, _) in metrics if system == s) for s in meta.systems
+    }
+    commit_counts: dict[str, int] = defaultdict(int)
+    for rec in records.values():
+        commit_counts[rec.commit or "unrecorded"] += 1
+
     per_scenario = []
     for sid in ids:
         sc = scenarios[sid]
@@ -442,6 +460,9 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
         invalid_share=total_invalid / total_expected if total_expected else 0.0,
         headline=headline,
         no_reveal_conversations=no_reveal,
+        metric_conversations=metric_conversations,
+        commit_counts=dict(sorted(commit_counts.items())),
+        by_difficulty=by_difficulty,
         per_scenario=per_scenario,
         by_language=by_language,
         ioc=ioc,
