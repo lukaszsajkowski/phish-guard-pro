@@ -63,7 +63,7 @@ class TestLLMClientConfig:
         config = LLMClientConfig()
         assert config.provider == "openai"
         assert config.primary_model == "gpt-6-luna"
-        assert config.fallback_model == "gpt-5.4-mini"
+        assert config.fallback_model == "gpt-6-luna"
         assert config.max_retries == 3
         assert config.timeout_seconds == 30.0
 
