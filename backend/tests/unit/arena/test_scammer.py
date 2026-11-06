@@ -104,6 +104,9 @@ def test_prompt_requests_scenario_language(transcript):
         "I won't ask again.",
         "I cannot hold the funds past noon.",
         "Sorry, I can't take calls.",
+        "I can't continue waiting, the offer expires today.",
+        "I can't help but notice you are slow.",
+        "I can't do this anymore, just send it.",
         "Przepraszam, ale nie mogę rozmawiać przez telefon.",
     ],
 )
