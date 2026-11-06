@@ -16,7 +16,7 @@ via LangGraph) collaborate to:
 - Conduct an engaging but safe conversation
 - Extract Indicators of Compromise (IOC) in real-time
 
-The product serves as a showcase of AI architecture capabilities in the
+The project is a proof of concept for AI-driven active defense in the
 cybersecurity domain, built on an Enterprise-grade SaaS stack.
 
 ### Business Goals

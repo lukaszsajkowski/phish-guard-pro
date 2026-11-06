@@ -1,119 +1,141 @@
-# Basal Decision Layer — Etap 1: fundament i Profiler
+# Basal Decision Layer — Stage 1: foundation and Profiler
 
-Data: 2026-11-02 · Źródło: PRD „Basal Decision Layer w PhishGuard Pro” (Downloads), przegląd PRD vs kod z 2026-11-02.
+Date: 2026-11-02 · Source: the "Basal Decision Layer in PhishGuard Pro" PRD and a PRD-vs-code review from 2026-11-02.
 
-## Po co
+## Why
 
-PhishGuard Pro klasyfikuje e-mail (Profiler) przez GPT-4o, który sam podaje sobie „pewność” 0–100. Ta liczba nie jest skalibrowana, a gdy odpowiedź GPT nie daje się sparsować, Profiler zwraca `not_phishing` z pewnością 25 i sesja się kończy.
+PhishGuard Pro classifies an email (Profiler) with GPT-4o, which also reports its own 0–100 "confidence". That number is not calibrated. When GPT's answer cannot be parsed, the Profiler returns `not_phishing` with confidence 25 and the session ends.
 
-Basal to lokalny model decyzyjny: odpowiada rozkładem prawdopodobieństwa po zamkniętej liście opcji, skalibrowanym tak, że próg pewności przekłada się na znany poziom błędu. Wzorzec kaskady Basal → LLM jest sprawdzony w autoshield (`~/Workspace/autoshield/judge.py`: 84% werdyktów lokalnie przy progu 0,9, zero niezgodności na 250 przypadkach).
+Basal is a local decision model. It answers with a probability distribution over a closed list of options, calibrated so that a confidence threshold maps to a known error rate. The Basal → LLM cascade pattern is proven in autoshield (`~/Workspace/autoshield/judge.py`): 84% of verdicts were made locally at threshold 0.9, with zero disagreements on 250 cases.
 
-**Przegląd kodu zmienił cel projektu.** Pierwotny PRD obiecywał −50% kosztu LLM. To nieosiągalne: GPT jest wołany w dwóch miejscach, Profiler raz na sesję (`max_tokens=200`), Conversation Agent co turę, i ten drugi zostaje na GPT. Cel projektu to więc **decyzje z wiarygodną pewnością** i, w kolejnych etapach, **nowe kontrole znaczeniowe**, których regexy nie dają. Koszt jest mierzony, ale nie jest hipotezą.
+**The code review changed the project goal.** The original PRD promised −50% LLM cost. That is not achievable. GPT is called in two places:
+- the Profiler, once per session (`max_tokens=200`);
+- the Conversation Agent, once per turn, and the Conversation Agent stays on GPT.
 
-Etap 1 buduje warstwę decyzyjną, przepina na nią jedyną decyzję, w której Basal faktycznie zastępuje GPT (typ ataku w Profilerze), i daje liczby z evalu, na których opierają się etapy 2 i 3.
+So the project goal is **decisions with trustworthy confidence** and, in later stages, **new semantic checks** that regexes cannot provide. Cost is measured, but it is not the hypothesis.
 
-## Hipoteza etapu 1
+Stage 1 builds the decision layer and moves onto it the one decision where Basal actually replaces GPT: the attack type in the Profiler. It also produces the eval numbers that stages 2 and 3 build on.
 
-Przy wybranym progu Basal rozstrzyga lokalnie co najmniej 70% klasyfikacji typu ataku, zgadzając się z GPT-4o w ≥ 95% (błąd ≤ 2% wśród decyzji Basala), z medianą opóźnienia < 150 ms lokalnie. Liczby są punktem startowym; pierwszy eval może je skorygować.
+## Stage 1 hypothesis
 
-## Cele
+At the chosen threshold, Basal settles at least 70% of attack-type classifications locally, agreeing with GPT-4o in ≥ 95% of cases (error ≤ 2% among Basal's decisions), with median latency < 150 ms locally. These numbers are a starting point; the first eval may adjust them.
 
-1. Moduł `phishguard.decisions`: klient Basala, detekcja języka, kaskada Basal → LLM, zapis każdej decyzji.
-2. Trzy tryby pracy: `off`, `shadow` (Basal liczy, werdykt daje GPT), `live` (kaskada).
-3. Profiler korzysta z kaskady dla typu ataku.
-4. Licznik tokenów dla każdego wywołania GPT (Profiler i Conversation Agent), żeby koszt „przed i po” był zmierzony, a nie szacowany.
-5. Eval z CLI: zapisane sesje z Supabase + syntetyczny zbiór e-maili, raport coverage vs. błąd w funkcji progu.
+## Goals
 
-## Non-goals (etap 1)
+1. A `phishguard.decisions` module with:
+   - a Basal client;
+   - language detection;
+   - the Basal → LLM cascade;
+   - a record of every decision.
+2. Three modes: `off`, `shadow` (Basal computes, GPT gives the verdict) and `live` (the cascade).
+3. The Profiler uses the cascade for the attack type.
+4. A token counter for every GPT call (Profiler and Conversation Agent), so the "before and after" cost is measured rather than estimated.
+5. An eval CLI over saved Supabase sessions plus a synthetic email set. It produces a coverage vs. error report as a function of the threshold.
 
-- Kontrola „czy odpowiedź wychodzi z roli” (etap 2), ocena IOC jako przynęty (etap 3).
-- Poziom ryzyka na Basalu: deterministyczna formuła w `risk_score_service.py` zostaje, jest wyjaśnialna i darmowa.
-- „Następny krok” jako `act`: dziś taktykę wybiera Conversation Agent w tym samym wywołaniu, w którym pisze odpowiedź, więc osobna decyzja dodałaby wywołanie zamiast je usunąć.
-- Panel Decision Ops w aplikacji: w etapie 1 jego rolę pełni raport z evalu.
-- Tryb `evidence`: działa tylko z modelem w procesie PyTorch, a nie na MLX (`basal/server.py`: „evidence is not available for this model”). Na Macu nie da się go użyć.
-- Fine-tuning Basala, GPU w chmurze, języki inne niż PL/EN w Basalu.
+## Non-goals (stage 1)
 
-## Anti-goals (porażka, nawet jeśli „działa”)
+- The "does the reply break character" check (stage 2) and scoring IOCs as bait (stage 3).
+- Risk level on Basal: the deterministic formula in `risk_score_service.py` stays, because it is explainable and free.
+- "Next step" as `act`: today the Conversation Agent picks the tactic in the same call that writes the reply, so a separate decision would add a call instead of removing one.
+- A Decision Ops panel in the app: in stage 1 the eval report plays that role.
+- `evidence` mode: it only works with an in-process PyTorch model, not on MLX (`basal/server.py`: "evidence is not available for this model"), so it cannot be used on a Mac.
+- Fine-tuning Basal, cloud GPUs, and languages other than PL/EN in Basal.
 
-- Sesja przerywa się albo klasyfikacja zwraca błąd, bo Basal jest wyłączony, wolny lub zwraca coś nieoczekiwanego.
-- Tryb cienia zauważalnie spowalnia klasyfikację (Basal i GPT muszą iść równolegle).
-- Tabela `decisions` staje się drugą kopią treści e-maili (treść jest już w `messages`; `decisions` trzyma odniesienie do sesji, nie tekst).
-- Zmiana znaczenia `confidence` psuje dzisiejsze ostrzeżenia w UI bez świadomej decyzji.
+## Anti-goals (failure even if it "works")
 
-## Jak to działa
+- A session breaks or classification returns an error because Basal is off, slow or returns something unexpected.
+- Shadow mode noticeably slows classification. Basal and GPT must run in parallel.
+- The `decisions` table becomes a second copy of email content. The content is already in `messages`; `decisions` holds a reference to the session, not the text.
+- Changing the meaning of `confidence` breaks today's UI warnings without a deliberate decision.
 
-### Kaskada (tryb `live`)
+## How it works
+
+### Cascade (`live` mode)
 
 ```
-pytanie zamknięte
-  ├─ BASAL_URL puste / tryb off ──────────────────────────► LLM
-  ├─ tekst nie PL/EN (detekcja per linia) ────────────────► LLM
-  ├─ Basal: błąd HTTP / timeout ──────────────────────────► LLM  (sesja trwa, warning w logu)
-  ├─ Basal: pewność ≥ próg węzła ─────────────────────────► werdykt Basala
-  └─ Basal: pewność < próg ───────────────────────────────► LLM (ta sama lista opcji)
+closed question
+  ├─ BASAL_URL empty / mode off ──────────────────────────► LLM
+  ├─ text not PL/EN (per-line detection) ─────────────────► LLM
+  ├─ Basal: HTTP error / timeout ─────────────────────────► LLM  (session continues, warning in log)
+  ├─ Basal: confidence ≥ node threshold ──────────────────► Basal verdict
+  └─ Basal: confidence < threshold ───────────────────────► LLM (same option list)
 ```
 
-Detekcja języka jak w autoshield (`is_basal_language`): `fast-langdetect`, sprawdzane per linia, linie < 20 liter pomijane, odrzucenie gdy język spoza {pl, en} ma score ≥ 0,5.
+Language detection follows autoshield (`is_basal_language`):
+- `fast-langdetect`, checked per line;
+- lines shorter than 20 letters are skipped;
+- the text is rejected when a language outside {pl, en} scores ≥ 0.5.
 
-### Tryb `shadow`
+### `shadow` mode
 
-Werdykt zawsze z LLM, dokładnie jak dziś. Basal rusza jako zadanie w tle (`asyncio.create_task`) w chwili startu wywołania LLM, a klasyfikacja **nie czeka** na jego wynik. Zadanie samo zapisuje wiersz w `decisions` po zakończeniu, także po zwróceniu odpowiedzi HTTP. `BASAL_TIMEOUT_S` ogranicza tylko to zadanie; przekroczenie zapisuje się jako `skip_reason = 'timeout'`. Wyjątki w zadaniu są łapane i logowane, nigdy nie wyciekają. Referencje do zadań trzymane w zbiorze modułu, żeby nie zebrał ich GC (moja decyzja; `asyncio.gather` z timeoutem dodawałby do 5 s do każdej klasyfikacji).
+The verdict always comes from the LLM, exactly as today.
+- Basal starts as a background task (`asyncio.create_task`) when the LLM call starts, and classification **does not wait** for it.
+- The task writes its own `decisions` row when it finishes, even after the HTTP response has been returned.
+- `BASAL_TIMEOUT_S` limits only this task; exceeding it is recorded as `skip_reason = 'timeout'`.
+- Exceptions in the task are caught and logged and never leak.
+- References to the tasks are kept in a module-level set so the GC does not collect them. This is my call: `asyncio.gather` with a timeout would add up to 5 s to every classification.
 
-W trybie `live` Basal jest wołany najpierw i LLM tylko przy eskalacji, więc tam opóźnienie Basala jest częścią ścieżki.
+In `live` mode Basal is called first and the LLM only on escalation, so there Basal's latency is part of the path.
 
-### Interfejs Basala
+### Basal interface
 
-Serwer `basal-serve`, endpoint `POST {BASAL_URL}` (np. `http://127.0.0.1:8011/v1/systemone`), jak w autoshield:
+The `basal-serve` server, endpoint `POST {BASAL_URL}` (e.g. `http://127.0.0.1:8011/v1/systemone`), as in autoshield:
 
 ```json
-{"state": "<treść e-maila>",
+{"state": "<email content>",
  "questions": {"attack_type": {"type": "choice", "option_keys": "hide",
                                "instructions": "...", "criteria": {"nigerian_419": "...", ...}}}}
 ```
 
-Odpowiedź: `answers.attack_type` z `choice`, `probabilities` (klucz → p) i `confidence`. Kluczami opcji są wartości `AttackType` (9 sztuk, w tym `not_phishing`), a opisami treści z docstringów enumu i z `PROFILER_SYSTEM_PROMPT`. `option_keys: "hide"`, bo tak Basal był kalibrowany (komentarz w autoshield). Kategorii „inny” nie dodajemy; tak jak dziś, niepewne przypadki trafiają do LLM.
+The response is `answers.attack_type` with `choice`, `probabilities` (key → p) and `confidence`.
+- The option keys are the `AttackType` values (9 of them, including `not_phishing`). The descriptions come from the enum docstrings and `PROFILER_SYSTEM_PROMPT`.
+- `option_keys: "hide"`, because that is how Basal was calibrated (comment in autoshield).
+- No "other" category is added; as today, uncertain cases go to the LLM.
 
-Model: `Remek/basal-2.0-max-MLX-8bit`, ten sam co w autoshield, już zainstalowany lokalnie w `~/basal-mlx`. To moja decyzja. `BASAL_MODEL` służy tylko do logowania i raportu, model wybiera serwer.
+Model: `Remek/basal-2.0-max-MLX-8bit`, the same as in autoshield, already installed locally in `~/basal-mlx`. This is my call. `BASAL_MODEL` is used only for logs and the report; the server picks the model.
 
-### Profiler w kaskadzie
+### Profiler in the cascade
 
-`ProfilerAgent` dostaje wstrzykiwany `DecisionService` (domyślnie z ustawień). Graf się nie zmienia. Zmienia się węzeł `classify_email` (przekazuje `session_id` do `classify()` i kopiuje `decision_source` do stanu), `ClassificationState` (nowe pole `decision_source`) oraz `api/routers/classification.py` (przenosi pole do `ClassificationResult`).
+`ProfilerAgent` gets an injected `DecisionService` (built from settings by default). The graph does not change. What changes:
+- the `classify_email` node, which passes `session_id` to `classify()` and copies `decision_source` into state;
+- `ClassificationState`, with a new `decision_source` field;
+- `api/routers/classification.py`, which carries the field into `ClassificationResult`.
 
-`decision_source` jest zapisywane w nowej kolumnie `sessions.decision_source` (text, null dla starych sesji) w `update_session_classification`, a przywracanie sesji (US-031) je odczytuje. Dzięki temu etykieta źródła przetrwa przeładowanie. Moja decyzja: bez tego przywrócona sesja pokazywałaby pewność Basala bez etykiety.
+`update_session_classification` stores `decision_source` in a new column, `sessions.decision_source` (text, null for old sessions), and session restore (US-031) reads it back. That way the source label survives a reload. This is my call: without it, a restored session would show Basal's confidence with no label.
 
-Kiedy decyduje Basal:
-- `attack_type` = odpowiedź Basala.
-- `confidence` = skalibrowane p × 100 (pole zostaje w skali 0–100).
-- `reasoning` = tekst z szablonu, bo Basal nie pisze uzasadnień, a `evidence` na MLX nie działa: `"Classified locally by Basal: Romance Scam (p=0.94). Runner-up: Nigerian 419 (p=0.03)."`
-- `decision_source = "basal"` (nowe pole w `ClassificationResult`, domyślnie `"llm"`).
+When Basal decides:
+- `attack_type` = Basal's answer.
+- `confidence` = calibrated p × 100 (the field stays on the 0–100 scale).
+- `reasoning` = a templated text, because Basal does not write rationales and `evidence` does not work on MLX: `"Classified locally by Basal: Romance Scam (p=0.94). Runner-up: Nigerian 419 (p=0.03)."`
+- `decision_source = "basal"` (a new field in `ClassificationResult`, default `"llm"`).
 
-Kiedy decyduje LLM: zachowanie jak dziś, `decision_source = "llm"`.
+When the LLM decides: behaviour as today, with `decision_source = "llm"`.
 
-**Poprawka fallbacku (tylko `live`).** Jeśli GPT zwróci nieparsowalną odpowiedź albo całe wywołanie się nie uda (`LLMRequestError`, dziś kończy się 500), a Basal odpowiedział (nawet poniżej progu), zwracamy najwyższą opcję Basala z jej prawdziwą pewnością i `decision_source = "basal_low_confidence"`, zamiast `not_phishing`/25. Bez odpowiedzi Basala zostaje dzisiejszy fallback.
+**Fallback fix (`live` only).** The fix applies when GPT returns an unparseable answer, or the whole call fails (`LLMRequestError`, which today ends in a 500). If Basal did answer, even below the threshold, we return Basal's top option with its real confidence and `decision_source = "basal_low_confidence"`, instead of `not_phishing`/25. If Basal did not answer, today's fallback stays.
 
-### Znaczenie `confidence` w UI
+### Meaning of `confidence` in the UI
 
-Progi we froncie (`ClassificationResult.tsx`: < 30 ostrzeżenie dla `not_phishing`, < 50 żółty, ≥ 80 „wysoka”) zostają bez zmian w etapie 1, ale **liczba zmienia znaczenie**: przy Basalu to prawdopodobieństwo skalibrowane, przy GPT samoocena. Dlatego:
-- Obok pewności UI pokazuje małą etykietę źródła („Basal” / „GPT-4o”), żeby było widać, którą skalę się czyta. To moja decyzja.
-- Raport z evalu pokazuje, czy progi 30/50/80 mają sens dla pewności Basala; zmiana progów to decyzja po evalu.
+The frontend thresholds (`ClassificationResult.tsx`: < 30 warning for `not_phishing`, < 50 yellow, ≥ 80 "high") stay unchanged in stage 1. **The number changes meaning**, though: with Basal it is a calibrated probability, with GPT a self-assessment. Therefore:
+- Next to the confidence, the UI shows a small source label ("Basal" / "GPT-4o") so it is clear which scale is being read. This is my call.
+- The eval report shows whether the 30/50/80 thresholds make sense for Basal's confidence. Changing the thresholds is a decision for after the eval.
 
-## Dane
+## Data
 
-### Tabela `decisions` (nowa migracja)
+### `decisions` table (new migration)
 
-| kolumna | typ | uwagi |
+| column | type | notes |
 |---|---|---|
 | id | uuid pk | |
 | session_id | uuid fk → sessions, on delete cascade | |
-| node | text | `'profiler.attack_type'` w etapie 1 |
+| node | text | `'profiler.attack_type'` in stage 1 |
 | mode | text check in (`shadow`, `live`) | |
-| options | jsonb | lista kluczy opcji |
+| options | jsonb | list of option keys |
 | basal_answer | text null | |
 | basal_probabilities | jsonb null | |
 | basal_confidence | float null | |
 | basal_ms | int null | |
 | basal_model | text null | |
-| threshold | float | próg obowiązujący przy tej decyzji |
+| threshold | float | threshold in force for this decision |
 | skip_reason | text null | `disabled`, `language`, `unavailable`, `timeout`, `below_threshold` |
 | llm_answer | text null | |
 | llm_model | text null | |
@@ -122,90 +144,120 @@ Progi we froncie (`ClassificationResult.tsx`: < 30 ostrzeżenie dla `not_phishin
 | source | text check in (`basal`, `llm`, `basal_low_confidence`) | |
 | created_at | timestamptz default now() | |
 
-RLS: odczyt i zapis dla właściciela sesji, wzorowane na `ioc_extracted`. Indeks po `session_id` i `node`.
+RLS: read and write for the session owner, modelled on `ioc_extracted`. Index on `session_id` and `node`.
 
-Zapis decyzji nie może zablokować klasyfikacji: błąd zapisu kończy się warningiem w logu.
+Writing a decision must never block classification: a write failure ends in a log warning.
 
-### Tabela `llm_usage` (nowa migracja)
+### `llm_usage` table (new migration)
 
-`id, session_id (fk, null dozwolone), agent ('profiler'|'conversation'|'eval'), model, prompt_tokens, completion_tokens, latency_ms, created_at`, RLS jak wyżej.
+`id, session_id (fk, nullable), agent ('profiler'|'conversation'|'eval'), model, prompt_tokens, completion_tokens, latency_ms, created_at`, with RLS as above.
 
-`LLMResponse` dostaje `prompt_tokens` i `completion_tokens` z `usage` OpenAI. Agenci zapisują je do `llm_usage`. Koszt liczy raport na podstawie cennika w jednym słowniku (model → USD/1M tokenów in/out), nie w bazie.
+`LLMResponse` gets `prompt_tokens` and `completion_tokens` from the OpenAI `usage`. The agents write them to `llm_usage`. The report computes cost from a price list in a single dictionary (model → USD per 1M tokens in/out), not in the database.
 
-## Konfiguracja (`.env`, `Settings`)
+## Configuration (`.env`, `Settings`)
 
-| zmienna | domyślnie | znaczenie |
+| variable | default | meaning |
 |---|---|---|
-| `BASAL_URL` | `""` | puste = warstwa wyłączona, wszystko idzie do LLM |
-| `BASAL_MODE` | `shadow` | `off` / `shadow` / `live`; ignorowane, gdy `BASAL_URL` puste |
-| `BASAL_THRESHOLD` | `0.9` | domyślny próg (jak w autoshield) |
-| `BASAL_THRESHOLD_PROFILER` | brak | nadpisuje próg dla węzła Profilera |
-| `BASAL_TIMEOUT_S` | `30` | timeout zapytania do Basala. Domyślną wartość podniesiono do 30 s, bo lokalny Basal na MLX potrzebuje kilku sekund na wywołanie, a tryb shadow nigdy nie blokuje odpowiedzi; timeout ścieżki live trzeba ponownie przemyśleć przed przełączeniem na live. |
-| `BASAL_MODEL` | `""` | etykieta modelu do logów i raportu |
+| `BASAL_URL` | `""` | empty = layer off, everything goes to the LLM |
+| `BASAL_MODE` | `shadow` | `off` / `shadow` / `live`; ignored when `BASAL_URL` is empty |
+| `BASAL_THRESHOLD` | `0.9` | default threshold (as in autoshield) |
+| `BASAL_THRESHOLD_PROFILER` | unset | overrides the threshold for the Profiler node |
+| `BASAL_TIMEOUT_S` | `30` | timeout for the Basal request. The default was raised to 30 s because local Basal on MLX needs several seconds per call, and shadow mode never blocks the response. The live-path timeout must be revisited before switching to live. |
+| `BASAL_MODEL` | `""` | model label for logs and the report |
 
-Progi są per węzeł od początku, bo etap 2 (kontrola roli) dostanie ostrzejszy próg.
+Thresholds are per node from the start, because stage 2 (the in-role check) will get a stricter threshold.
 
-**Zmiana trybu i progów:** tylko przez `.env` i restart backendu (`Settings` jest cache'owane przez `lru_cache`). W etapie 1 nie ma przełącznika w UI ani endpointu: to ustawienie jednego właściciela dla całej instancji, a nie per użytkownik czy per sesja. Każdy wiersz `decisions` zapisuje `mode` i `threshold`, więc w danych widać, kiedy ustawienia się zmieniły. Przełącznik w aplikacji może wejść razem z panelem Decision Ops.
+**Changing mode and thresholds:** only through `.env` and a backend restart (`Settings` is cached with `lru_cache`).
+- In stage 1 there is no UI switch or endpoint. It is a single-owner setting for the whole instance, not per user or per session.
+- Every `decisions` row records `mode` and `threshold`, so the data shows when settings changed.
+- An in-app switch can come together with the Decision Ops panel.
 
 ## Eval (CLI)
 
 `uv run python -m phishguard.decisions.eval profiler --source supabase|fixtures|decisions|all --out <dir>`
 
-`--source decisions` nie woła żadnego modelu: czyta wiersze trybu `shadow` z tabeli `decisions` (te z odpowiedzią i Basala, i LLM) i liczy na nich te same metryki, z LLM jako referencją. To jest narzędzie do bramki 2. `all` = `supabase` + `fixtures` (bez `decisions`).
+- `--source decisions` calls no model. It reads the `shadow`-mode rows from the `decisions` table (those with both a Basal and an LLM answer) and computes the same metrics on them, with the LLM as the reference. This is the tool for gate 2.
+- `all` = `supabase` + `fixtures` (without `decisions`).
 
-**Wejście:**
-- **Supabase:** wszystkie sesje z oryginalnym e-mailem (`session_service.get_original_email`), czytane kluczem service role. Liczba sesji nadających się do evalu nie jest znana; skrypt ją raportuje.
-- **Fixtures:** `backend/tests/fixtures/eval/profiler_emails.jsonl`, około 100 e-maili PL/EN z etykietą `gold`, po kilka na każdy z 9 typów, w tym trudne przypadki (granice CEO fraud / fake invoice, prawdziwe faktury, newslettery). Generowane z pomocą LLM. **Etykiety przegląda model, nie człowiek** (decyzja właściciela z 2026-11-02), w procesie „na ślepo”:
+**Input:**
+- **Supabase:** every session with its original email (`session_service.get_original_email`), read with the service role key. The number of usable sessions is unknown; the script reports it.
+- **Fixtures:** `backend/tests/fixtures/eval/profiler_emails.jsonl`.
+  - About 100 PL/EN emails with a `gold` label, several for each of the 9 types.
+  - It includes hard cases: the CEO fraud / fake invoice boundary, real invoices, newsletters.
+  - The emails are generated with an LLM.
+  - **Labels are reviewed by a model, not a human** (owner decision, 2026-11-02), in a blind process:
 
-1. Generator zapisuje e-mail z zamierzoną etykietą `gold` i `reviewed: false`.
-2. Świeży subagent Claude (nie GPT, nie Basal: modele z porównania nie mogą oceniać samych siebie) dostaje sam e-mail, listę 9 typów z opisami z `ATTACK_TYPE_CRITERIA`, bez `gold` i bez odpowiedzi jakiegokolwiek modelu. Przypisuje etykietę (`label_b`).
-3. Zgodność `label_b == gold` daje `reviewed: true`.
-4. Przy niezgodności drugi, niezależny subagent na ślepo daje `label_c`. Jeśli dwie z trzech etykiet się zgadzają, ta etykieta zostaje `gold` i wiersz dostaje `reviewed: true`. W przeciwnym razie wiersz dostaje `ambiguous: true` i nie liczy się do bramki 1. Raport pokazuje go osobno.
-5. Każdy wiersz zapisuje `review: {"label_b": ..., "label_c": ... | null, "reviewer_model": ...}`.
+1. The generator writes the email with its intended `gold` label and `reviewed: false`.
+2. A fresh Claude subagent assigns a label (`label_b`). It is not GPT and not Basal, because the models being compared must not grade themselves. It sees only:
+   - the email;
+   - the list of 9 types with descriptions from `ATTACK_TYPE_CRITERIA`.
 
-Ten zbiór pokrywa ryzyko „za mało historycznych sesji”. Raport z evalu ostrzega, gdy jakikolwiek wiersz ma `reviewed: false`, i taki wynik nie zalicza bramki 1. Ograniczenie, które raport podaje wprost: etykiety są zgodą dwóch modeli Claude, a nie oceną eksperta.
+   It does not see `gold` or any model's answer.
+3. `label_b == gold` gives `reviewed: true`.
+4. On disagreement, a second, independent subagent gives `label_c`, also blind.
+   - If two of the three labels agree, that label becomes `gold` and the row gets `reviewed: true`.
+   - Otherwise the row gets `ambiguous: true` and does not count towards gate 1; the report shows it separately.
+5. Every row records `review: {"label_b": ..., "label_c": ... | null, "reviewer_model": ...}`.
 
-**Przebieg:** dla każdego e-maila Basal (pełny rozkład) i świeże wywołanie GPT-4o z obecnym promptem Profilera. Referencja: `gold` dla fixtures, GPT-4o dla Supabase. `attack_type` zapisany w sesji to tylko dodatkowa kolumna, bo mógł pochodzić z `gpt-4o-mini` (fallback).
+This set covers the "not enough historical sessions" risk.
+- The eval report warns when any row has `reviewed: false`, and such a result does not pass gate 1.
+- The report also states one limitation plainly: the labels are the agreement of two Claude models, not an expert's judgement.
 
-**Wyjście:**
-- `results.jsonl`: jeden wiersz na przypadek, z rozkładem Basala, odpowiedzią GPT, referencją i czasami.
-- `report.md`: dla progów 0,50–0,99 co 0,01 coverage, błąd wśród decyzji Basala, łączna zgodność kaskady, p50/p95 opóźnienia Basala i GPT, koszt GPT na 1000 klasyfikacji. Do tego macierz pomyłek, najniższy próg spełniający błąd ≤ 2% oraz rozkład pewności Basala w przedziałach 30/50/80 (pod decyzję o progach w UI).
-- Wykres coverage vs. błąd jako PNG (matplotlib) do README i case study.
+**Run:** for each email, Basal (full distribution) and a fresh GPT-4o call with the current Profiler prompt. The reference is `gold` for fixtures and GPT-4o for Supabase. The `attack_type` stored in the session is only an extra column, because it may have come from `gpt-4o-mini` (the fallback).
 
-Eval nie zmienia ustawień. Próg i przejście `shadow` → `live` wybiera właściciel po przeczytaniu raportu.
+**Output:**
+- `results.jsonl`: one row per case, with Basal's distribution, GPT's answer, the reference and the timings.
+- `report.md` covers thresholds 0.50–0.99 in steps of 0.01 and contains:
+  - per threshold: coverage, error among Basal's decisions, overall cascade agreement;
+  - p50/p95 latency of Basal and GPT;
+  - GPT cost per 1,000 classifications;
+  - a confusion matrix;
+  - the lowest threshold meeting error ≤ 2%;
+  - the distribution of Basal's confidence across the 30/50/80 bands, to inform the UI threshold decision.
+- A coverage vs. error chart as a PNG (matplotlib) for the README.
 
-## Bramki przejścia na `live`
+The eval does not change settings. The owner picks the threshold and the `shadow` → `live` switch after reading the report.
 
-1. Raport z evalu: zgodność ≥ 95% przy wybranym progu na fixtures i na Supabase (jeśli jest co najmniej 30 sesji).
-2. Co najmniej 30 decyzji w trybie `shadow` na prawdziwych e-mailach, z rozbieżnościami Basal vs. LLM przejrzanymi ręcznie (`eval --source decisions`). Próg jest liczbą decyzji, a nie czasem (moja decyzja): aplikacja działa w ręcznej symulacji, więc tydzień może dać kilka sesji albo żadnej.
+## Gates for switching to `live`
 
-## Testy
+1. Eval report: agreement ≥ 95% at the chosen threshold, on fixtures and on Supabase (if there are at least 30 sessions).
+2. At least 30 `shadow`-mode decisions on real emails, with Basal vs. LLM disagreements reviewed by hand (`eval --source decisions`). The gate is a number of decisions rather than a time period (my call): the app runs as a manual simulation, so a week may bring a few sessions or none.
 
-- Klient Basala: zamockowany HTTP (sukces, błąd 5xx, timeout, odpowiedź bez oczekiwanego klucza).
-- Kaskada: sparametryzowane przypadki dla każdej gałęzi diagramu i każdego trybu. W `shadow` werdykt zawsze z LLM, nawet przy pewności Basala 0,99.
-- Profiler: decyzja Basala daje poprawne `confidence`, `reasoning` i `decision_source`; poprawka fallbacku działa tylko w `live`.
-- Detekcja języka: PL, EN, DE, tekst mieszany, krótkie linie.
-- Eval: liczenie metryk na małym, ręcznie policzonym zbiorze.
-- Istniejące testy Profilera i grafu przechodzą bez zmian przy `BASAL_URL=""`.
+## Tests
 
-## Mapowanie na PRD
+- Basal client: mocked HTTP (success, 5xx error, timeout, response without the expected key).
+- Cascade: parametrised cases for every branch of the diagram and every mode. In `shadow` the verdict always comes from the LLM, even at Basal confidence 0.99.
+- Profiler: a Basal decision yields the right `confidence`, `reasoning` and `decision_source`; the fallback fix works only in `live`.
+- Language detection: PL, EN, DE, mixed text, short lines.
+- Eval: metric computation on a small, hand-computed set.
+- Existing Profiler and graph tests pass unchanged with `BASAL_URL=""`.
 
-Numeracja kontynuuje `.ai/prd.md` (ostatnie: US-045/046). Etap 1 = US-047 (klient), US-048 (kaskada + `decisions`), US-049 (Profiler, tylko typ ataku), US-053 (eval, tylko Profiler), plus nowe US na licznik tokenów. Pierwotne US-050/051/052/054 przechodzą do etapów 2–3 w zmienionym kształcie z przeglądu. Aktualizacja `.ai/prd.md` jest częścią pracy.
+## Mapping to the PRD
 
-## Zostawione budowniczemu
+The numbering continues `.ai/prd.md` (latest: US-045/046).
+- Stage 1 is:
+  - US-047 (client);
+  - US-048 (cascade + `decisions`);
+  - US-049 (Profiler, attack type only);
+  - US-053 (eval, Profiler only);
+  - new user stories for the token counter.
+- The original US-050/051/052/054 move to stages 2–3, reshaped by the review.
+- Updating `.ai/prd.md` is part of the work.
 
-- Układ plików w `phishguard/decisions/` i nazwy klas.
-- Sposób zapisu do Supabase (ten sam klient co `session_service`).
-- Biblioteka do mockowania HTTP w testach (zgodnie z tym, co już jest w `pyproject.toml`).
-- Treść opisów opcji dla Basala (z docstringów `AttackType` i promptu Profilera).
-- Wygląd etykiety źródła w UI, w stylu istniejącego badge’a pewności.
+## Left to the builder
 
-## Wyniki (2026-11-03)
+- File layout in `phishguard/decisions/` and class names.
+- How to write to Supabase (the same client as `session_service`).
+- The HTTP mocking library for tests (whatever is already in `pyproject.toml`).
+- The wording of the option descriptions for Basal (from the `AttackType` docstrings and the Profiler prompt).
+- The look of the source label in the UI, in the style of the existing confidence badge.
 
-| Bramka | Dane | Wynik |
+## Results (2026-11-03)
+
+| Gate | Data | Result |
 |---|---|---|
-| 1 (fixtures) | 98 syntetycznych e-maili PL/EN, etykiety dwóch modeli Claude | **zaliczona**: próg 0,70, pokrycie 93,9%, błąd 0%, zgodność kaskady 98% |
-| 2 (shadow) | 29 prawdziwych e-maili (korpus Nazario `phishing-2025`, CC BY 4.0) | **niezaliczona**: zgodność z gpt-5.1 13/28, przy progu 0,70 błąd ~48%; 13/28 phishingów Basal uznał za `not_phishing` |
+| 1 (fixtures) | 98 synthetic PL/EN emails, labels from two Claude models | **passed**: threshold 0.70, coverage 93.9%, error 0%, cascade agreement 98% |
+| 2 (shadow) | 29 real emails (Nazario corpus `phishing-2025`, CC BY 4.0) | **failed**: agreement with gpt-5.1 13/28; at threshold 0.70 error ~48%; Basal labelled 13/28 phishing emails `not_phishing` |
 
-- Opóźnienie: ~8 s na żądanie (M1 Pro, MLX, model `max`) wobec ~1,6 s dla gpt-5.1.
-- Decyzja: Profiler zostaje na GPT. Syntetyczny zbiór zawyżył wynik, więc bramka 1 nie przewidziała bramki 2. Basal przechodzi do decyzji, które dziś podejmują regexy lub nikt (etap 2).
+- Latency: ~8 s per request (M1 Pro, MLX, `max` model) vs. ~1.6 s for gpt-5.1.
+- Decision: the Profiler stays on GPT. The synthetic set inflated the result, so gate 1 did not predict gate 2. Basal moves to decisions that today are made by regexes or by nobody (stage 2).
