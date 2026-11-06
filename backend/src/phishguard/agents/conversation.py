@@ -17,6 +17,7 @@ from phishguard.agents.prompts.conversation import (
 from phishguard.decisions.language import detect_pl_en
 from phishguard.decisions.recorder import record_llm_usage
 from phishguard.llm import LLMClient, LLMRequestError, create_llm_client
+from phishguard.llm.budget import warn_if_budget_exhausted
 from phishguard.models.classification import AttackType
 from phishguard.models.conversation import (
     ConversationMessage,
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Generation parameters
 CONVERSATION_TEMPERATURE: Final[float] = 0.8
-CONVERSATION_MAX_TOKENS: Final[int] = 500
+CONVERSATION_MAX_TOKENS: Final[int] = 2000
 MAX_REGENERATION_ATTEMPTS: Final[int] = 3
 
 
@@ -185,6 +186,11 @@ class ConversationAgent:
                         llm_response.completion_tokens,
                         int((time.perf_counter() - call_start) * 1000),
                     )
+                warn_if_budget_exhausted(
+                    llm_response,
+                    agent="conversation",
+                    max_tokens=CONVERSATION_MAX_TOKENS,
+                )
                 content = llm_response.content
 
                 # Track if fallback model was used
