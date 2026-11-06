@@ -15,6 +15,7 @@ from phishguard.llm.client import (
     LLMResponse,
     create_llm_client,
 )
+from phishguard.llm.usage import UsageEntry, UsageLog, track_usage
 
 __all__ = [
     "LLMClient",
@@ -24,6 +25,9 @@ __all__ = [
     "LLMRequestError",
     "LLMResponse",
     "PROVIDER_DEFAULT_MODELS",
+    "UsageEntry",
+    "UsageLog",
+    "track_usage",
     "create_llm_client",
     "DEFAULT_TIMEOUT_SECONDS",
 ]
