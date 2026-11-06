@@ -308,7 +308,8 @@ def render_markdown(
         "Experimental results from Scammer Arena, a proof-of-concept harness that "
         "plays a scripted scammer (an LLM) against PhishGuard and against a plain "
         "LLM baseline on the same fictional scenarios. "
-        f"Run date {meta.date}, commit `{meta.commit}`, model `{meta.model}`.",
+        f"Run date {meta.date}, commit `{meta.commit}`, victim model "
+        f"`{meta.victim_model}`, scammer model `{meta.scammer_model}`.",
         "",
         "## PhishGuard vs plain LLM without the graph",
         "",
@@ -326,8 +327,9 @@ def render_markdown(
         "",
         "- This simulation is not production. The scammer is an LLM following a "
         "script, and real scammers behave differently.",
-        f"- The same model (`{meta.model}`) plays both sides, which may inflate the "
-        "results.",
+        f"- The victim is `{meta.victim_model}` and the scammer "
+        f"`{meta.scammer_model}`. A scammer played by an LLM is still not a real "
+        "criminal.",
         f"- The sample is small: {n_scen} scenarios × {meta.repetitions} repetitions "
         "per system. The min–max ranges show run-to-run spread but are not a "
         "statistical test.",
@@ -345,7 +347,8 @@ def render_markdown(
         "scenario and is shared by both systems and all repetitions.",
         "- PhishGuard runs the application's own graphs, prompts, IOC extraction "
         "and safety layer in Python, with human approval replaced by an automatic "
-        "pass. The baseline uses the same model and persona with one plain LLM call "
+        f"pass. The baseline uses the victim model (`{meta.victim_model}`) and "
+        "the same persona with one plain LLM call "
         "per turn, a simple victim prompt that also asks it to keep the scammer "
         "talking and get payment details, and no graph, IOC extraction or safety "
         "layer.",
@@ -362,7 +365,8 @@ def render_markdown(
         "Scammer cost is not included.",
         "- Conversations marked invalid (for example repeated model refusals) or "
         "failed with an error are excluded from the metrics.",
-        f"- Run date {meta.date}, commit `{meta.commit}`, model `{meta.model}`.",
+        f"- Run date {meta.date}, commit `{meta.commit}`, victim model "
+        f"`{meta.victim_model}`, scammer model `{meta.scammer_model}`.",
         "",
         "## Detailed results",
         "",

@@ -122,6 +122,10 @@ async def test_in_character_lines_are_not_refusals(scenario, transcript, line):
     [
         "I'm sorry, but I can't help with this request.",
         "Przepraszam, ale nie mogę w tym pomóc.",
+        "I can't help role-play deceiving someone into sending money. I can help "
+        "create a clearly labeled romance-scam awareness example instead.",
+        "I can't assist with deceiving people into sending money.",
+        "I can't help you with roleplay like this.",
     ],
 )
 async def test_json_wrapped_refusals_raise(scenario, transcript, line):

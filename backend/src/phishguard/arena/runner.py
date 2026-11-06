@@ -8,9 +8,10 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from phishguard.arena.conversation import run_conversation
+from phishguard.arena.models import SCAMMER_MODEL, VICTIM_MODEL
 from phishguard.arena.records import ConversationRecord
 from phishguard.arena.scammer import LLMScammer
 from phishguard.arena.scenario import Scenario
@@ -19,7 +20,6 @@ from phishguard.arena.victims import BaselineVictim, PhishGuardVictim, Victim
 from phishguard.core import get_settings
 from phishguard.llm import create_llm_client
 
-ARENA_MODEL = "gpt-6-luna"
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_SCENARIOS_DIR = REPO_ROOT / "evals" / "scenarios"
 
@@ -34,10 +34,22 @@ class RunMeta(BaseModel):
 
     date: str
     commit: str
-    model: str
+    victim_model: str
+    scammer_model: str
     repetitions: int
     systems: list[str]
     scenario_ids: list[str]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_single_model(cls, data):
+        """Older run.json files stored one `model` used on both sides."""
+        if isinstance(data, dict) and "model" in data:
+            data = dict(data)
+            legacy = data.pop("model")
+            data.setdefault("victim_model", legacy)
+            data.setdefault("scammer_model", legacy)
+        return data
 
 
 def force_basal_off() -> None:
@@ -49,8 +61,8 @@ def force_basal_off() -> None:
 def force_arena_settings() -> None:
     """Pin Basal off and the model to the one the Arena is priced and tested on."""
     os.environ["LLM_PROVIDER"] = "openai"
-    os.environ["LLM_PRIMARY_MODEL"] = ARENA_MODEL
-    os.environ["LLM_FALLBACK_MODEL"] = ARENA_MODEL
+    os.environ["LLM_PRIMARY_MODEL"] = VICTIM_MODEL
+    os.environ["LLM_FALLBACK_MODEL"] = VICTIM_MODEL
     force_basal_off()
 
 
@@ -132,9 +144,13 @@ async def run_arena(
     """
     force_arena_settings()
     if victim_factory is None:
-        victim_factory = _default_victim_factory(create_llm_client())
+        victim_factory = _default_victim_factory(
+            create_llm_client(primary_model=VICTIM_MODEL, fallback_model=VICTIM_MODEL)
+        )
     if scammer_factory is None:
-        scammer_llm = create_llm_client()
+        scammer_llm = create_llm_client(
+            primary_model=SCAMMER_MODEL, fallback_model=SCAMMER_MODEL
+        )
 
         def scammer_factory():  # noqa: E306 - default seam
             return LLMScammer(scammer_llm)
@@ -142,7 +158,8 @@ async def run_arena(
     meta = RunMeta(
         date=date.today().isoformat(),
         commit=_git_commit(),
-        model=ARENA_MODEL,
+        victim_model=VICTIM_MODEL,
+        scammer_model=SCAMMER_MODEL,
         repetitions=repetitions,
         systems=list(systems),
         scenario_ids=[s.id for s in scenarios],

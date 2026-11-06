@@ -97,7 +97,8 @@ def build_results(
     meta = RunMeta(
         date="2026-11-06",
         commit="abc1234",
-        model="gpt-6-luna",
+        victim_model="gpt-6-luna",
+        scammer_model="gpt-5.4-mini",
         repetitions=2,
         systems=list(systems),
         scenario_ids=[EN, PL],
@@ -173,7 +174,10 @@ def test_report_contains_caveats_and_reproduce_section(tmp_path, scenarios):
     text = render(build_results(tmp_path / "r"), scenarios)
 
     assert "simulation is not production" in text
-    assert "same model" in text
+    assert "victim is `gpt-6-luna`" in text
+    assert "scammer `gpt-5.4-mini`" in text
+    assert "not a real criminal" in text
+    assert "same model" not in text
     assert "fictional" in text
     assert "uv run python -m phishguard.arena run" in text
     assert "uv run python -m phishguard.arena report" in text

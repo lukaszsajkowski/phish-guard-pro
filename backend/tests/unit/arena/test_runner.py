@@ -104,7 +104,9 @@ async def test_writes_expected_files(scenarios, tmp_path):
     assert len(list((tmp_path / "setup").glob("*.json"))) == 2
     run_json = json.loads((tmp_path / "run.json").read_text(encoding="utf-8"))
     assert run_json["repetitions"] == 2
-    assert run_json["model"] == "gpt-6-luna"
+    assert run_json["victim_model"] == "gpt-6-luna"
+    assert run_json["scammer_model"] == "gpt-5.4-mini"
+    assert "model" not in run_json
     assert run_json["scenario_ids"] == ["alpha", "zulu"]
     assert not list(tmp_path.rglob("*.tmp"))
 
@@ -187,3 +189,23 @@ def test_cli_parses_flags():
     assert args.repetitions == 1
     assert args.concurrency == 4
     assert args.scenarios == DEFAULT_SCENARIOS_DIR
+
+
+def test_arena_model_constants():
+    from phishguard.arena.models import SCAMMER_MODEL, VICTIM_MODEL
+
+    assert VICTIM_MODEL == "gpt-6-luna"
+    assert SCAMMER_MODEL == "gpt-5.4-mini"
+
+
+def test_run_meta_reads_legacy_single_model():
+    legacy = {
+        "date": "d",
+        "commit": "c",
+        "model": "gpt-6-luna",
+        "repetitions": 1,
+        "systems": ["phishguard"],
+        "scenario_ids": ["a"],
+    }
+    meta = RunMeta.model_validate(legacy)
+    assert meta.victim_model == meta.scammer_model == "gpt-6-luna"

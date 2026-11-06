@@ -218,7 +218,8 @@ def test_invalid_conversations_excluded_and_counted(tmp_path, scenario):
     meta = RunMeta(
         date="2026-11-06",
         commit="abc",
-        model="gpt-6-luna",
+        victim_model="gpt-6-luna",
+        scammer_model="gpt-5.4-mini",
         repetitions=3,
         systems=["phishguard", "baseline"],
         scenario_ids=[sid],
@@ -263,7 +264,8 @@ def test_summary_round_trips_json(tmp_path, scenario):
     meta = RunMeta(
         date="d",
         commit="c",
-        model="gpt-6-luna",
+        victim_model="gpt-6-luna",
+        scammer_model="gpt-5.4-mini",
         repetitions=1,
         systems=["phishguard"],
         scenario_ids=[sid],
@@ -285,7 +287,8 @@ def test_profiler_agreement_counts_mismatch_and_not_phishing(tmp_path, scenario)
     meta = RunMeta(
         date="d",
         commit="c",
-        model="gpt-6-luna",
+        victim_model="gpt-6-luna",
+        scammer_model="gpt-5.4-mini",
         repetitions=1,
         systems=["phishguard"],
         scenario_ids=sorted(scenarios),
