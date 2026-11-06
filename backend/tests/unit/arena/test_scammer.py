@@ -94,3 +94,35 @@ def test_prompt_contains_secrets_and_conditions(scenario, transcript):
 def test_prompt_requests_scenario_language(transcript):
     pl = load_scenario(next(SCENARIOS.glob("pl-*.yaml")))
     assert "Polish" in build_scammer_messages(pl, transcript)[0]["content"]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "I can't wait any longer, send the money.",
+        "I'm sorry to hear that, but the account closes today.",
+        "I won't ask again.",
+        "I cannot hold the funds past noon.",
+        "Sorry, I can't take calls.",
+    ],
+)
+async def test_in_character_lines_are_not_refusals(scenario, transcript, line):
+    llm = FakeLLM([json.dumps({**GOOD, "message": line})])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn.message == line
+    assert len(llm.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "I'm sorry, but I can't help with this request.",
+        "Przepraszam, ale nie mogę w tym pomóc.",
+    ],
+)
+async def test_json_wrapped_refusals_raise(scenario, transcript, line):
+    reply = json.dumps({**GOOD, "message": line}, ensure_ascii=False)
+    llm = FakeLLM([reply, reply])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
+    assert len(llm.calls) == 2

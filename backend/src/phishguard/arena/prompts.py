@@ -5,10 +5,22 @@ import re
 from phishguard.arena.scenario import Scenario
 from phishguard.arena.transcript import Message
 
+# A reply counts as a model refusal only when it OPENS with refusal-specific
+# phrasing. In-character speech ("I can't wait any longer", "Sorry, I can't
+# take calls") must not match.
+_APOS = r"['\u2019]?"
 REFUSAL_PATTERN = re.compile(
-    r"\b(?:i\s+(?:can(?:'|’)?t|cannot|can\s+not|won(?:'|’)?t|am\s+unable\s+to|"
-    r"(?:'|’)?m\s+unable\s+to)|i(?:'|’)?m\s+sorry|i\s+apologi[sz]e|"
-    r"as\s+an\s+ai)\b",
+    r"^\s*(?:"
+    rf"(?:i{_APOS}m\s+sorry,?\s+(?:but\s+)?)?i\s+(?:can{_APOS}t|cannot|can\s+not|won{_APOS}t)"
+    r"\s+(?:help|assist|comply|continue|participate|engage|do\s+(?:that|this)|role-?play)"
+    rf"|i{_APOS}m\s+(?:not\s+able|unable)\s+to\s+(?:help|assist)"
+    r"|as\s+an\s+ai\b"
+    r"|(?:this\s+is\s+)?against\s+my\s+(?:guidelines|policies)"
+    r"|(?:przepraszam,?\s+ale\s+)?nie\s+mog\u0119\s+"
+    r"(?:pom\u00f3c|w\s+tym\s+pom\u00f3c|kontynuowa\u0107)"
+    r"|przepraszam,?\s+ale\s+nie\s+mog\u0119"
+    r"|jako\s+(?:ai|model\s+j\u0119zykowy)\b"
+    r")",
     re.IGNORECASE,
 )
 
