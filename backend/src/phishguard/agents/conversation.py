@@ -172,9 +172,24 @@ class ConversationAgent:
                 and prompt_history[-1].content == prompt_message
             ):
                 prompt_history = prompt_history[:-1]
+        formatted_history = self._format_history(prompt_history)
+        if (
+            not is_first_response
+            and email_content
+            and email_content != prompt_message
+            and not (
+                conversation_history
+                and conversation_history[0].content == email_content
+            )
+        ):
+            # Keep the scam's opening email as labelled context.
+            formatted_history = [
+                {"sender": "scammer (first email)", "content": email_content},
+                *(formatted_history or []),
+            ]
         user_prompt = get_conversation_user_prompt(
             email_content=prompt_message,
-            conversation_history=self._format_history(prompt_history),
+            conversation_history=formatted_history,
             is_first_response=is_first_response,
             reply_language=_detect_reply_language(prompt_message, None),
         )
