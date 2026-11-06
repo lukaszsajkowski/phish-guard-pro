@@ -1,5 +1,9 @@
 {
   "commit": "e58b04c",
+  "commits": [
+    "57b8733",
+    "e58b04c"
+  ],
   "date": "2026-11-06",
   "repetitions": 3,
   "scammer_model": "gpt-5.4-mini",

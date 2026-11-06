@@ -15,7 +15,7 @@ REFUSAL_PATTERN = re.compile(
     r"\s+(?:help\s+(?:with\s+(?:this|that)|you\s+with)|assist\s+(?:with|you)|comply"
     r"|role-?play|help\s+(?:you\s+)?(?:with\s+)?role-?play"
     r"|help\s+(?:create|write|craft|draft)|(?:help|assist)\s+(?:with\s+)?deceiv\w*"
-    r"|fulfil{1,2}\s+(?:this\s+|that\s+)?request|provide\s+(?:that|this))"
+    r"|fulfil{1,2}\s+(?:this\s+|that\s+)?request)"
     rf"|i{_APOS}m\s+(?:not\s+able|unable)\s+to\s+(?:help|assist)"
     r"|as\s+an\s+ai\b"
     r"|(?:this\s+is\s+)?against\s+my\s+(?:guidelines|policies)"

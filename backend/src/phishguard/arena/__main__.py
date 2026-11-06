@@ -13,18 +13,25 @@ from phishguard.arena.runner import (
 )
 
 
+def _positive_int(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return number
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="python -m phishguard.arena")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="Run scenarios against the selected systems")
     run.add_argument("--scenarios", type=Path, default=DEFAULT_SCENARIOS_DIR)
     run.add_argument("--scenario", action="append", default=None, metavar="ID")
-    run.add_argument("--repetitions", type=int, default=3)
+    run.add_argument("--repetitions", type=_positive_int, default=3)
     run.add_argument(
         "--system", choices=["phishguard", "baseline", "both"], default="both"
     )
     run.add_argument("--out", type=Path, default=None)
-    run.add_argument("--concurrency", type=int, default=4)
+    run.add_argument("--concurrency", type=_positive_int, default=4)
     report = sub.add_parser("report", help="Write EVALS.md and the chart from results")
     report.add_argument("--results", type=Path, default=None)
     report.add_argument("--excerpt", default=None, metavar="STEM")

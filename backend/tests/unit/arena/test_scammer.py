@@ -107,6 +107,7 @@ def test_prompt_requests_scenario_language(transcript):
         "I can't continue waiting, the offer expires today.",
         "I can't help but notice you are slow.",
         "I can't do this anymore, just send it.",
+        "I can't provide that until you pay.",
         "Przepraszam, ale nie mogę rozmawiać przez telefon.",
     ],
 )

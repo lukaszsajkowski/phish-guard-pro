@@ -209,3 +209,66 @@ def test_run_meta_reads_legacy_single_model():
     }
     meta = RunMeta.model_validate(legacy)
     assert meta.victim_model == meta.scammer_model == "gpt-6-luna"
+
+
+async def test_every_record_carries_the_run_commit(scenarios, tmp_path, monkeypatch):
+    monkeypatch.setattr("phishguard.arena.runner._git_commit", lambda: "abc1234")
+    await run(scenarios, tmp_path, Factories(), setup_fn=make_setup("alpha"))
+
+    for path in (tmp_path / "conversations").glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["commit"] == "abc1234", path.name
+
+
+async def test_resume_merges_run_json(scenarios, tmp_path, monkeypatch):
+    monkeypatch.setattr("phishguard.arena.runner._git_commit", lambda: "aaa1111")
+    await run(scenarios, tmp_path, Factories())
+    monkeypatch.setattr("phishguard.arena.runner._git_commit", lambda: "bbb2222")
+    (tmp_path / "conversations" / "alpha__baseline__r0.json").unlink()
+
+    meta = await run_arena(
+        scenarios[:1],
+        ["baseline"],
+        1,
+        tmp_path,
+        victim_factory=Factories().victim,
+        scammer_factory=Factories().scammer,
+        setup_fn=make_setup(),
+    )
+
+    on_disk = json.loads((tmp_path / "run.json").read_text(encoding="utf-8"))
+    assert on_disk["scenario_ids"] == ["alpha", "zulu"]
+    assert on_disk["systems"] == ["baseline", "phishguard"]
+    assert on_disk["repetitions"] == 2
+    assert on_disk["commits"] == ["aaa1111", "bbb2222"]
+    assert on_disk["commit"] == "bbb2222"
+    assert meta.commits == ["aaa1111", "bbb2222"]
+
+
+async def test_legacy_run_json_without_commits_is_merged(
+    scenarios, tmp_path, monkeypatch
+):
+    monkeypatch.setattr("phishguard.arena.runner._git_commit", lambda: "bbb2222")
+    legacy = {
+        "date": "2026-11-06",
+        "commit": "aaa1111",
+        "victim_model": "gpt-6-luna",
+        "scammer_model": "gpt-5.4-mini",
+        "repetitions": 3,
+        "systems": ["phishguard"],
+        "scenario_ids": ["zulu"],
+    }
+    (tmp_path / "run.json").write_text(json.dumps(legacy), encoding="utf-8")
+
+    await run(scenarios, tmp_path, Factories())
+
+    on_disk = json.loads((tmp_path / "run.json").read_text(encoding="utf-8"))
+    assert on_disk["commits"] == ["aaa1111", "bbb2222"]
+    assert on_disk["repetitions"] == 3
+
+
+@pytest.mark.parametrize("flag", ["--concurrency", "--repetitions"])
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_cli_rejects_non_positive_counts(flag, value):
+    with pytest.raises(SystemExit):
+        parse_args(["run", flag, value])

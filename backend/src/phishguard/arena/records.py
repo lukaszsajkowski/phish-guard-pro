@@ -36,3 +36,4 @@ class ConversationRecord(BaseModel):
     scammer_usage: list[UsageEntry]
     started_at: str
     duration_ms: int
+    commit: str | None = None

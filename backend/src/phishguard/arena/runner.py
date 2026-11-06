@@ -34,6 +34,7 @@ class RunMeta(BaseModel):
 
     date: str
     commit: str
+    commits: list[str] = []
     victim_model: str
     scammer_model: str
     repetitions: int
@@ -95,7 +96,7 @@ def _write_json(path: Path, model: BaseModel) -> None:
 
 
 def _invalid_record(
-    scenario: Scenario, system: str, repetition: int, error: str
+    scenario: Scenario, system: str, repetition: int, error: str, commit: str
 ) -> ConversationRecord:
     return ConversationRecord(
         scenario_id=scenario.id,
@@ -110,6 +111,7 @@ def _invalid_record(
         scammer_usage=[],
         started_at=datetime.now(UTC).isoformat(),
         duration_ms=0,
+        commit=commit,
     )
 
 
@@ -124,6 +126,22 @@ def _default_victim_factory(
         )
 
     return factory
+
+
+def _merge_meta(path: Path, new: RunMeta) -> RunMeta:
+    """Fold an existing run.json into `new` so a partial resume never shrinks it."""
+    try:
+        old = RunMeta.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return new.model_copy(update={"commits": sorted({new.commit, *new.commits})})
+    return new.model_copy(
+        update={
+            "repetitions": max(old.repetitions, new.repetitions),
+            "systems": sorted({*old.systems, *new.systems}),
+            "scenario_ids": sorted({*old.scenario_ids, *new.scenario_ids}),
+            "commits": sorted({old.commit, *old.commits, new.commit, *new.commits}),
+        }
+    )
 
 
 async def run_arena(
@@ -155,15 +173,17 @@ async def run_arena(
         def scammer_factory():  # noqa: E306 - default seam
             return LLMScammer(scammer_llm)
 
+    commit = _git_commit()
     meta = RunMeta(
         date=date.today().isoformat(),
-        commit=_git_commit(),
+        commit=commit,
         victim_model=VICTIM_MODEL,
         scammer_model=SCAMMER_MODEL,
         repetitions=repetitions,
         systems=list(systems),
         scenario_ids=[s.id for s in scenarios],
     )
+    meta = _merge_meta(out_dir / "run.json", meta)
     _write_json(out_dir / "run.json", meta)
 
     semaphore = asyncio.Semaphore(concurrency)
@@ -191,13 +211,14 @@ async def run_arena(
         async def run_one(system: str, rep: int) -> None:
             path = conv_dir / f"{scenario.id}__{system}__r{rep}.json"
             if setup.error:
-                record = _invalid_record(scenario, system, rep, setup.error)
+                record = _invalid_record(scenario, system, rep, setup.error, commit)
             else:
                 async with semaphore:
                     victim = victim_factory(scenario, setup, system)
                     record = await run_conversation(
                         scenario, victim, scammer_factory(), system, rep
                     )
+                    record = record.model_copy(update={"commit": commit})
             _write_json(path, record)
             if on_record:
                 on_record(record)
