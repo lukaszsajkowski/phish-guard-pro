@@ -90,6 +90,7 @@ class PhishGuardState(TypedDict, total=False):
 
     # Persona
     persona: PersonaState | None
+    persona_seed: int | None
 
     # Conversation
     conversation_history: Annotated[list[MessageState], add]
@@ -103,6 +104,7 @@ class PhishGuardState(TypedDict, total=False):
     is_safe: bool
     safety_violations: list[str]
     regeneration_count: int
+    agent_regeneration_count: int
 
     # Metadata
     generation_time_ms: int

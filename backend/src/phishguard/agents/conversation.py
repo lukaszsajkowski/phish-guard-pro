@@ -66,6 +66,14 @@ class ResponseGenerationError(Exception):
     """
 
 
+class SafetyRegenerationExhaustedError(ResponseGenerationError):
+    """Raised when every regeneration attempt failed safety validation.
+
+    Unlike plain ``ResponseGenerationError`` (LLM or unexpected failures), this
+    signals that the model answered but every draft was blocked by the safety layer.
+    """
+
+
 class ConversationAgent:
     """Agent responsible for generating victim persona responses.
 
@@ -258,7 +266,7 @@ class ConversationAgent:
             MAX_REGENERATION_ATTEMPTS,
             last_error,
         )
-        raise ResponseGenerationError(
+        raise SafetyRegenerationExhaustedError(
             f"Failed to generate safe response after {MAX_REGENERATION_ATTEMPTS} "
             f"attempts. Safety violations: {last_error}"
         )

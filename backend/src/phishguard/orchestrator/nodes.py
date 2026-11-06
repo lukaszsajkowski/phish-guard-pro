@@ -79,7 +79,10 @@ async def select_persona(state: PhishGuardState) -> dict[str, Any]:
         return {"error": "No classification available"}
 
     attack_type = AttackType(classification["attack_type"])
-    engine = PersonaEngine()
+    persona_seed = state.get("persona_seed")
+    engine = (
+        PersonaEngine() if persona_seed is None else PersonaEngine(seed=persona_seed)
+    )
     profile = engine.select_persona(attack_type)
 
     persona = {
@@ -184,6 +187,7 @@ async def generate_response(state: PhishGuardState) -> dict[str, Any]:
         "is_safe": result.safety_validated,
         "generation_time_ms": elapsed_ms,
         "used_fallback_model": used_fallback,
+        "agent_regeneration_count": result.regeneration_count,
     }
 
 
