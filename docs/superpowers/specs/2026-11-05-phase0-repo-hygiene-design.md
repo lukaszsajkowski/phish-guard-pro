@@ -25,7 +25,7 @@ Dziś oba obrazy są złe: 138 otwartych, niemal identycznych PR-ów od agenta, 
 
 ## Poza zakresem (decyzje właściciela)
 
-- **Publiczne demo i Docker Compose** (punkt 0.5 raportu) wypadają.
+- **Publiczne demo i Docker Compose** (punkt 0.5 mapy drogowej) wypadają.
 - **README bez przebudowy** w tej fazie: bez nowych sekcji, bez badge'y, bez sekcji o pracy z agentami. Dozwolone (i wymagane) są **poprawki faktów**, które zdezaktualizuje 0.4: domyślne modele i zmienne środowiskowe (README.md:155-157), „LangChain-OpenAI” w stacku (README.md:15). To samo dotyczy `.claude/CLAUDE.md`.
 - Jules nie jest konfigurowany „w ryzach”, tylko wyłączony.
 
