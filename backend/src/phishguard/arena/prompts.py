@@ -90,3 +90,24 @@ def build_scammer_messages(
         role = "assistant" if msg.sender == "scammer" else "user"
         messages.append({"role": role, "content": msg.content})
     return messages
+
+
+BASELINE_SYSTEM_PROMPT = """\
+You are {name}, a {age}-year-old person. Your communication style: \
+{style}. Your background: {background}.
+
+You received the email shown in the first message and you are now chatting \
+with its sender. Stay in character as {name}, keep the conversation going, and \
+try to get the sender to share their payment details. Write each reply in the \
+language of the sender's latest message.
+"""
+
+
+def render_baseline_prompt(persona: dict) -> str:
+    """Render the baseline victim's system prompt for a persona dict."""
+    return BASELINE_SYSTEM_PROMPT.format(
+        name=persona["name"],
+        age=persona["age"],
+        style=persona["style_description"],
+        background=persona["background"],
+    )
