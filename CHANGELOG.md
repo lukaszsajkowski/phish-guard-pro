@@ -25,7 +25,7 @@ First tagged release: the complete single-user workflow, from pasting a phishing
 
 ### Changed
 
-- LLM access goes through provider adapters: `LLM_PROVIDER` selects OpenAI, Anthropic or Ollama. The default model is `gpt-6-luna` with `gpt-5.4-mini` as fallback, replacing `gpt-4o` / `gpt-4o-mini`. Existing `OPENAI_PRIMARY_MODEL` / `OPENAI_FALLBACK_MODEL` settings are still honoured.
+- LLM access goes through provider adapters: `LLM_PROVIDER` selects OpenAI, Anthropic or Ollama. The default OpenAI model is `gpt-6-luna`, used as both primary and fallback, replacing `gpt-4o` / `gpt-4o-mini`. Existing `OPENAI_PRIMARY_MODEL` / `OPENAI_FALLBACK_MODEL` settings are still honoured.
 - Accessibility fixes from automated review were consolidated into one change: live-region copy buttons, `aria-expanded`/`aria-controls` on expandable sections, unique ids, tooltips on icon-only buttons.
 - `/analyze` no longer generates a reply it then discards.
 

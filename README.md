@@ -154,7 +154,7 @@ API docs at http://localhost:8000/docs (in debug mode)
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
 | `LLM_PROVIDER` | LLM provider: `openai` (default), `anthropic` or `ollama` |
 | `LLM_PRIMARY_MODEL` | Primary model (default for openai: gpt-6-luna) |
-| `LLM_FALLBACK_MODEL` | Fallback model (default for openai: gpt-5.4-mini) |
+| `LLM_FALLBACK_MODEL` | Fallback model (default for openai: gpt-6-luna) |
 | `OPENAI_API_KEY` | OpenAI API key (provider `openai`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key (provider `anthropic`) |
 | `OLLAMA_BASE_URL` | Ollama OpenAI-compatible endpoint (default: http://localhost:11434/v1) |
