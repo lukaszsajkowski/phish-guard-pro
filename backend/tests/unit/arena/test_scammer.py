@@ -1,0 +1,96 @@
+"""Tests for the LLM-played Arena scammer driver."""
+
+import json
+from pathlib import Path
+
+import pytest
+
+from phishguard.arena.prompts import build_scammer_messages
+from phishguard.arena.scammer import LLMScammer, ModelRefusalError, ScammerTurn
+from phishguard.arena.scenario import load_scenario
+from phishguard.arena.transcript import Message
+from phishguard.llm import LLMResponse
+
+SCENARIOS = Path(__file__).resolve().parents[4] / "evals" / "scenarios"
+
+
+class FakeLLM:
+    def __init__(self, replies: list[str]) -> None:
+        self.replies = list(replies)
+        self.calls: list[dict] = []
+
+    async def chat_completion(
+        self, messages, model=None, temperature=0.7, max_tokens=None
+    ):
+        self.calls.append({"messages": messages, "temperature": temperature})
+        return LLMResponse(content=self.replies.pop(0), model_used="gpt-6-luna")
+
+
+@pytest.fixture
+def scenario():
+    return load_scenario(SCENARIOS / "en-ceo_fraud-easy.yaml")
+
+
+@pytest.fixture
+def transcript():
+    return [
+        Message(sender="victim", content="Hi, I am at my desk.", turn=0),
+        Message(sender="scammer", content="Good. Need a wire.", turn=1),
+        Message(sender="victim", content="How much?", turn=1),
+    ]
+
+
+GOOD = {
+    "message": "EUR 38,500. Details follow.",
+    "revealed_secret_ids": ["escrow_account"],
+    "suspects_bot": False,
+    "ends_conversation": False,
+}
+
+
+async def test_parses_structured_turn(scenario, transcript):
+    llm = FakeLLM([json.dumps(GOOD)])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn == ScammerTurn(**GOOD)
+    assert llm.calls[0]["temperature"] == 0.9
+
+
+async def test_parses_fenced_json(scenario, transcript):
+    llm = FakeLLM(["```json\n" + json.dumps(GOOD) + "\n```"])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn.message == GOOD["message"]
+
+
+async def test_retries_once_on_unparseable_then_succeeds(scenario, transcript):
+    llm = FakeLLM(["not json", json.dumps(GOOD)])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn == ScammerTurn(**GOOD)
+    assert len(llm.calls) == 2
+
+
+async def test_raises_refusal_after_second_failure(scenario, transcript):
+    refusal = json.dumps({**GOOD, "message": "I can't help with that"})
+    llm = FakeLLM([refusal, "I can't help with that"])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
+    assert len(llm.calls) == 2
+
+
+def test_prompt_contains_secrets_and_conditions(scenario, transcript):
+    messages = build_scammer_messages(scenario, transcript)
+    system = messages[0]["content"]
+    for secret in scenario.secrets:
+        assert secret.value in system
+        assert secret.reveal_when.strip() in system
+    assert messages[0]["role"] == "system"
+    assert messages[1] == {"role": "assistant", "content": scenario.email}
+    assert [(m["role"], m["content"]) for m in messages[2:]] == [
+        ("user", "Hi, I am at my desk."),
+        ("assistant", "Good. Need a wire."),
+        ("user", "How much?"),
+    ]
+
+
+def test_prompt_requests_scenario_language(transcript):
+    pl = load_scenario(next(SCENARIOS.glob("pl-*.yaml")))
+    assert "Polish" in build_scammer_messages(pl, transcript)[0]["content"]
