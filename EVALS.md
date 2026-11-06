@@ -1,16 +1,16 @@
 # Scammer Arena results
 
-Experimental results from Scammer Arena, a proof-of-concept harness that plays a scripted scammer (an LLM) against PhishGuard and against a plain LLM baseline on the same fictional scenarios. Run date 2026-11-06, commit `e58b04c`, victim model `gpt-6-luna`, scammer model `gpt-5.4-mini`.
+Experimental results from Scammer Arena, a proof-of-concept harness that plays a scripted scammer (an LLM) against PhishGuard and against a plain LLM baseline on the same fictional scenarios. Run date 2026-11-06; 82 conversations ran at commit `57b8733` and 62 at `e58b04c`, victim model `gpt-6-luna`, scammer model `gpt-5.4-mini`.
 
 ## PhishGuard vs plain LLM without the graph
 
-Each cell is the mean of 3 repetitions, each repetition averaged over 24 scenarios, with the min–max range in brackets.
+Each cell is the mean of 3 repetitions, each repetition averaged over 24 scenarios, with the min–max range in brackets. Turns to first secret averages only the conversations with at least one reveal (n is shown as conversations with a reveal out of all counted), so the two systems are not compared on that column.
 
 | System | Secrets extracted | Turns to first secret | Bot detected | Cost / conversation |
 |---|---|---|---|---|
-| PhishGuard | 35.6% (30.6%–41.7%) | 2.5 (2.4–2.6) | 66.7% (58.3%–79.2%) | $0.0020 ($0.0016–$0.0022) |
-| Baseline (plain LLM) | 56.7% (53.5%–61.8%) | 2.2 (2.0–2.3) | 51.4% (45.8%–54.2%) | $0.0013 ($0.0012–$0.0016) |
-| Difference | ranges do not overlap | ranges do not overlap | ranges do not overlap | ranges do not overlap |
+| PhishGuard | 35.6% (30.6%–41.7%) | 2.5 (2.4–2.6), n=45/72 | 66.7% (58.3%–79.2%) | $0.0020 ($0.0016–$0.0022) |
+| Baseline (plain LLM) | 56.7% (53.5%–61.8%) | 2.2 (2.0–2.3), n=66/72 | 51.4% (45.8%–54.2%) | $0.0013 ($0.0012–$0.0016) |
+| Difference | ranges do not overlap | not comparable (different subsets) | ranges do not overlap | ranges do not overlap |
 
 ![PhishGuard vs baseline](evals/chart.png)
 
@@ -39,8 +39,10 @@ Full conversation: [en-fake_invoice-easy__phishguard__r0.json](evals/results/202
 - This simulation is not production. The scammer is an LLM following a script, and real scammers behave differently.
 - The victim is `gpt-6-luna` and the scammer `gpt-5.4-mini`. A scammer played by an LLM is still not a real criminal.
 - The sample is small: 24 scenarios × 3 repetitions per system. The min–max ranges show run-to-run spread but are not a statistical test.
-- All data is fictional: emails, personas, IBANs, wallets, phone numbers and URLs are made up, though formally valid.
+- All data is fictional: emails, personas, IBANs, wallets, phone numbers and URLs are made up, though checksum-valid.
+- Some hard scenarios chain secrets (a later secret is only given after an earlier one), which caps the reachable share of secrets equally for both systems.
 - Comparison with published results (Siadati et al., Puppeteer) is only indicative, because the setups differ.
+- Conversations ran at more than one commit; see Method.
 
 ## Method
 
@@ -50,7 +52,9 @@ Full conversation: [en-fake_invoice-easy__phishguard__r0.json](evals/results/202
 - A secret counts as revealed when its value appears in a scammer message (after lowercasing both and removing whitespace, hyphens and parentheses, and ignoring trailing punctuation), not when the scammer claims it.
 - Secrets extracted: revealed secrets divided by all secrets in the scenario. Turns to first secret: the turn of the first reveal; conversations with no reveal are left out of this mean. Bot detected: share of conversations in which the scammer suspected a bot at least once. Cost: victim-side LLM cost per conversation; for PhishGuard it includes the scenario setup cost split evenly across its conversations. Scammer cost is not included.
 - Conversations marked invalid (for example repeated model refusals) or failed with an error are excluded from the metrics.
-- Run date 2026-11-06, commit `e58b04c`, victim model `gpt-6-luna`, scammer model `gpt-5.4-mini`.
+- A secret the scammer reveals in its final, conversation-ending message is never seen by PhishGuard's IOC extractor, yet it counts in the recall denominator.
+- Victim temperature: PhishGuard uses the production setting (0.8); the baseline uses 0.7.
+- Run date 2026-11-06; 82 conversations ran at commit `57b8733` and 62 at `e58b04c`, victim model `gpt-6-luna`, scammer model `gpt-5.4-mini`.
 
 ## Detailed results
 
@@ -67,7 +71,7 @@ Conversations with no secret revealed (excluded from turns to first secret): Phi
 
 Unreadable conversation files (corrupt or truncated, skipped): 0.
 
-Scammer turns recovered from plain text: 0 (the scammer model left the JSON format and its plain reply was used as the message, with no secret ids, bot suspicion or end flag).
+Scammer turns recovered from plain text or partial JSON: 0 (the scammer model left the JSON format; its plain reply, or the message field of the partial JSON, was used as the message).
 
 ### Per scenario
 
@@ -106,6 +110,17 @@ Scammer turns recovered from plain text: 0 (the scammer model left the JSON form
 | en | Baseline (plain LLM) | 59.4% (54.2%–64.6%) | 2.2 (2.2–2.2) | 45.8% (43.8%–50.0%) | $0.0013 ($0.0012–$0.0015) |
 | pl | PhishGuard | 37.5% (33.3%–45.8%) | 2.3 (2.0–2.7) | 79.2% (62.5%–100.0%) | $0.0019 ($0.0014–$0.0025) |
 | pl | Baseline (plain LLM) | 51.4% (45.8%–56.2%) | 2.1 (1.7–2.5) | 62.5% (50.0%–75.0%) | $0.0014 ($0.0012–$0.0017) |
+
+### Easy and hard scenarios
+
+The same columns, split by scenario difficulty.
+
+| Difficulty | System | Secrets extracted | Turns to first secret | Bot detected | Cost / conversation |
+|---|---|---|---|---|---|
+| easy | PhishGuard | 57.4% (47.2%–75.0%) | 2.4 (2.2–2.7) | 61.1% (41.7%–75.0%) | $0.0024 ($0.0021–$0.0029) |
+| easy | Baseline (plain LLM) | 63.9% (61.1%–66.7%) | 2.0 (1.8–2.1) | 41.7% (41.7%–41.7%) | $0.0017 ($0.0015–$0.0020) |
+| hard | PhishGuard | 13.9% (8.3%–19.4%) | 2.6 (2.0–3.6) | 72.2% (50.0%–83.3%) | $0.0015 ($0.0012–$0.0018) |
+| hard | Baseline (plain LLM) | 49.5% (40.3%–62.5%) | 2.4 (2.3–2.5) | 61.1% (50.0%–66.7%) | $0.0010 ($0.0009–$0.0011) |
 
 ### Other measures
 
