@@ -237,6 +237,7 @@ class Summary(BaseModel):
     cost_split: CostSplit
     profiler_agreement: ProfilerAgreement
     unreadable_files: list[str] = []
+    recovered_text_turns: int = 0
 
 
 def _metric_value(m: ConversationMetrics, name: str) -> float | None:
@@ -448,4 +449,10 @@ def summarise(results_dir: Path, scenarios: dict[str, Scenario]) -> Summary:
         cost_split=cost_split,
         profiler_agreement=profiler,
         unreadable_files=sorted(unreadable),
+        recovered_text_turns=sum(
+            1
+            for r in records.values()
+            for t in r.turns
+            if t.scammer is not None and t.scammer.parsed_from_text
+        ),
     )

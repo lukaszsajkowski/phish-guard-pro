@@ -328,3 +328,21 @@ def test_excerpt_override_without_reveal_is_an_error(tmp_path):
 
     with pytest.raises(ValueError, match="no revealed secret"):
         select_excerpt(results, f"{PL}__phishguard__r1")
+
+
+def test_report_states_recovered_plain_text_turns(tmp_path, scenarios):
+    root = build_results(tmp_path / "r")
+    path = root / "conversations" / f"{EN}__phishguard__r0.json"
+    rec = ConversationRecord.model_validate_json(path.read_text(encoding="utf-8"))
+    for t in rec.turns[1:3]:
+        t.scammer.parsed_from_text = True
+    path.write_text(rec.model_dump_json(), encoding="utf-8")
+
+    text = render(root, scenarios)
+
+    assert "Scammer turns recovered from plain text: 2" in text
+
+
+def test_report_recovered_turns_zero_by_default(tmp_path, scenarios):
+    text = render(build_results(tmp_path / "r"), scenarios)
+    assert "Scammer turns recovered from plain text: 0" in text

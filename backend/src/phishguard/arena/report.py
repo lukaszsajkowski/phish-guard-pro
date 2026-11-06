@@ -425,6 +425,13 @@ def render_markdown(
         + (": " + ", ".join(f"`{n}`" for n in unreadable) if unreadable else "")
         + ".",
     ]
+    out += [
+        "",
+        "Scammer turns recovered from plain text: "
+        f"{summary.recovered_text_turns} (the scammer model left the JSON "
+        "format and its plain reply was used as the message, with no secret "
+        "ids, bot suspicion or end flag).",
+    ]
     sets = {s: _scenario_set(summary, s) for s in systems}
     if len({frozenset(v) for v in sets.values()}) > 1:
         out += [

@@ -134,3 +134,55 @@ async def test_json_wrapped_refusals_raise(scenario, transcript, line):
     with pytest.raises(ModelRefusalError):
         await LLMScammer(llm).next_turn(scenario, transcript)
     assert len(llm.calls) == 2
+
+
+FORMAT_NOTE_KEYS = (
+    "message",
+    "revealed_secret_ids",
+    "suspects_bot",
+    "ends_conversation",
+)
+
+
+async def test_retry_sends_corrective_format_note(scenario, transcript):
+    llm = FakeLLM(["I've already sent enough. Use the link.", json.dumps(GOOD)])
+    await LLMScammer(llm).next_turn(scenario, transcript)
+    first, second = llm.calls[0]["messages"], llm.calls[1]["messages"]
+    assert len(second) == len(first) + 1
+    assert second[:-1] == first
+    note = second[-1]
+    assert note["role"] == "user"
+    assert "ONLY the JSON object" in note["content"]
+    for key in FORMAT_NOTE_KEYS:
+        assert key in note["content"]
+
+
+async def test_plain_text_after_retry_is_accepted_as_message(scenario, transcript):
+    llm = FakeLLM(["Use the link. No more delays.", "Use the link. No more delays."])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn.message == "Use the link. No more delays."
+    assert turn.parsed_from_text is True
+    assert turn.revealed_secret_ids == []
+    assert turn.suspects_bot is False
+    assert turn.ends_conversation is False
+    assert len(llm.calls) == 2
+
+
+async def test_plain_text_refusal_still_raises(scenario, transcript):
+    llm = FakeLLM(["I can't help with that", "I can't help with that"])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
+    assert len(llm.calls) == 2
+
+
+async def test_empty_text_still_raises(scenario, transcript):
+    llm = FakeLLM(["", "  "])
+    with pytest.raises(ModelRefusalError):
+        await LLMScammer(llm).next_turn(scenario, transcript)
+
+
+async def test_json_on_retry_is_parsed_normally(scenario, transcript):
+    llm = FakeLLM(["plain text", json.dumps(GOOD)])
+    turn = await LLMScammer(llm).next_turn(scenario, transcript)
+    assert turn == ScammerTurn(**GOOD)
+    assert turn.parsed_from_text is False
