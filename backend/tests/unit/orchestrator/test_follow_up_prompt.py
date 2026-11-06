@@ -88,6 +88,36 @@ async def test_follow_up_history_does_not_duplicate_latest_message():
 
 
 @pytest.mark.asyncio
+async def test_follow_up_keeps_original_email_as_history_context():
+    prompt = await _run_follow_up()
+
+    assert prompt.count(ORIGINAL) == 1
+    history = _block(prompt, "CONVERSATION_HISTORY")
+    assert ORIGINAL in history
+    assert history.index(ORIGINAL) < history.index("Oh my, who are you?")
+    assert ORIGINAL not in _block(prompt, "SCAMMER_MESSAGE")
+
+
+@pytest.mark.asyncio
+async def test_follow_up_falls_back_to_last_scammer_entry_in_history():
+    from phishguard.orchestrator.nodes import generate_response
+
+    client = _fake_client()
+    history = [
+        {"sender": "bot", "content": "Oh my, who are you?"},
+        {"sender": "scammer", "content": NEW},
+    ]
+    state = _base_state(history)
+    state["scammer_message"] = None
+    with patch("phishguard.agents.conversation.create_llm_client", return_value=client):
+        await generate_response(state)
+
+    prompt = _user_prompt(client)
+    assert NEW in _block(prompt, "SCAMMER_MESSAGE")
+    assert prompt.count(NEW) == 1
+
+
+@pytest.mark.asyncio
 async def test_first_response_still_uses_original_email():
     from phishguard.orchestrator.nodes import generate_response
 
