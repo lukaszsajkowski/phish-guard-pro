@@ -62,7 +62,7 @@ class TestIntelCollector:
         assert result.has_iocs
         assert len(result.iocs) == 1
         assert result.iocs[0].ioc_type == IOCType.URL
-        assert "scam-site.com" in result.iocs[0].value
+        assert result.iocs[0].value == "https://scam-site.com/payment"
 
     def test_extract_multiple_iocs(self, collector: IntelCollector) -> None:
         """Test extraction of multiple IOC types from single message."""

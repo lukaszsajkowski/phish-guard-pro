@@ -137,6 +137,18 @@ class TestBtcAddressValidation:
     def test_empty_string(self) -> None:
         assert _is_valid_btc_address("") is False
 
+    @pytest.mark.parametrize("char", ["b", "i", "o", "1"])
+    def test_bech32_rejects_chars_outside_charset(self, char: str) -> None:
+        address = VALID_BECH32[:-1] + char
+        assert _is_valid_btc_address(address) is False
+
+    def test_bech32_rejects_mixed_case(self) -> None:
+        address = VALID_BECH32[:10] + VALID_BECH32[10:].upper()
+        assert _is_valid_btc_address(address) is False
+
+    def test_bech32_accepts_all_uppercase(self) -> None:
+        assert _is_valid_btc_address(VALID_BECH32.upper()) is True
+
 
 # ---------------------------------------------------------------------------
 # Reputation derivation

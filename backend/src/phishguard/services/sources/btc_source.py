@@ -45,8 +45,9 @@ logger = logging.getLogger(__name__)
 _RE_P2PKH = re.compile(r"^1[1-9A-HJ-NP-Za-km-z]{24,33}$")
 # Legacy P2SH (3...) — 34 chars base58
 _RE_P2SH = re.compile(r"^3[1-9A-HJ-NP-Za-km-z]{24,33}$")
-# Bech32 / Bech32m (bc1...) — 42 or 62 chars lowercase alnum
-_RE_BECH32 = re.compile(r"^bc1[a-zA-HJ-NP-Za-km-z0-9]{25,71}$")
+# Bech32 / Bech32m (bc1...) — data part uses the bech32 charset (lowercase
+# alnum without 1, b, i, o). BIP-173 allows all-uppercase but not mixed case.
+_RE_BECH32 = re.compile(r"^bc1[ac-hj-np-z02-9]{25,71}$")
 
 _SATOSHIS_PER_BTC = 100_000_000
 
@@ -60,8 +61,9 @@ _TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 def _is_valid_btc_address(address: str) -> bool:
     """Lightweight format check — NOT full checksum validation."""
+    bech32 = address.lower() if address.isupper() else address
     return bool(
-        _RE_P2PKH.match(address) or _RE_P2SH.match(address) or _RE_BECH32.match(address)
+        _RE_P2PKH.match(address) or _RE_P2SH.match(address) or _RE_BECH32.match(bech32)
     )
 
 
