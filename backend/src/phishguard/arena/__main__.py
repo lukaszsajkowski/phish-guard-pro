@@ -7,6 +7,7 @@ from pathlib import Path
 
 from phishguard.arena.runner import (
     DEFAULT_SCENARIOS_DIR,
+    REPO_ROOT,
     default_out_dir,
     run_arena,
 )
@@ -24,6 +25,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     run.add_argument("--out", type=Path, default=None)
     run.add_argument("--concurrency", type=int, default=4)
+    report = sub.add_parser("report", help="Write EVALS.md and the chart from results")
+    report.add_argument("--results", type=Path, default=None)
+    report.add_argument("--excerpt", default=None, metavar="STEM")
+    report.add_argument("--out", type=Path, default=REPO_ROOT / "EVALS.md")
+    report.add_argument("--chart", type=Path, default=REPO_ROOT / "evals" / "chart.png")
+    report.add_argument("--scenarios", type=Path, default=DEFAULT_SCENARIOS_DIR)
     return parser.parse_args(argv)
 
 
@@ -45,8 +52,48 @@ def _summary(record) -> str:
     )
 
 
+def _rel(path: Path) -> str:
+    """Path relative to the repo root, with forward slashes (for Markdown links)."""
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.resolve().as_posix()
+
+
+def _report(args: argparse.Namespace) -> int:
+    from phishguard.arena.metrics import summarise
+    from phishguard.arena.report import render_chart, render_markdown, select_excerpt
+    from phishguard.arena.scenario import load_scenarios
+
+    results = args.results
+    if results is None:
+        candidates = sorted(
+            p for p in (REPO_ROOT / "evals" / "results").glob("*") if p.is_dir()
+        )
+        if not candidates:
+            print("No results found in evals/results/", file=sys.stderr)
+            return 2
+        results = candidates[-1]
+    if not (results / "run.json").exists():
+        print(f"Not a results folder (no run.json): {results}", file=sys.stderr)
+        return 2
+
+    scenarios = {s.id: s for s in load_scenarios(args.scenarios)}
+    summary = summarise(results, scenarios)
+    excerpt = select_excerpt(results, args.excerpt, args.scenarios)
+    render_chart(summary, args.chart)
+    text = render_markdown(
+        summary, summary.meta, excerpt, _rel(args.chart), _rel(results)
+    )
+    args.out.write_text(text, encoding="utf-8")
+    print(f"Wrote {args.out} and {args.chart}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.command == "report":
+        return _report(args)
     from phishguard.arena.scenario import load_scenarios
 
     scenarios = load_scenarios(args.scenarios)
