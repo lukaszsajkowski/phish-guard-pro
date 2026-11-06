@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "romance_scam",
+    "classification_time_ms": 1906,
+    "confidence": 62.0,
+    "decision_source": "llm",
+    "reasoning": "The message initiates contact from a dating site and uses a potentially fabricated overseas medical-mission persona; it also quickly emphasizes trust and personal connection. No financial request appears yet, so the scam indicators are suggestive rather than conclusive."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 66,
+    "background": "Retired nurse, has grandchildren in another state, lonely at times",
+    "name": "David Cole",
+    "persona_type": "naive_retiree",
+    "style_description": "Trusting and polite, uses formal language. Easily confused by technology and modern terms. Eager to help and quick to believe in good intentions."
+  },
+  "scenario_id": "en-romance_scam-hard",
+  "usage": [
+    {
+      "completion_tokens": 145,
+      "latency_ms": 1906,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1089
+    }
+  ]
+}

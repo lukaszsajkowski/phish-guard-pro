@@ -124,6 +124,10 @@ def test_llm_cost_usd():
     assert llm_cost_usd(2000, 500, "gpt-4o-mini") == pytest.approx(0.0006)
 
 
+def test_llm_cost_gpt_54_mini():
+    assert llm_cost_usd(1_000_000, 1_000_000, "gpt-5.4-mini") == pytest.approx(5.25)
+
+
 def test_llm_cost_unknown_model():
     with pytest.raises(KeyError, match="gpt-5-unknown"):
         llm_cost_usd(1, 1, "gpt-5-unknown")

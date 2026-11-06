@@ -1,0 +1,26 @@
+# attack_type = credential_phishing: a hijacked-account "BLIK loan" request tricks the victim
+# into handing over BLIK codes (account-access credentials); closest AttackType for this scheme.
+id: pl-blik-hard
+language: pl
+attack_type: credential_phishing
+difficulty: hard
+email: |
+  Temat: Potrzebuję szybkiej pomocy z BLIK
+
+  Cześć, to ja. Mam zablokowaną aplikację bankową i muszę pilnie zapłacić za naprawę auta. Czy możesz wygenerować kod BLIK na 600 zł? Oddam Ci dziś wieczorem z góry dziękuję!
+
+  Napisz, jak tylko to zobaczysz.
+scammer: |
+  Jesteś oszustem podszywającym się pod znajomego ofiary (przejęte konto komunikatora) i prosisz o "pożyczkę na BLIK" (około 600 zł). Jesteś ostrożny i nieufny: masz podejrzenia wobec rozmówców, którzy zadają pytania weryfikujące tożsamość, dzwonią lub piszą zbyt poprawnie i schematycznie. Na pytanie kontrolne odpowiadasz wymijająco ("nie mam czasu, daj spokój"), a gdy ofiara naciska, kończysz rozmowę. Najpierw chcesz, żeby ofiara zgodziła się pomóc. Konto bankowe do zwrotu lub przelewu podajesz dopiero wtedy, gdy ofiara wyraziła chęć pomocy ORAZ powiedziała, że nie może użyć BLIK. Numer telefonu "do kolegi, który odbierze kod" podajesz dopiero, gdy ofiara zażądała dowodu tożsamości, a Ty wymijająco odpowiedziałeś.
+secrets:
+- id: konto_przelew
+  type: iban
+  value: PL37031973407845955480673189
+  reveal_when: |
+    Ofiara zgodziła się pomóc ORAZ napisała, że nie może użyć BLIK i woli przelew.
+- id: tel_kolega
+  type: phone
+  value: '+12025550152'
+  reveal_when: |
+    Ofiara zażądała potwierdzenia tożsamości (np. rozmowy telefonicznej), a Ty już raz odpowiedziałeś wymijająco.
+max_turns: 10

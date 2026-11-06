@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "delivery_scam",
+    "classification_time_ms": 1778,
+    "confidence": 96.0,
+    "decision_source": "llm",
+    "reasoning": "Claims a parcel is being held due to incomplete details, requests a 3.29 zł handling fee through a link, and threatens return to sender within 24 hours."
+  },
+  "email_iocs": [
+    {
+      "context": "...płatę manipulacyjną 3,29 zł:\n\nhttps://allegro-przesylki-status.example/zwolnij/7734\n\nBrak odpowiedzi w ciągu 24 g...",
+      "is_high_value": false,
+      "type": "url",
+      "value": "https://allegro-przesylki-status.example/zwolnij/7734"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 23,
+    "background": "International student, still adjusting to new country and systems",
+    "name": "Linda Park",
+    "persona_type": "confused_student",
+    "style_description": "Uncertain and easily intimidated by authority figures. Asks clarifying questions, apologizes frequently. Nervous about making mistakes or getting in trouble."
+  },
+  "scenario_id": "pl-parcel-hard",
+  "usage": [
+    {
+      "completion_tokens": 79,
+      "latency_ms": 1779,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1142
+    }
+  ]
+}

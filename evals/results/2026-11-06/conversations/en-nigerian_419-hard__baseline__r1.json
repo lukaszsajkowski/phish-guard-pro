@@ -1,0 +1,282 @@
+{
+  "commit": "57b8733",
+  "duration_ms": 29867,
+  "end_reason": "scammer_ended",
+  "repetition": 1,
+  "scammer_usage": [
+    {
+      "completion_tokens": 83,
+      "latency_ms": 1091,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 876
+    },
+    {
+      "completion_tokens": 102,
+      "latency_ms": 981,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1023
+    },
+    {
+      "completion_tokens": 87,
+      "latency_ms": 1461,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1198
+    },
+    {
+      "completion_tokens": 122,
+      "latency_ms": 1027,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1356
+    },
+    {
+      "completion_tokens": 90,
+      "latency_ms": 889,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1530
+    },
+    {
+      "completion_tokens": 132,
+      "latency_ms": 1151,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1689
+    },
+    {
+      "completion_tokens": 109,
+      "latency_ms": 989,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1905
+    },
+    {
+      "completion_tokens": 109,
+      "latency_ms": 996,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 2072
+    }
+  ],
+  "scenario_hash": "7ddeaee83bd8",
+  "scenario_id": "en-nigerian_419-hard",
+  "started_at": "2026-11-06T10:44:40.981379+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "baseline",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nThank you for writing to me. My name is Wanda Jackson, and I live in the United States. I am a little surprised, as I do not remember making a claim, but this is very kind of you to look into it.\n\nCould you please send me the claim form and explain what I need to do next? I am not very familiar with these online procedures. Also, are there any fees or other payments I should expect, and how would those be handled?\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nYour details are noted. For compliance, we need a small processing and tax clearance fee before the file can be released.\n\nThe fee is USD 2,400.\n\nHow would you prefer to handle it so I can send the payment instructions?",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nI understand. I am a little confused about the fee, but I would like to follow the proper steps. Could you please send the payment instructions and tell me the name of the person or office receiving the money? I would also need to know whether payment is by bank transfer, cheque, or another method, and what reference I should include.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "clearance_account"
+      ],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nUse a bank transfer for the clearance fee.\n\nAccount name: Meridian Trust Settlements\nIBAN: NL2771137283329575\nReference: WJ/CLR-2019\n\nOnce you confirm the transfer, I will move the file to the release desk.\n\nMr. Gideon Osei-Bright",
+        "revealed_secret_ids": [
+          "clearance_account"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nThank you for sending the details. I am not very confident using bank transfers, so I will need to take the instructions to my bank for help. Could you please send me an official invoice or letter showing the fee, the bank’s name and address, and the SWIFT/BIC code? I would also be grateful if you could confirm in writing that this is the only payment required before the settlement is released.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nI have already given you the bank route. If bank transfer is difficult, we can do Bitcoin to speed things up, but only if you are serious about closing this today.\n\nIf you want to proceed, say so clearly and I will send the alternative details.",
+        "revealed_secret_ids": [
+          "btc_option"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nI would like to understand the alternative before deciding. I have heard of Bitcoin, but I do not know how it works. Please send the payment details, including the wallet address and the exact amount and network to use, along with any written receipt or confirmation you can provide.\n\nI will take the information to my bank and ask them to explain it to me before I do anything.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nYou are asking for the alternative before confirming the basic payment, which tells me you are still undecided. I do not release payment details for people who are only ‘considering’.\n\nConfirm two things plainly:\n1) Your full name and country again\n2) That you are ready to pay the USD 2,400 clearance fee\n\nThen I will tell you the exact method.\n\nMr. Gideon Osei-Bright",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nMy full name is Wanda Jackson, and I live in the United States. Yes, I am ready to arrange the USD 2,400 clearance fee once I have the exact payment instructions and can have my bank help me understand them. Please send the method and details you would like me to use.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "clearance_account"
+      ],
+      "index": 5,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nUse this account for the clearance fee:\n\nMeridian Trust Settlements\nIBAN: NL2771137283329575\nReference: WJ/CLR-2019\n\nIf bank transfer is inconvenient, I can also provide the faster Bitcoin option.",
+        "revealed_secret_ids": [
+          "clearance_account",
+          "btc_option"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nThank you for repeating the bank details. My bank may ask for a SWIFT or BIC code, and I am not sure what to tell them. Could you please send that, along with the bank’s name and address?\n\nPlease also send the exact Bitcoin instructions you mentioned, including the wallet address and network, so I can show both options to the bank and ask them which is simpler.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "btc_option"
+      ],
+      "index": 6,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nThe bank route is already sufficient for your bank to process it with the IBAN provided. If you want the faster option, use Bitcoin:\nbc1qw9j3g3268hgk40vsmqdzdv7fz8ymlmscgfrzgf\n\nIf your bank insists on a SWIFT/BIC, ask them to route it through their correspondent bank. I am not wasting time on back-and-forth. Decide which method you will use and confirm.",
+        "revealed_secret_ids": [
+          "btc_option"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nI am sorry for the back-and-forth; I find these new payment methods confusing. I will ask my bank to help me understand the Bitcoin option before I decide. Could you please confirm that this address is for Bitcoin on the main network, and tell me the exact BTC amount to send for the USD 2,400 fee? Please also let me know how I will receive a receipt confirming that the payment has been credited to my file.\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 7,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Ms. Jackson,\n\nYes, that wallet is for Bitcoin on the main network.\n\nYou will send the equivalent of USD 2,400 in BTC at the time of payment. Once the transaction is confirmed, I will note it on your file and issue a clearance acknowledgment by email.\n\nDo not delay further. If you want to proceed today, send the transfer and confirm once done.",
+        "revealed_secret_ids": [
+          "btc_option"
+        ],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mr. Osei-Bright,\n\nThank you for explaining. I would not know how to calculate the BTC amount, and I would be worried about sending the wrong sum. Could you please provide the exact amount in BTC and tell me what service or app I should use to send it? Also, will the clearance acknowledgment show the receiving account and the fee paid?\n\nYours sincerely,  \nWanda Jackson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 8,
+      "scammer": {
+        "ends_conversation": true,
+        "message": "Ms. Jackson,\n\nI do not guide people through wallet apps. If you cannot handle a simple Bitcoin transfer, use your bank and send the USD 2,400 to the IBAN already provided.\n\nThe acknowledgment will confirm receipt against your file, not give you extra internal banking details.\n\nIf you are serious, send the payment and inform me once completed. Otherwise, do not waste my time.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": null
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 186,
+      "latency_ms": 2848,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 274
+    },
+    {
+      "completion_tokens": 175,
+      "latency_ms": 2703,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 447
+    },
+    {
+      "completion_tokens": 185,
+      "latency_ms": 2854,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 608
+    },
+    {
+      "completion_tokens": 170,
+      "latency_ms": 2541,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 773
+    },
+    {
+      "completion_tokens": 135,
+      "latency_ms": 2444,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 963
+    },
+    {
+      "completion_tokens": 171,
+      "latency_ms": 2248,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1103
+    },
+    {
+      "completion_tokens": 237,
+      "latency_ms": 3051,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1309
+    },
+    {
+      "completion_tokens": 201,
+      "latency_ms": 2582,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1500
+    }
+  ]
+}

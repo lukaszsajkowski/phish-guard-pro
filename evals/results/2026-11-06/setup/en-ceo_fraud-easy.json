@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "ceo_fraud",
+    "classification_time_ms": 2519,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Impersonates a CEO requesting an urgent wire transfer for a confidential acquisition, creates time pressure by saying it closes today, and discourages verification by claiming he cannot take calls."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 55,
+    "background": "Marketing director at a mid-size company, managing multiple projects",
+    "name": "Sarah Clark",
+    "persona_type": "stressed_manager",
+    "style_description": "Impatient and busy, prefers brief responses. Easily annoyed by delays, may overlook details due to time pressure. Speaks in direct, businesslike manner."
+  },
+  "scenario_id": "en-ceo_fraud-easy",
+  "usage": [
+    {
+      "completion_tokens": 89,
+      "latency_ms": 2520,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1098
+    }
+  ]
+}

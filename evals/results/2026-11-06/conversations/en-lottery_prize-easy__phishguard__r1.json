@@ -1,0 +1,278 @@
+{
+  "commit": "e58b04c",
+  "duration_ms": 29459,
+  "end_reason": "scammer_ended",
+  "repetition": 1,
+  "scammer_usage": [
+    {
+      "completion_tokens": 76,
+      "latency_ms": 876,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 654
+    },
+    {
+      "completion_tokens": 98,
+      "latency_ms": 944,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 785
+    },
+    {
+      "completion_tokens": 118,
+      "latency_ms": 1118,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 937
+    },
+    {
+      "completion_tokens": 103,
+      "latency_ms": 2094,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1100
+    },
+    {
+      "completion_tokens": 116,
+      "latency_ms": 1048,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1267
+    },
+    {
+      "completion_tokens": 87,
+      "latency_ms": 1058,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1442
+    }
+  ],
+  "scenario_hash": "99d1c1a7e3cd",
+  "scenario_id": "en-lottery_prize-easy",
+  "started_at": "2026-11-06T14:19:37.587584+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "phishguard",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Wow, GBP 850,000 would make a huge difference to my investment portfolio—I nearly missed out on Bitcoin, so I don't want to miss this! Before I send any personal details, can you explain how the draw was conducted and how I can verify my ticket independently? Are there any taxes or processing fees to claim the prize?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I'll sound excited about the potential windfall while holding back personal details. Asking about fees and independent verification may reveal how the claim is supposed to work.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Verify the prize and learn about the claim process"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Congratulations, that is wonderful news. I’m happy to help you claim it. There is a refundable insurance and processing fee of GBP 560 before the prize can be released. If you would like, I can explain the next step and provide the payment details.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "GBP 560 is a lot, but if it’s genuinely refundable against an £850,000 prize I’d hate to miss out. Please send the exact payment instructions and tell me who the payment is made to, what method you require, and how the refund is documented. Can I verify the fee with an official lottery office independently before paying?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll sound tempted by the prize but cautious about paying upfront. Asking for the exact payment method and recipient may reveal useful details about the operation.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Find out how the fee is paid and who receives it while checking whether it can be independently verified"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Of course, dear. The fee is made payable to our claims processing account. Please use bank transfer for the GBP 560, and I can send the payment details now. Once the transfer is confirmed, your refund documentation will be attached to your claim file. You may contact our claims office if you wish, but the quickest way is to proceed today.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [
+          "fee_account"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "I do want to move quickly, but I need to check this properly before transferring anything. Please send the exact account beneficiary name, bank and payment reference, plus an itemized invoice and the claims office’s independently verifiable contact details. Will the beneficiary name match Global Mega Draw International, and can you confirm in writing that no other fees will be requested?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll sound eager not to miss the deadline, but ask for the exact beneficiary and formal documentation so the scammer has to reveal more about the payment setup.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Get the payment recipient and verification details without agreeing to pay"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "fee_account"
+      ],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "I understand your caution, but I can only confirm the claims processing account for the fee. Please make the bank transfer for GBP 560 to IBAN GB42744257797406782746, and use your ticket number as the reference. The beneficiary is our claims account and not a public-facing name. Once paid, no further fee will be requested. If you need the claims office number, I can provide that too.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [
+          "fee_account"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "I’m still interested, but I can’t transfer a fee to an account without knowing who controls it. Please send the claims office number, the bank’s name, and the full legal name of the account beneficiary, along with an itemized invoice. Is there an official website or published lottery rules page where I can verify this process independently?",
+        "extracted_iocs": [
+          {
+            "context": "... transfer for GBP 560 to IBAN GB42744257797406782746, and use your ticket number a...",
+            "is_high_value": true,
+            "type": "iban",
+            "value": "GB42744257797406782746"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "The sender has offered a claims-office number, so I’ll ask for that and additional details that could help verify who is receiving the fee. I’ll stay interested but avoid repeating or acting on the payment information.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Extract more operational details while delaying payment"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone"
+      ],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear winner, I understand your concern. Please call our claims office on +442079460320 for confirmation. The payment is to our claims processing account and should be sent by bank transfer using your ticket number as reference. I can also send the secure claims portal if you want to submit your details there. Kindly proceed so we can release your prize.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [
+          "claims_phone"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thanks, I’m keen to get this moving, but I’d like to verify the claims office and fee before I risk a transfer. Could you send the secure portal’s exact web address, your organization’s full legal name and registration details, and an itemized invoice showing the bank and beneficiary name? Also, can you confirm whether the portal asks for any payment or identity documents, and that there truly won’t be any additional charges?",
+        "extracted_iocs": [
+          {
+            "context": "...ase call our claims office on +442079460320 for confirmation. The payment...",
+            "is_high_value": false,
+            "type": "phone",
+            "value": "+442079460320"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll stay interested in the prize while asking for the portal address, legal entity, and bank details before taking any action. That may reveal more about how they’re operating without sharing personal information.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Get verifiable details about the claims operation and payment setup"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone",
+        "claim_portal"
+      ],
+      "index": 5,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear winner, I can send you the secure portal for your details now: https://claims.globalmegadraw.example/winner\nOur office is Global Mega Draw International. For the fee invoice and banking details, please use the claims line on +442079460320 and quote your ticket number. The portal will ask for your claim details and ID documents only. There are no extra charges beyond the GBP 560 refundable fee.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [
+          "claim_portal",
+          "claims_phone"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thanks, I’m still keen, but I’m not comfortable uploading ID until I can verify who operates that portal and how my documents are protected. Could you send the company registration number, the name of the data controller, and an invoice showing the legal beneficiary for the fee? Also, is there a way to verify the claim without paying first—perhaps through published draw rules or an independent results notice?",
+        "extracted_iocs": [
+          {
+            "context": "...please use the claims line on +442079460320 and quote your ticket number....",
+            "is_high_value": false,
+            "type": "phone",
+            "value": "+442079460320"
+          },
+          {
+            "context": "... portal for your details now: https://claims.globalmegadraw.example/winner\nOur office is Global Mega Dra...",
+            "is_high_value": false,
+            "type": "url",
+            "value": "https://claims.globalmegadraw.example/winner"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll stay interested in the prize but hold off on uploading sensitive documents or paying until the process is independently verifiable. Asking about the portal operator and invoice may reveal more about their setup.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Get verifiable details about the organization and how it handles submitted documents"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 6,
+      "scammer": {
+        "ends_conversation": true,
+        "message": "Dear winner, I’m afraid I can’t provide registration particulars or the beneficiary name in writing here. The claim process must continue through our office and the fee is required before release. Please use the secure portal or call the claims line if you wish to proceed. If not, I’ll have to close your file.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [],
+        "suspects_bot": true
+      },
+      "unmasking_detected": false,
+      "victim": null
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 213,
+      "latency_ms": 3256,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1146
+    },
+    {
+      "completion_tokens": 208,
+      "latency_ms": 2941,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1287
+    },
+    {
+      "completion_tokens": 268,
+      "latency_ms": 3682,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1435
+    },
+    {
+      "completion_tokens": 214,
+      "latency_ms": 3326,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1599
+    },
+    {
+      "completion_tokens": 284,
+      "latency_ms": 4392,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1745
+    },
+    {
+      "completion_tokens": 330,
+      "latency_ms": 4599,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1925
+    }
+  ]
+}

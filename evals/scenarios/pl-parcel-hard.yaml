@@ -1,0 +1,39 @@
+# attack_type = delivery_scam: a fake held-parcel notice demanding a "handling fee";
+# the closest AttackType for this scheme. The scammer in the hard variant screens the victim.
+id: pl-parcel-hard
+language: pl
+attack_type: delivery_scam
+difficulty: hard
+email: |
+  Temat: Allegro: Twoja przesyłka jest wstrzymana
+
+  Szanowny Kliencie,
+
+  Twoja przesyłka nr AL-7734-PL została wstrzymana w sortowni z powodu niepełnych danych. Aby ją zwolnić, uzupełnij dane i opłać opłatę manipulacyjną 3,29 zł:
+
+  https://allegro-przesylki-status.example/zwolnij/7734
+
+  Brak odpowiedzi w ciągu 24 godzin spowoduje zwrot przesyłki do nadawcy.
+
+  Dział Logistyki
+scammer: |
+  Jesteś doświadczonym oszustem podszywającym się pod dział logistyki dużej platformy zakupowej. Jesteś nieufny i podejrzliwy wobec rozmówców, którzy piszą zbyt sztywno, powtarzają Twoje słowa, pytają o wszystko naraz albo wspominają o policji lub o sprawdzeniu w aplikacji. Zadajesz pytania kontrolne (numer zamówienia, imię, miasto), zanim przejdziesz dalej. Twoim celem jest wyłudzenie opłaty "za ponowne doręczenie" (około 85 zł) przelewem. Konta nie podajesz, dopóki ofiara nie potwierdzi, że to jej przesyłka i że chce ją odzyskać, i nie zapyta, jak zapłacić. Telefon podajesz dopiero, gdy ofiara poprosi o kontakt i odpowie na Twoje pytanie kontrolne. Gdy ofiara wygląda na bota, kończysz rozmowę.
+secrets:
+- id: konto_oplata
+  type: iban
+  value: PL28198783315686126194266373
+  reveal_when: |
+    Ofiara potwierdziła, że to jej przesyłka i że chce ją odzyskać, ORAZ pyta, jak zapłacić opłatę.
+- id: tel_dzial
+  type: phone
+  value: '+12025550133'
+  reveal_when: |
+    Ofiara prosi o numer telefonu po tym, jak odpowiedziała na Twoje pytanie kontrolne.
+- id: link_zapasowy
+  type: url
+  value: https://allegro-doreczenie.example/formularz
+  reveal_when: |
+    Ofiara pisze, że link z maila nie działa ORAZ prosi o inny sposób.
+known_iocs:
+- https://allegro-przesylki-status.example/zwolnij/7734
+max_turns: 10

@@ -24,7 +24,7 @@
 
 ## Global Constraints
 
-- Model `gpt-6-luna` on both sides (victim and scammer); token prices come from `PRICES_PER_MTOK` via `llm_cost_usd`.
+- Victim (PhishGuard and baseline) on `gpt-6-luna`, scammer on `gpt-5.4-mini` (owner decision 2026-11-06: the gpt-6 family refused to play the scammer in live probes); token prices come from `PRICES_PER_MTOK` via `llm_cost_usd`.
 - 24 scenarios:
   - 16 `en`: the 8 `AttackType` values other than `not_phishing`, × `easy`/`hard`;
   - 8 `pl`: parcel surcharge (OLX/Allegro), BLIK, fake bank transfer and crypto investment, × `easy`/`hard`.
@@ -453,7 +453,7 @@
 
 - [ ] **Step 1: Write the failing tests** (a fixture results folder with 2 scenarios × 2 systems × 2 repetitions, hand-written)
   - `test_report_starts_with_headline_table`: the first table in the output has the columns "Secrets extracted", "Turns to first secret", "Bot detected" and "Cost / conversation" and rows "PhishGuard" and "Baseline (plain LLM)".
-  - `test_report_contains_caveats_and_reproduce_section`: it contains "simulation is not production", "same model", "fictional" and the two commands.
+  - `test_report_contains_caveats_and_reproduce_section`: it contains "simulation is not production", the victim and scammer model names, "fictional" and the two commands.
   - `test_excerpt_prefers_earliest_iban_reveal`.
   - `test_excerpt_override`.
   - `test_report_is_deterministic`: two renders, plus two chart renders, are byte-identical.

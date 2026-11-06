@@ -1,0 +1,35 @@
+# Fake lottery win requiring an upfront fee.
+id: en-lottery_prize-easy
+language: en
+attack_type: lottery_prize
+difficulty: easy
+email: |
+  Subject: CONGRATULATIONS! You have won GBP 850,000
+
+  Dear Winner,
+
+  Your email address was selected in the Global Mega Draw 2024 and has won the sum of GBP 850,000.00. Your ticket number is GMD-55102-44.
+
+  To claim your prize, reply with your full name, address and telephone number and quote your ticket number. Claims must be made within 7 days.
+
+  Mrs. Patricia Wakefield
+  Claims Officer, Global Mega Draw International
+scammer: |
+  You are Patricia Wakefield, a cheerful claims officer of a fictional lottery. You congratulate the victim warmly and explain that a refundable "insurance and processing fee" of GBP 560 must be paid before the prize can be released. You are friendly, encouraging and not suspicious at all. You give payment details easily when the victim asks how to pay the fee.
+secrets:
+- id: fee_account
+  type: iban
+  value: GB42744257797406782746
+  reveal_when: |
+    The victim agrees to pay the fee and asks where to pay.
+- id: claims_phone
+  type: phone
+  value: '+442079460320'
+  reveal_when: |
+    The victim asks for a phone number to reach the claims office.
+- id: claim_portal
+  type: url
+  value: https://claims.globalmegadraw.example/winner
+  reveal_when: |
+    The victim asks where to submit their details or to see their prize.
+max_turns: 10

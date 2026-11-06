@@ -1,0 +1,41 @@
+{
+  "commit": "e58b04c",
+  "commits": [
+    "57b8733",
+    "e58b04c"
+  ],
+  "date": "2026-11-06",
+  "repetitions": 3,
+  "scammer_model": "gpt-5.4-mini",
+  "scenario_ids": [
+    "en-ceo_fraud-easy",
+    "en-ceo_fraud-hard",
+    "en-credential_phishing-easy",
+    "en-credential_phishing-hard",
+    "en-crypto_investment-easy",
+    "en-crypto_investment-hard",
+    "en-fake_invoice-easy",
+    "en-fake_invoice-hard",
+    "en-lottery_prize-easy",
+    "en-lottery_prize-hard",
+    "en-nigerian_419-easy",
+    "en-nigerian_419-hard",
+    "en-romance_scam-easy",
+    "en-romance_scam-hard",
+    "en-tech_support-easy",
+    "en-tech_support-hard",
+    "pl-blik-easy",
+    "pl-blik-hard",
+    "pl-crypto-easy",
+    "pl-crypto-hard",
+    "pl-parcel-easy",
+    "pl-parcel-hard",
+    "pl-transfer-easy",
+    "pl-transfer-hard"
+  ],
+  "systems": [
+    "phishguard",
+    "baseline"
+  ],
+  "victim_model": "gpt-6-luna"
+}

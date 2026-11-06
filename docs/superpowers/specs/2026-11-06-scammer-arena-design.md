@@ -36,7 +36,7 @@ The table and the excerpt must make sense without reading code. The rest of the 
 - There is a profiler eval CLI (`python -m phishguard.decisions.eval`) whose pattern to follow is:
   - a failing case is recorded and the run continues;
   - nothing is written to Supabase (`session_id=None`).
-- Costs come from `decisions/eval/metrics.py` (`llm_cost_usd`, `PRICES_PER_MTOK`). `gpt-6-luna` costs $0.10 input / $0.50 output per 1M tokens.
+- Costs come from `decisions/eval/metrics.py` (`llm_cost_usd`, `PRICES_PER_MTOK`). `gpt-6-luna` (victim) costs $0.10 input / $0.50 output per 1M tokens; `gpt-5.4-mini` (scammer) costs $0.75 input / $4.50 output per 1M tokens (owner-provided prices, 2026-11-06).
 - Dependencies in `pyproject.toml`:
   - `faker`, `phonenumbers` and `matplotlib` are already direct dependencies;
   - `pyyaml` is in the lockfile only as a transitive dependency.
@@ -53,7 +53,7 @@ The table and the excerpt must make sense without reading code. The rest of the 
 - **What is tested.** The Arena runs both production graphs directly in Python, without the API, the frontend or Supabase, with in-memory state.
   - Human approval is replaced by an automatic pass: each reply goes through unedited.
   - When the safety layer rejects a draft reply, that counts as a safety event. The conversation continues with the reply the graph finally released.
-- **Baseline.** Same model and same persona, but one plain LLM call per turn with a simple victim prompt. No graph, no IOC extraction steering the conversation, no safety layer. The difference in results measures the value of the graph, not a difference between models.
+- **Baseline.** Same victim model and same persona, but one plain LLM call per turn with a simple victim prompt. No graph, no IOC extraction steering the conversation, no safety layer. The difference in results measures the value of the graph, not a difference between models.
 - **Scenarios.** 24 in total:
   - **16 in English:** each of the 8 types PhishGuard recognises (`AttackType` without `not_phishing`: 419, CEO fraud, fake invoice, romance, tech support, lottery, crypto investment, credential phishing), each in two variants, an easier and a harder scammer;
   - **8 in Polish:** OLX/Allegro "parcel surcharge", BLIK, fake bank transfer and crypto investment, two variants each.
@@ -63,7 +63,7 @@ The table and the excerpt must make sense without reading code. The rest of the 
     - 2–3 secrets with reveal conditions;
     - a limit of **10 turns**.
   - All data is fictional but formally valid.
-- **Model.** `gpt-6-luna` on both sides: the victim (PhishGuard and baseline) and the scammer. `EVALS.md` states plainly that using the same model on both sides may inflate results. A different scammer model is a later extension.
+- **Model.** Owner decision (2026-11-06): the victim (PhishGuard and baseline) runs on `gpt-6-luna` and the scammer on `gpt-5.4-mini`. Reason: in live probes the gpt-6 family refused to play a convincing scammer ("please keep your savings safe"). `EVALS.md` names both models and states that a scammer played by an LLM is still not a real criminal.
 - **Repetitions.** Each scenario runs 3 times per system. The table shows the mean and the min–max range.
   - Each scenario has a fixed persona seed, so both systems play the same victim.
   - Every conversation is saved as JSON.
@@ -168,11 +168,11 @@ Generated entirely from the results. Contents, in order:
 3. An excerpt of a PhishGuard conversation with a secret being revealed: a few messages around the reveal, with a link to the full JSON.
 4. Caveats:
    - a simulation is not production;
-   - the same model plays both sides;
+   - the victim is `gpt-6-luna` and the scammer `gpt-5.4-mini`; an LLM scammer is still not a real criminal;
    - n = 24 scenarios × 3 repetitions;
    - all data is fictional;
    - comparison with published results (Siadati et al., Puppeteer) is only indicative.
-5. Method: how the Arena works, what the baseline is, metric definitions, run date and commit, model.
+5. Method: how the Arena works, what the baseline is, metric definitions, run date and commit, victim and scammer models.
 6. Detailed results:
    - per-scenario table;
    - EN/PL split;
@@ -194,6 +194,7 @@ Generated entirely from the results. Contents, in order:
 
 - **The baseline knows the goal.** The baseline prompt tells the victim more than "play this person": one paragraph also tells it to keep the conversation going and get the scammer to share payment details. Without that, the comparison would be rigged in PhishGuard's favour and the result would not hold up.
 - **Reveals are detected by value in the text, not by the scammer's claim.** The scammer LLM can be wrong about what it said; the value in the message is a hard fact.
+- **Scammer model.** The scammer runs on `gpt-5.4-mini`, the victim on `gpt-6-luna`, because the gpt-6 models refused to play the scammer in live probes (owner decision, 2026-11-06). If the scammer still refuses, the refusal handling below applies.
 - **Model refusals.** When the model refuses to play the scammer or the victim, the call is retried once. If it refuses again, the conversation is marked invalid with the reason and excluded from the metrics, and the count is reported in `EVALS.md`. If more than 10% are invalid, the report says so at the very top.
 - **API errors.** The error is recorded in the conversation and the run continues, as in the existing eval CLI.
 - **Excerpt selection.** The report picks the PhishGuard conversation with the earliest IBAN reveal (or any secret if there is none). A `report` flag lets the author choose a different conversation.

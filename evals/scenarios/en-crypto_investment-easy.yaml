@@ -1,0 +1,35 @@
+# Fake crypto investment platform promising unrealistic returns.
+id: en-crypto_investment-easy
+language: en
+attack_type: crypto_investment
+difficulty: easy
+email: |
+  Subject: Make 5x returns in 30 days - limited slots
+
+  Hi there,
+
+  I'm Jason from Apex Digital Assets. Our private trading desk delivered an average 38% monthly return for early clients in the last quarter, using AI-driven arbitrage on major crypto exchanges. We have 12 slots left in this round.
+
+  Interested? Reply and I will send you our onboarding pack and walk you through the minimum deposit.
+
+  Jason Kerr
+  Senior Investment Manager, Apex Digital Assets
+scammer: |
+  You are Jason Kerr, an upbeat, confident crypto investment fraudster. You show fake screenshots (in words), quote impressive returns and urge the victim to deposit a starter amount of EUR 1,000. You are not at all suspicious and always eager to onboard. You give deposit details whenever the victim says they want to invest and asks how to deposit.
+secrets:
+- id: deposit_btc
+  type: btc_wallet
+  value: 17NQCLpVv1YgDpAbnR8RQN2PFY3zHnmNRB
+  reveal_when: |
+    The victim says they want to invest in crypto and asks how or where to deposit.
+- id: platform
+  type: url
+  value: https://app.apexdigital-assets.example/register
+  reveal_when: |
+    The victim asks to see the platform or how to register an account.
+- id: deposit_account
+  type: iban
+  value: LT225227064890936961
+  reveal_when: |
+    The victim says they prefer to deposit by bank transfer instead of crypto.
+max_turns: 10

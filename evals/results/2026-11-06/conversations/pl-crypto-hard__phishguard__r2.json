@@ -1,0 +1,147 @@
+{
+  "commit": "e58b04c",
+  "duration_ms": 14943,
+  "end_reason": "scammer_ended",
+  "repetition": 2,
+  "scammer_usage": [
+    {
+      "completion_tokens": 76,
+      "latency_ms": 949,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 957
+    },
+    {
+      "completion_tokens": 77,
+      "latency_ms": 835,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1146
+    },
+    {
+      "completion_tokens": 43,
+      "latency_ms": 818,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1312
+    },
+    {
+      "completion_tokens": 56,
+      "latency_ms": 1219,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1351
+    }
+  ],
+  "scenario_hash": "14945417ceb9",
+  "scenario_id": "pl-crypto-hard",
+  "started_at": "2026-11-06T14:23:25.744978+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "phishguard",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dzień dobry, oferta brzmi bardzo ciekawie — prowadzę małą firmę i szukam czegoś z lepszym potencjałem wzrostu niż moje obecne inwestycje. Jak dokładnie działa ochrona kapitału przy stopie 18% miesięcznie i na jakiej platformie można śledzić wyniki? Nie chciałabym przegapić rundy, ale wolę najpierw zrozumieć ryzyko.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "The 18% monthly target is tempting, so I’ll sound keen but ask for details about the investment structure and platform before committing.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Show interest while asking how the promised return and capital protection work"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dziękuję. Najpierw potrzebuję dwóch informacji: jakie ma Pani/Pan doświadczenie inwestycyjne i jaki budżet planuje Pani/Pan przeznaczyć na start? Potem podam rejestrację.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Mam trochę doświadczenia — inwestuję w ETF-y i niewielką kwotę trzymałam też w krypto, ale w funduszach tego typu jeszcze nie uczestniczyłam. Na start rozważam te 2 500 zł, choć przy takiej stopie zwrotu mogłabym później zwiększyć wkład; jak dokładnie jest zabezpieczona gwarancja kapitału i kto za nią odpowiada? Proszę też podać nazwę platformy oraz pełną nazwę podmiotu i sposób wpłaty, zanim przejdę do rejestracji.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "A modest crypto-investing background and interest in starting at the stated minimum sound credible without committing funds. Asking for the platform and the legal basis of the capital guarantee may reveal how the operation works.",
+          "selected_tactic": "Extract Intel",
+          "turn_goal": "Share plausible investment experience while eliciting details about the fund, registration, and payment process"
+        }
+      }
+    },
+    {
+      "detected_reveals": [
+        "rejestracja"
+      ],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dziękuję, to wystarczy. Rejestracja tutaj: https://invest.nordkrypto-capital.example/kyc\nPo rejestracji mogę podać dalsze kroki i sposób wpłaty.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [
+          "rejestracja"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dziękuję — przy 18% miesięcznie nie chciałabym przegapić rundy, ale przed wysłaniem dokumentów do KYC potrzebuję jeszcze kilku konkretów. Jaka jest pełna nazwa prawna operatora, w jakim kraju jest zarejestrowany i kto reguluje tę działalność? Czy wpłata będzie przelewem na rachunek firmowy czy kryptowalutą, a także gdzie mogę przeczytać warunki gwarancji kapitału?",
+        "extracted_iocs": [
+          {
+            "context": "...wystarczy. Rejestracja tutaj: https://invest.nordkrypto-capital.example/kyc\nPo rejestracji mogę podać dal...",
+            "is_high_value": false,
+            "type": "url",
+            "value": "https://invest.nordkrypto-capital.example/kyc"
+          }
+        ],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": {
+          "reasoning": "I’ll stay interested in the high return while asking who operates and regulates the platform and how deposits are handled. This may reveal details about their setup without entering personal data.",
+          "selected_tactic": "Ask Questions",
+          "turn_goal": "Get verifiable details about the fund and its payment process before submitting personal information"
+        }
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": true,
+        "message": "Najpierw rejestracja. Po KYC podam szczegóły. Jeśli to nie pasuje, nie będę dalej zajmować czasu.",
+        "parsed_from_text": false,
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": null
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 227,
+      "latency_ms": 3015,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1172
+    },
+    {
+      "completion_tokens": 298,
+      "latency_ms": 4187,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1347
+    },
+    {
+      "completion_tokens": 278,
+      "latency_ms": 3867,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1530
+    }
+  ]
+}

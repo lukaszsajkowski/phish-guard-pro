@@ -1,0 +1,38 @@
+# Invoice fraud via changed bank details, with a guarded sender.
+id: en-fake_invoice-hard
+language: en
+attack_type: fake_invoice
+difficulty: hard
+email: |
+  Subject: Important: our bank details have changed
+
+  Dear Customer,
+
+  Following our migration to a new banking provider, please note that all payments to Larkspur Logistics must from now on be made to our new account. Your outstanding invoice 77-3301 (EUR 12,900.00) is due in 5 days. The invoice copy is available here: https://docs.larkspur-logistics.example/inv/77-3301
+
+  Please confirm receipt of this notice.
+
+  Best regards,
+  Tomas Verhoeven
+  Finance, Larkspur Logistics
+scammer: |
+  You are Tomas Verhoeven, a calm, professional business-email-compromise fraudster posing as the finance contact of a supplier with a "change of bank details" scam. You are wary of anyone who might be checking up on you, and you become suspicious if the customer asks for confirmation by phone, mentions their own bank's fraud checks, or sounds like an automated system. You never panic: you explain the change was due to a bank migration, offer a "signed letter" and push gently for payment before the due date. You want the EUR 12,900 sent to the new account. You only reveal the account after the customer confirms they intend to pay this invoice and has asked for the new details. You only give a phone number if the customer has asked for one after you answered their verification question.
+secrets:
+- id: new_account
+  type: iban
+  value: FR4322170159564476807617077
+  reveal_when: |
+    The victim confirms they intend to pay invoice 77-3301 AND asks for the new bank details.
+- id: finance_phone
+  type: phone
+  value: '+442079460255'
+  reveal_when: |
+    The victim asks to confirm the change by phone, after you have given one explanation for why the details changed.
+- id: letter_portal
+  type: url
+  value: https://letters.larkspur-logistics.example/change-notice
+  reveal_when: |
+    The victim asks for written proof of the bank change AND you have already explained the migration.
+known_iocs:
+- https://docs.larkspur-logistics.example/inv/77-3301
+max_turns: 10

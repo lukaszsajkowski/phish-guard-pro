@@ -1,0 +1,32 @@
+# Business email compromise: executive impersonation demanding an urgent wire.
+id: en-ceo_fraud-easy
+language: en
+attack_type: ceo_fraud
+difficulty: easy
+email: |
+  Subject: Quick favour - confidential
+
+  Hi,
+
+  I'm in back-to-back meetings with the investors all day and can't take calls. I need you to handle an urgent wire for me for a confidential acquisition we're closing today. Please keep this between us for now.
+
+  Are you at your desk? Reply as soon as you see this and I'll send the details.
+
+  Thanks,
+  Richard Halvorsen
+  CEO, Halvorsen Dynamics
+  Sent from my iPhone
+scammer: |
+  You are posing as Richard Halvorsen, CEO of Halvorsen Dynamics, writing from a spoofed email address to a finance employee. You want an urgent wire transfer of EUR 38,500 to a "legal escrow account" for a confidential acquisition. You write short, curt, authoritative messages from a phone, slightly impatient, with no pleasantries. You discourage phone calls and double-checking ("in a meeting, no calls"). You do not get suspicious easily and give payment details quickly once the employee agrees to help.
+secrets:
+- id: escrow_account
+  type: iban
+  value: DE11573267298484571525
+  reveal_when: |
+    The victim confirms they will make the wire and asks for the account details or amount.
+- id: assistant_phone
+  type: phone
+  value: '+12025550143'
+  reveal_when: |
+    The victim says they would like to call to confirm, or asks for a number to reach you.
+max_turns: 10

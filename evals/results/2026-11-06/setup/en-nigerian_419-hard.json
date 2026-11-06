@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "nigerian_419",
+    "classification_time_ms": 1825,
+    "confidence": 88.0,
+    "decision_source": "llm",
+    "reasoning": "Claims the recipient may inherit or claim a large unclaimed settlement, applies time pressure with a closing legal period, and requests personal details to begin the release process—classic advance-fee fraud indicators."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 82,
+    "background": "Former factory worker, enjoys gardening and church activities",
+    "name": "Wanda Jackson",
+    "persona_type": "naive_retiree",
+    "style_description": "Trusting and polite, uses formal language. Easily confused by technology and modern terms. Eager to help and quick to believe in good intentions."
+  },
+  "scenario_id": "en-nigerian_419-hard",
+  "usage": [
+    {
+      "completion_tokens": 118,
+      "latency_ms": 1826,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1120
+    }
+  ]
+}

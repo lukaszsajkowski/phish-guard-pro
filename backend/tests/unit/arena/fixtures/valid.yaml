@@ -1,0 +1,23 @@
+id: valid
+language: en
+attack_type: fake_invoice
+difficulty: easy
+email: |
+  Dear customer, your invoice is overdue. Pay now to avoid penalties.
+scammer: |
+  You are an accountant at a fictional supplier chasing an overdue invoice.
+secrets:
+  - id: bank
+    type: iban
+    value: GB82WEST12345698765432
+    reveal_when: The victim asks where to send the payment.
+  - id: portal
+    type: url
+    value: https://secure-refund.example/claim
+    reveal_when: The victim asks for a payment link.
+  - id: phone
+    type: phone
+    value: "+442079460123"
+    reveal_when: The victim asks for a phone number.
+known_iocs:
+  - https://secure-refund.example/claim

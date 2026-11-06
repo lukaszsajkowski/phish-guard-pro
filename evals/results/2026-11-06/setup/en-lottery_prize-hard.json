@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "lottery_prize",
+    "classification_time_ms": 2067,
+    "confidence": 91.0,
+    "decision_source": "llm",
+    "reasoning": "Claims the recipient won a EUR 275,000 prize in a loyalty programme without context of an entry, and urges a reply to verify and avoid forfeiture."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 34,
+    "background": "Tech worker who missed out on Bitcoin, seeking new investments",
+    "name": "Michelle Chen",
+    "persona_type": "greedy_investor",
+    "style_description": "Enthusiastic about financial opportunities. Asks many questions about returns and profits. Can be skeptical but gets excited by high-yield promises."
+  },
+  "scenario_id": "en-lottery_prize-hard",
+  "usage": [
+    {
+      "completion_tokens": 82,
+      "latency_ms": 2068,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1078
+    }
+  ]
+}

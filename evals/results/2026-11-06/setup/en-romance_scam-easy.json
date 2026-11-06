@@ -1,0 +1,27 @@
+{
+  "classification": {
+    "attack_type": "romance_scam",
+    "classification_time_ms": 1796,
+    "confidence": 72.0,
+    "decision_source": "llm",
+    "reasoning": "Unsolicited romantic outreach from a stranger, a widowed backstory, and work on an oil platform abroad are common romance-scam setup signals; no money request appears yet."
+  },
+  "email_iocs": [],
+  "error": null,
+  "persona": {
+    "age": 72,
+    "background": "Retired nurse, has grandchildren in another state, lonely at times",
+    "name": "Michael Valenzuela",
+    "persona_type": "naive_retiree",
+    "style_description": "Trusting and polite, uses formal language. Easily confused by technology and modern terms. Eager to help and quick to believe in good intentions."
+  },
+  "scenario_id": "en-romance_scam-easy",
+  "usage": [
+    {
+      "completion_tokens": 128,
+      "latency_ms": 1797,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1110
+    }
+  ]
+}

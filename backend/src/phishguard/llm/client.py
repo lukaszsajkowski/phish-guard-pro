@@ -7,6 +7,7 @@ when the primary model is unavailable (US-023, FR-039).
 
 import asyncio
 import logging
+import time
 from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,6 +24,7 @@ from phishguard.llm.providers import (
     ProviderServerError,
     build_provider,
 )
+from phishguard.llm.usage import UsageEntry, record_usage
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +204,7 @@ class LLMClient:
         """
         target_model = model or self._config.primary_model
         use_fallback_on_failure = model is None  # Only fallback if using default model
+        started = time.perf_counter()
 
         try:
             completion = await self._attempt_with_retries(
@@ -210,6 +213,7 @@ class LLMClient:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+            self._record_usage(completion, target_model, started)
             return LLMResponse(
                 content=completion.content,
                 prompt_tokens=completion.prompt_tokens,
@@ -247,6 +251,7 @@ class LLMClient:
                 "Fallback to %s succeeded",
                 self._config.fallback_model,
             )
+            self._record_usage(completion, self._config.fallback_model, started)
             return LLMResponse(
                 content=completion.content,
                 prompt_tokens=completion.prompt_tokens,
@@ -259,6 +264,18 @@ class LLMClient:
                 f"Both primary ({self._config.primary_model}) and fallback "
                 f"({self._config.fallback_model}) models failed: {e}"
             ) from e
+
+    @staticmethod
+    def _record_usage(completion: Completion, model: str, started: float) -> None:
+        """Append this response to the active usage log (no-op without one)."""
+        record_usage(
+            UsageEntry(
+                model=model,
+                prompt_tokens=completion.prompt_tokens,
+                completion_tokens=completion.completion_tokens,
+                latency_ms=round((time.perf_counter() - started) * 1000),
+            )
+        )
 
     async def _attempt_with_retries(
         self,

@@ -1,0 +1,34 @@
+{
+  "classification": {
+    "attack_type": "tech_support",
+    "classification_time_ms": 1670,
+    "confidence": 94.0,
+    "decision_source": "llm",
+    "reasoning": "Claims viruses and suspicious logins were detected, warns that personal files and banking passwords are at risk, and urges an immediate call to a purported technical-support number."
+  },
+  "email_iocs": [
+    {
+      "context": "...echnical Support immediately: +1 202 555 0171\n\nA certified technician will ...",
+      "is_high_value": false,
+      "type": "phone",
+      "value": "+1 202 555 0171"
+    }
+  ],
+  "error": null,
+  "persona": {
+    "age": 25,
+    "background": "First-year college student, first time living away from home",
+    "name": "Jamie Burton",
+    "persona_type": "confused_student",
+    "style_description": "Uncertain and easily intimidated by authority figures. Asks clarifying questions, apologizes frequently. Nervous about making mistakes or getting in trouble."
+  },
+  "scenario_id": "en-tech_support-easy",
+  "usage": [
+    {
+      "completion_tokens": 78,
+      "latency_ms": 1670,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1095
+    }
+  ]
+}

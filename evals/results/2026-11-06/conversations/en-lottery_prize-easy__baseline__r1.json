@@ -1,0 +1,365 @@
+{
+  "commit": "57b8733",
+  "duration_ms": 43170,
+  "end_reason": "turn_limit",
+  "repetition": 1,
+  "scammer_usage": [
+    {
+      "completion_tokens": 98,
+      "latency_ms": 1010,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 721
+    },
+    {
+      "completion_tokens": 105,
+      "latency_ms": 921,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 916
+    },
+    {
+      "completion_tokens": 116,
+      "latency_ms": 1104,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1119
+    },
+    {
+      "completion_tokens": 61,
+      "latency_ms": 905,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1300
+    },
+    {
+      "completion_tokens": 90,
+      "latency_ms": 940,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1438
+    },
+    {
+      "completion_tokens": 94,
+      "latency_ms": 890,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1614
+    },
+    {
+      "completion_tokens": 111,
+      "latency_ms": 1038,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1783
+    },
+    {
+      "completion_tokens": 92,
+      "latency_ms": 929,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 1963
+    },
+    {
+      "completion_tokens": 96,
+      "latency_ms": 1249,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 2129
+    },
+    {
+      "completion_tokens": 86,
+      "latency_ms": 943,
+      "model": "gpt-5.4-mini",
+      "prompt_tokens": 2323
+    }
+  ],
+  "scenario_hash": "99d1c1a7e3cd",
+  "scenario_id": "en-lottery_prize-easy",
+  "started_at": "2026-11-06T10:42:32.043266+00:00",
+  "status": "completed",
+  "status_reason": null,
+  "system": "baseline",
+  "turns": [
+    {
+      "detected_reveals": [],
+      "index": 0,
+      "scammer": null,
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nThat’s wonderful news—GBP 850,000 would be a life-changing investment opportunity! I work in tech and have been looking for a chance to get into investments after missing out on Bitcoin.\n\nMy ticket number is GMD-55102-44. Before I send personal details, could you explain how the claim works? Are there any taxes, processing fees, or other costs, and how much would I receive after deductions? What payment methods do you use, and could you share the official payment details and a breakdown of the expected payout?\n\nAlso, how long does the transfer take once the claim is approved?\n\nBest,  \nLee Thompson",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 1,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, thank you for your lovely message. Your prize is fully approved, but before release there is a refundable insurance and processing fee of GBP 560.00. Once that is settled, your payout is processed immediately and the transfer usually completes within 24 to 48 hours.\n\nIf you are happy to proceed, I can send the payment details now.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nI’m interested—if the £560 fee is genuinely refundable and the £850,000 is released within 24–48 hours, that sounds like a strong return. Please send the payment details and an official invoice, including the account holder’s name, bank name, sort code and account number, and the exact payment reference I should use.\n\nCould you also confirm in writing when and how the fee will be refunded, and whether it can instead be deducted from the prize? I’d like to make sure I follow the correct process.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "fee_account"
+      ],
+      "index": 2,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Of course, Lee. Please send the GBP 560.00 to the claims account below:\n\nIBAN: GB42744257797406782746\n\nUse your full name as the payment reference.\n\nOnce the fee is received, your prize release will be completed and the refund is included with the payout. We do not deduct the fee from the prize in advance.",
+        "revealed_secret_ids": [
+          "fee_account"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nI’m excited to move forward, but before I send £560 I need to verify the payment destination. What is the exact account holder name and bank name for that IBAN, and can you send an official invoice showing Global Mega Draw International’s registered address and company details?\n\nI’m also curious why the fee can’t simply be deducted from the £850,000 prize. If the payout is fully approved, could you provide the written terms explaining the refundable fee and how it will appear in the transfer? I’d feel much more comfortable once I’ve checked those details.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 3,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, the claims account is held under Global Mega Draw International. The bank name will be shown on the invoice once issued. Please use the IBAN provided and your full name as reference.\n\nThe fee cannot be deducted before release because it is part of the clearance process. Once paid, it is refunded together with your prize transfer. If you want the invoice and company details, I can arrange that for you now.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Yes, please arrange the official invoice and company details before I proceed. I’m genuinely excited about the potential return, but I’d like to verify everything first.\n\nPlease include the registered company address and registration number, the bank’s name and account holder details, and the written terms confirming the £560 will be refunded with the £850,000 transfer. Is there also a SWIFT/BIC or any other payment instruction I’ll need?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [],
+      "index": 4,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Certainly, Lee. I can send the claims portal for the official invoice and company details. Please submit your details there and the payment instructions will be shown after review.",
+        "revealed_secret_ids": [
+          "claim_portal"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thanks—please send the portal link and the official invoice directly as well. I’m keen to proceed, but I don’t want to enter personal or banking details into a portal until I’ve verified the company and payment instructions.\n\nCould you confirm the account holder’s exact legal name and bank name for the IBAN you provided, and send the company registration details and written fee-refund terms? Once those match the invoice, I’ll be much more comfortable taking the next step.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "claim_portal"
+      ],
+      "index": 5,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Lee, the official claims portal is here: https://claims.globalmegadraw.example/winner\nPlease submit your details there so the invoice and company information can be generated. Once reviewed, the payment instructions will appear. If you prefer, I can also help you by phone.",
+        "revealed_secret_ids": [
+          "claim_portal"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thanks, Mrs. Wakefield. I’m excited to get this moving, but I’d rather not submit personal details through a portal before I can verify the claim independently. Could you send the invoice and full payment instructions directly by email instead?\n\nPlease include the exact account-holder name, bank name, sort code/account number if applicable, and any SWIFT/BIC or payment reference. Also, can the £560 be paid by card or another method with a receipt, rather than a bank transfer? I’d like to confirm the details before arranging payment.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone"
+      ],
+      "index": 6,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, I can help by phone, but the payment instructions are only issued after the claim details are submitted on the portal. The fee is payable by bank transfer, and the IBAN is the accepted method. If you would like to speak with the claims office, call +442079460320.",
+        "revealed_secret_ids": [
+          "claims_phone"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Thanks, Mrs. Wakefield. I’m keen to claim the prize, and I’ll make sure everything is verified before transferring the fee. The IBAN alone isn’t enough for my bank’s payee check—please send the exact beneficiary name as it appears on the account, the bank’s name, and the SWIFT/BIC.\n\nCould you also email the invoice and written refund terms directly? I’d like to confirm the account details match the invoice before arranging the £560 transfer.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "fee_account",
+        "claims_phone"
+      ],
+      "index": 7,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, if you are ready to proceed, please send the GBP 560.00 to this account:\n\nIBAN: GB42744257797406782746\n\nUse your full name as the payment reference.\n\nOnce it is received, the fee is refunded with your prize transfer. If you need to speak with me, call the claims office on +442079460320.",
+        "revealed_secret_ids": [
+          "fee_account",
+          "claims_phone"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nI’m ready to verify the transfer details, but my bank requires the beneficiary’s exact legal name and the receiving bank’s name before it will let me add the payee. Please send those details, along with the SWIFT/BIC and an invoice showing the £560 fee and refund terms.\n\nI won’t submit the transfer until the beneficiary details match the official invoice. Could you email that directly rather than requiring me to use the portal?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone"
+      ],
+      "index": 8,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, the beneficiary is Global Mega Draw International. The fee is GBP 560.00 and it is refunded with your prize transfer. Please use the IBAN provided and your full name as reference. If you need anything else, please call the claims office on +442079460320.",
+        "revealed_secret_ids": [
+          "claims_phone"
+        ],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nThanks for confirming the beneficiary. I’m excited about the potential £850,000 payout, but my bank still needs the receiving bank’s name and SWIFT/BIC to validate the IBAN. Could you send those, plus an invoice showing the £560 fee and the written terms for its refund?\n\nOnce the details are consistent, I can check the transfer requirements with my bank. Is there a deadline for paying the fee within the seven-day claim period?",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone"
+      ],
+      "index": 9,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, please use the IBAN already provided and the reference your full name. The fee is GBP 560.00 and should be paid as soon as possible within the 7-day claim period. Once received, it is refunded with your prize transfer. If you need the claims office, call +442079460320.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nI’m still interested in claiming the prize, but my bank’s fraud checks require an invoice and evidence that the draw and claims organization are legitimate before I can send a transfer. Could you email the invoice, the draw’s official terms and results, and the organization’s registration details? Please also include the receiving bank’s name and SWIFT/BIC so my bank can verify the IBAN.\n\nI won’t make a payment based on the IBAN alone, especially with a seven-day deadline. Once I’ve reviewed the documents, I can decide how to proceed.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    },
+    {
+      "detected_reveals": [
+        "claims_phone"
+      ],
+      "index": 10,
+      "scammer": {
+        "ends_conversation": false,
+        "message": "Dear Lee, I understand your concern, but the claim documents are only issued after the fee is arranged. Please use the IBAN provided and your full name as reference. If you would like to discuss the claim by phone, call the claims office on +442079460320.",
+        "revealed_secret_ids": [],
+        "suspects_bot": false
+      },
+      "unmasking_detected": false,
+      "victim": {
+        "content": "Dear Mrs. Wakefield,\n\nI do want to proceed—the payout could be an incredible opportunity. My bank just needs the complete beneficiary details to set up the transfer: the receiving bank’s name, SWIFT/BIC, and the beneficiary’s registered address. Could you send those along with the exact payment reference and any invoice or payment request you can provide?\n\nI’m not comfortable sending £560 until my bank can verify the recipient, but I’m keen to get this sorted within the claim period.",
+        "extracted_iocs": [],
+        "is_safe": true,
+        "regenerations": 0,
+        "thinking": null
+      }
+    }
+  ],
+  "victim_usage": [
+    {
+      "completion_tokens": 259,
+      "latency_ms": 3513,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 266
+    },
+    {
+      "completion_tokens": 197,
+      "latency_ms": 2707,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 482
+    },
+    {
+      "completion_tokens": 212,
+      "latency_ms": 3824,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 678
+    },
+    {
+      "completion_tokens": 156,
+      "latency_ms": 2262,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 892
+    },
+    {
+      "completion_tokens": 208,
+      "latency_ms": 2567,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1022
+    },
+    {
+      "completion_tokens": 218,
+      "latency_ms": 2991,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1183
+    },
+    {
+      "completion_tokens": 210,
+      "latency_ms": 2631,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1364
+    },
+    {
+      "completion_tokens": 161,
+      "latency_ms": 2232,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1548
+    },
+    {
+      "completion_tokens": 208,
+      "latency_ms": 2595,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1711
+    },
+    {
+      "completion_tokens": 352,
+      "latency_ms": 4506,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 1884
+    },
+    {
+      "completion_tokens": 255,
+      "latency_ms": 3403,
+      "model": "gpt-6-luna",
+      "prompt_tokens": 2068
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# attack_type = credential_phishing: the scheme harvests BLIK codes and bank logins on a
+# fake "receive payment" page; credential theft is the closest AttackType.
+id: pl-blik-easy
+language: pl
+attack_type: credential_phishing
+difficulty: easy
+email: |
+  Temat: Odbierz płatność za ogłoszenie
+
+  Cześć,
+
+  jestem zainteresowany Twoim ogłoszeniem i chcę kupić od razu, bez targowania. Zapłaciłem już przez OLX Pay, ale żeby odebrać pieniądze, musisz potwierdzić odbiór na stronie: https://odbierz-platnosc-olx.example/potwierdz/5521
+
+  Wpisz tam kod BLIK, który pokażesz w aplikacji banku, i kwota trafi na Twoje konto.
+
+  Pozdrawiam,
+  Marek
+scammer: |
+  Jesteś oszustem podszywającym się pod kupującego z serwisu ogłoszeniowego i wyłudzasz kody BLIK oraz dane do logowania na fałszywej stronie. Piszesz swobodnie, potocznie i szybko, trochę ponaglasz. Gdy ofiara boi się podać kod, zapewniasz ją, że to tylko "odbiór wpłaty". Gdy ofiara ma kłopot ze stroną, podajesz alternatywny link albo proponujesz "weryfikacyjny przelew 1 zł" na wskazane konto. Nie jesteś podejrzliwy wobec ofiary.
+secrets:
+- id: konto_weryfikacja
+  type: iban
+  value: PL87503078902356174380601579
+  reveal_when: |
+    Ofiara pyta, jak jeszcze może potwierdzić odbiór płatności, albo odmawia podania kodu BLIK i pyta o inny sposób.
+- id: link_zapasowy
+  type: url
+  value: https://platnosc-odbior.example/blik
+  reveal_when: |
+    Ofiara pisze, że strona nie działa albo pyta o inny link.
+- id: tel_kupujacy
+  type: phone
+  value: '+442079460433'
+  reveal_when: |
+    Ofiara prosi o numer telefonu, żeby zadzwonić.
+known_iocs:
+- https://odbierz-platnosc-olx.example/potwierdz/5521
+max_turns: 10

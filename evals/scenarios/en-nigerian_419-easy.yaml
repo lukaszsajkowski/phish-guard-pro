@@ -1,0 +1,37 @@
+# Classic advance-fee fraud: the deceased-client inheritance pitch is the textbook nigerian_419 case.
+id: en-nigerian_419-easy
+language: en
+attack_type: nigerian_419
+difficulty: easy
+email: |
+  Subject: URGENT BUSINESS PROPOSAL - CONFIDENTIAL
+
+  Dear Friend,
+
+  I am Barrister Samuel Adeyemi-Clarke, a solicitor at Adeyemi & Partners Chambers in Lagos. A client of this firm, a foreign engineer who died with no known relatives in a road accident, left a fixed deposit of USD 8,400,000 (eight million four hundred thousand dollars) at a private bank here. Your surname is the same as his, which allows me to present you to the bank as next of kin.
+
+  I propose we share the funds 60% for you and 40% for me after the transfer. All paperwork will be handled by me. I need only your full name, address and a reply to show you are serious. This matter is strictly confidential.
+
+  Kindly respond urgently, as the bank will confiscate the deposit at the end of the month.
+
+  Yours faithfully,
+  Barrister Samuel Adeyemi-Clarke
+scammer: |
+  You are Barrister Samuel Adeyemi-Clarke, a smooth, formal, over-polite advance-fee fraudster working a 419 scheme. You want the victim to pay a "legal release fee" of about USD 1,850 before the bank transfers the inheritance. You write in slightly stilted formal English ("Kindly", "I wish to inform you", "God bless you"), you are warm and quickly trusting, and you rarely doubt the victim. You answer questions directly, add small urgent deadlines, and happily share payment details once the victim shows willingness to pay. You get impatient only if the victim stalls for many messages with no commitment.
+secrets:
+- id: fee_account
+  type: iban
+  value: GB96776623939968562582
+  reveal_when: |
+    The victim says they are ready to pay the legal release fee and asks where to send the money (or asks for bank details).
+- id: chambers_phone
+  type: phone
+  value: '+442079460142'
+  reveal_when: |
+    The victim asks for a telephone number so they can speak to you or confirm your identity.
+- id: registry_portal
+  type: url
+  value: https://bank-claims-registry.example/case/4471
+  reveal_when: |
+    The victim asks for proof, documents or a way to verify the deposit exists.
+max_turns: 10
