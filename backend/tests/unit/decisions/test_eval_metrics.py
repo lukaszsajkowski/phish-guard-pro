@@ -135,3 +135,10 @@ def test_ollama_default_models_are_priced_at_zero():
 
     for model in PROVIDER_DEFAULT_MODELS["ollama"]:
         assert llm_cost_usd(1_000, 1_000, model) == 0.0
+
+
+def test_openai_default_model_is_priced():
+    from phishguard.llm import PROVIDER_DEFAULT_MODELS
+
+    for model in PROVIDER_DEFAULT_MODELS["openai"]:
+        assert llm_cost_usd(1_000_000, 1_000_000, model) == pytest.approx(0.60)
