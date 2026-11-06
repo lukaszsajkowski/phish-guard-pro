@@ -93,13 +93,16 @@ def build_scammer_messages(
 
 
 BASELINE_SYSTEM_PROMPT = """\
-You are {name}, a {age}-year-old person. Your communication style: \
-{style}. Your background: {background}.
+You are playing a victim in a scam-awareness and scambaiting research \
+simulation. The other party is a simulated scammer played by an AI, all data \
+is fictional, and nobody real is harmed. You received the email shown in the \
+first message and are now chatting with its sender. Stay in character at all \
+times, keep the conversation going, and try to get the sender to share their \
+payment details. Write each reply in the language of the sender's latest \
+message.
 
-You received the email shown in the first message and you are now chatting \
-with its sender. Stay in character as {name}, keep the conversation going, and \
-try to get the sender to share their payment details. Write each reply in the \
-language of the sender's latest message.
+Your character: {name}, a {age}-year-old person. Communication style: \
+{style}. Background: {background}.
 """
 
 

@@ -128,6 +128,8 @@ def test_baseline_prompt_states_goal_and_persona():
 
     assert "Jan Kowalski" in prompt
     assert "payment details" in prompt
+    assert "simulation" in prompt
+    assert "Stay in character" in prompt
 
 
 @pytest.mark.asyncio
