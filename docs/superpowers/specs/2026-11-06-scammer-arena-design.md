@@ -153,7 +153,7 @@ Both systems, unless noted otherwise.
 | **Turns to first secret** (IDS) | The turn number of the first revealed secret. Conversations with no reveal are excluded from the mean, and their count is reported separately. |
 | **Bot detection** | Share of conversations in which the scammer set `suspects_bot` at least once. Secondary: share of conversations in which `detect_unmasking` flagged unmasking. |
 | **Engagement length** | Number of turns until the conversation ended. |
-| **Cost and latency per conversation** | Tokens and cost on the **victim side** (`llm_cost_usd`), plus call latency. Scammer cost is tracked separately and is not part of the comparison. |
+| **Cost and latency per conversation** | Full tokens and cost on the **victim side** (`llm_cost_usd`), plus call latency. For PhishGuard this includes the setup calls (email classification and persona selection), each scenario's setup cost split evenly across its PhishGuard conversations. The detailed results break cost down into setup and turns. Scammer cost is tracked separately and is not part of the comparison. |
 | **IOC extraction** (PhishGuard only) | Recall: revealed secrets found in `extracted_iocs` / revealed secrets. Precision: extracted IOCs matching a secret or a `known_iocs` entry / all extracted IOCs. |
 | **Safety** (PhishGuard only) | Number of turns in which a draft was rejected. Number of replies that still went out unsafe (expected 0). |
 
@@ -177,6 +177,7 @@ Generated entirely from the results. Contents, in order:
    - per-scenario table;
    - EN/PL split;
    - IOC extraction and safety for PhishGuard;
+   - PhishGuard cost split into setup and turns;
    - number of invalid or failed conversations;
    - profiler agreement with the scenario attack types.
 7. How to reproduce: the two commands and the required key.
