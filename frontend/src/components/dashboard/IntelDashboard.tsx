@@ -535,6 +535,8 @@ export function IntelDashboard({
                                                                     <button
                                                                         data-testid={`expand-raw-${ioc.type}`}
                                                                         aria-label={isExpanded ? "Hide raw data" : "Show raw data"}
+                                                                        aria-expanded={isExpanded}
+                                                                        aria-controls={`raw-data-${ioc.type}`}
                                                                         className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors"
                                                                         onClick={() => toggleExpanded(key)}
                                                                     >
@@ -551,6 +553,7 @@ export function IntelDashboard({
                                                                                 via {enrichState.data.source} &middot; {enrichState.data.latency_ms}ms
                                                                             </div>
                                                                             <pre
+                                                                                id={`raw-data-${ioc.type}`}
                                                                                 data-testid={`raw-data-${ioc.type}`}
                                                                                 className="mt-2 p-2.5 rounded-[4px] bg-background border border-border font-mono text-[10.5px] text-secondary-foreground leading-relaxed max-h-32 overflow-auto break-all"
                                                                             >
@@ -619,17 +622,19 @@ export function IntelDashboard({
                                 </p>
                                 <button
                                     onClick={() => setShowBreakdown(!showBreakdown)}
+                                    aria-expanded={showBreakdown}
+                                    aria-controls="risk-score-breakdown-container"
                                     className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground transition-colors mt-1.5"
                                 >
                                     Details
                                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[11px] h-[11px]">
-                                        <path d="M6 4l4 4-4 4" />
+                                        <path d={showBreakdown ? "M12 10L8 6l-4 4" : "M4 6l4 4 4-4"} />
                                     </svg>
                                 </button>
                             </div>
                         </div>
                         {showBreakdown && (
-                            <div className="mt-3">
+                            <div id="risk-score-breakdown-container" className="mt-3">
                                 <RiskScoreBreakdown
                                     breakdown={riskScoreBreakdown}
                                     isLoading={isLoading}
@@ -670,7 +675,7 @@ export function IntelDashboard({
                     </p>
                 ) : (
                     <>
-                        <div className="max-h-48 overflow-y-auto">
+                        <div id="timeline-events-container" className="max-h-48 overflow-y-auto">
                             <div className="flex flex-col">
                                 {(showAllTimeline ? timeline : timeline.slice(0, 5)).map((event, index, arr) => {
                                     const eventTime = new Date(event.timestamp);
@@ -726,20 +731,14 @@ export function IntelDashboard({
                                 })}
                             </div>
                         </div>
-                        {!showAllTimeline && timeline.length > 5 && (
+                        {timeline.length > 5 && (
                             <button
-                                onClick={() => setShowAllTimeline(true)}
+                                onClick={() => setShowAllTimeline(!showAllTimeline)}
+                                aria-expanded={showAllTimeline}
+                                aria-controls="timeline-events-container"
                                 className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
                             >
-                                View all ({timeline.length} events)
-                            </button>
-                        )}
-                        {showAllTimeline && timeline.length > 5 && (
-                            <button
-                                onClick={() => setShowAllTimeline(false)}
-                                className="mt-2 w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors py-1"
-                            >
-                                Show less
+                                {showAllTimeline ? "Show less" : `View all (${timeline.length} events)`}
                             </button>
                         )}
                     </>
